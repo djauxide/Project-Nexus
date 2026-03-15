@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'docs/index.html'
       - 'backend/api/nexus-demo.html'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -26,10 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Prepare pages directory
+      - name: Prepare site
         run: |
           mkdir -p _site
-          cp backend/api/nexus-demo.html _site/index.html
+          # Use docs/index.html as the demo (kept in sync with nexus-demo.html)
+          cp docs/index.html _site/index.html
 
       - uses: actions/configure-pages@v4
 

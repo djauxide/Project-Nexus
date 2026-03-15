@@ -9,7 +9,8 @@ import { v4 as uuid } from 'uuid';
 
 const ROLE_PERMISSIONS: Record<Role, string[]> = {
   VIEWER:   ['GET_STATE'],
-  OPERATOR: ['GET_STATE', 'SWITCHER_CUT', 'SWITCHER_AUTO', 'SWITCHER_PVW', 'SWITCHER_TBAR'],
+  OPERATOR: ['GET_STATE', 'SWITCHER_CUT', 'SWITCHER_AUTO', 'SWITCHER_PVW', 'SWITCHER_TBAR',
+             'CEREBRUM_ROUTE', 'CEREBRUM_TALLY', 'CEREBRUM_MACRO_RUN', 'CEREBRUM_SALVO'],
   ENGINEER: ['*'],
   TRAINER:  ['*'],
 };
@@ -125,6 +126,71 @@ async function bootstrap() {
   // NMOS proxy
   fastify.get('/api/v1/nmos/health', async () => ({ status: 'healthy' }));
 
+  // ── Cerebrum BCS ─────────────────────────────────────────────────────────
+
+  // Router matrix — get all routes for a level
+  fastify.get('/api/v1/cerebrum/router/:level', async (req) => {
+    const { level } = req.params as { level: string };
+    return { level, routes: [], sources: 16, destinations: 12 };
+  });
+
+  // Router matrix — set a route
+  fastify.post('/api/v1/cerebrum/router/route', async (req) => {
+    const { level, src, dst } = req.body as { level: string; src: string; dst: string };
+    wsManager.broadcast({ type: 'CEREBRUM_ROUTE', level, src, dst, timestamp: Date.now() });
+    return { success: true, level, src, dst };
+  });
+
+  // Tally — get all tally states
+  fastify.get('/api/v1/cerebrum/tally', async () => ({ tallies: [] }));
+
+  // Tally — set tally state
+  fastify.post('/api/v1/cerebrum/tally', async (req) => {
+    const { source, state, bus } = req.body as { source: string; state: string; bus: string };
+    wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER', 'TRAINER'], {
+      type: 'CEREBRUM_TALLY', source, state, bus, timestamp: Date.now(),
+    });
+    return { success: true };
+  });
+
+  // Devices — list by protocol
+  fastify.get('/api/v1/cerebrum/devices/:protocol', async (req) => {
+    const { protocol } = req.params as { protocol: string };
+    return { protocol, devices: [] };
+  });
+
+  // Macros — list
+  fastify.get('/api/v1/cerebrum/macros', async () => ({ macros: [] }));
+
+  // Macros — execute
+  fastify.post('/api/v1/cerebrum/macros/:id/run', async (req) => {
+    const { id } = req.params as { id: string };
+    wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER'], {
+      type: 'CEREBRUM_MACRO_RUN', macroId: id, timestamp: Date.now(),
+    });
+    return { success: true, macroId: id };
+  });
+
+  // System health
+  fastify.get('/api/v1/cerebrum/health', async () => ({
+    status: 'healthy',
+    components: {
+      cerebrumServer: 'ok',
+      routerMatrix: 'ok',
+      tallyEngine: 'ok',
+      emberGateway: 'warn',
+      nmosRegistry: 'ok',
+      automationEngine: 'ok',
+    },
+  }));
+
+  // Alarms
+  fastify.get('/api/v1/cerebrum/alarms', async () => ({ alarms: [] }));
+  fastify.post('/api/v1/cerebrum/alarms/acknowledge', async (req) => {
+    const { id } = req.body as { id: string };
+    return { success: true, id };
+  });
+
   wsManager.startHeartbeat();
 
   await fastify.listen({ port: parseInt(process.env.API_PORT ?? '8080'), host: '0.0.0.0' });
@@ -153,6 +219,22 @@ async function handleMessage(msg: WsMessage, clientId: string, role: Role) {
       break;
     case 'GET_STATE':
       wsManager.send(clientId, { type: 'STATE', pgm: 1, pvw: 2, timestamp: Date.now() });
+      break;
+    case 'CEREBRUM_ROUTE':
+      wsManager.broadcast({ type: 'CEREBRUM_ROUTE', ...msg.payload, timestamp: Date.now() });
+      break;
+    case 'CEREBRUM_TALLY':
+      wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER', 'TRAINER'], {
+        type: 'CEREBRUM_TALLY', ...msg.payload, timestamp: Date.now(),
+      });
+      break;
+    case 'CEREBRUM_MACRO_RUN':
+      wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER'], {
+        type: 'CEREBRUM_MACRO_RUN', ...msg.payload, timestamp: Date.now(),
+      });
+      break;
+    case 'CEREBRUM_SALVO':
+      wsManager.broadcast({ type: 'CEREBRUM_SALVO', ...msg.payload, timestamp: Date.now() });
       break;
   }
 }

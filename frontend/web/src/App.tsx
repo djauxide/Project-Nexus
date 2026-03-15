@@ -4,12 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Multiviewer } from './views/Multiviewer';
 import { Switcher } from './views/Switcher';
+import { Cerebrum } from './views/Cerebrum';
 
 const queryClient = new QueryClient();
 
 const NAV_ITEMS = [
   { path: '/multiviewer', label: 'MOSAIC' },
   { path: '/switcher',    label: 'SWITCH' },
+  { path: '/cerebrum',    label: 'CEREBRUM' },
   { path: '/scopes',      label: 'SCOPE' },
   { path: '/audio',       label: 'SHUFFLE' },
   { path: '/replay',      label: 'REPLAY' },
@@ -66,6 +68,7 @@ function Layout() {
           <Route index element={<Navigate to="/multiviewer" replace />} />
           <Route path="/multiviewer" element={<Multiviewer />} />
           <Route path="/switcher"    element={<Switcher />} />
+          <Route path="/cerebrum"    element={<Cerebrum />} />
           <Route path="/scopes"      element={<Placeholder name="NEXUS SCOPE" />} />
           <Route path="/audio"       element={<Placeholder name="NEXUS SHUFFLE" />} />
           <Route path="/replay"      element={<Placeholder name="NEXUS REPLAY" />} />

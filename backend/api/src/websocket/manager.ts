@@ -52,6 +52,11 @@ export class WebSocketManager {
     }
   }
 
+  /** Broadcast Cerebrum events — operators and above */
+  broadcastCerebrum(message: unknown): void {
+    this.broadcastToRoles(['OPERATOR', 'ENGINEER', 'TRAINER'], message);
+  }
+
   broadcast(message: unknown): void {
     const msg = JSON.stringify(message);
     for (const client of this.clients.values()) {

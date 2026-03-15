@@ -49,3 +49,58 @@ export interface WsMessage {
   type: string;
   payload?: Record<string, unknown>;
 }
+
+// ── Cerebrum BCS types ────────────────────────────────────────────────────
+
+export type TallyState = 'pgm' | 'pvw' | 'off';
+export type AlarmSeverity = 'crit' | 'warn' | 'info' | 'ok';
+export type DeviceProtocol = 'ember' | 'nmos' | 'gvg' | 'probel' | 'sony9' | 'bvs';
+export type RouterLevel = 'V' | 'A' | 'D' | 'AES' | 'EMB';
+
+export interface RouterRoute {
+  level: RouterLevel;
+  dst: string;
+  src: string;
+  locked: boolean;
+  protected: boolean;
+}
+
+export interface TallyEntry {
+  source: string;
+  state: TallyState;
+  bus: string;
+  umdLabel: string;
+}
+
+export interface CerebrumDevice {
+  name: string;
+  type: string;
+  protocol: DeviceProtocol;
+  address: string;
+  status: 'ok' | 'warn' | 'err' | 'off';
+  info: string;
+}
+
+export interface Macro {
+  id: string;
+  name: string;
+  steps: number;
+  type: 'salvo' | 'macro';
+}
+
+export interface AlarmEntry {
+  id: string;
+  severity: AlarmSeverity;
+  message: string;
+  timestamp: string;
+  acknowledged: boolean;
+}
+
+export interface CerebrumState {
+  routes: RouterRoute[];
+  tallies: TallyEntry[];
+  devices: CerebrumDevice[];
+  macros: Macro[];
+  alarms: AlarmEntry[];
+  automationMode: 'manual' | 'semi' | 'full';
+}

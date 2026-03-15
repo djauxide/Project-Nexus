@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultMECount    = 4
+	defaultMECount    = 4  // backend supports 4 M/E banks; frontend exposes ME-1, ME-2, ME-3
 	defaultInputCount = 32
 	cutLatencyTarget  = 16 * time.Millisecond
 )

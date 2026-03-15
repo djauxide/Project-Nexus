@@ -77,6 +77,52 @@ input:focus,select:focus{border-color:var(--ac)}
 .tag.warn{background:rgba(255,209,102,.1);color:var(--ylw)}
 .sep{color:var(--bd2)}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+/* ── CEREBRUM BCS ── */
+.cb-tabs{display:flex;gap:0;border-bottom:1px solid var(--bd);margin-bottom:12px;flex-wrap:wrap}
+.cb-tab{padding:7px 14px;cursor:pointer;font-size:10px;color:var(--mu2);border-bottom:2px solid transparent;transition:all .15s;user-select:none;white-space:nowrap}
+.cb-tab:hover{color:var(--tx)}.cb-tab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.cb-panel{display:none}.cb-panel.on{display:block}
+.ucp-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:10px}
+.ucp-btn{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--bd2);border-radius:4px;cursor:pointer;font-size:8px;color:var(--mu2);text-align:center;padding:4px;transition:all .15s;user-select:none}
+.ucp-btn:hover{border-color:var(--ac);color:var(--tx)}
+.ucp-btn.active{background:rgba(0,180,216,.15);border-color:var(--ac);color:var(--ac)}
+.ucp-btn.pgm{background:rgba(239,35,60,.2);border-color:var(--red);color:var(--red)}
+.ucp-btn.pvw{background:rgba(6,214,160,.15);border-color:var(--grn);color:var(--grn)}
+.ucp-btn.salvo{background:rgba(255,209,102,.1);border-color:var(--ylw);color:var(--ylw)}
+.ucp-btn.macro{background:rgba(123,45,139,.2);border-color:#c084fc;color:#c084fc}
+.ucp-lbl{font-size:7px;margin-top:2px;color:var(--mu2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.ml-level-tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.ml-level-tab{padding:3px 12px;border-radius:3px;cursor:pointer;font-size:10px;background:var(--bg3);color:var(--mu2);border:1px solid var(--bd2);transition:all .15s}
+.ml-level-tab.on{background:var(--ac);color:#000;border-color:var(--ac)}
+.ml-xp-wrap{overflow:auto;max-height:calc(100vh - 280px)}
+.ml-xp{display:grid;gap:1px;background:var(--bd)}
+.ml-xp-cell{padding:3px 2px;background:var(--bg);text-align:center;font-size:9px;cursor:pointer;transition:background .1s;min-width:52px}
+.ml-xp-cell:hover{background:var(--bg3)}
+.ml-xp-cell.routed{background:rgba(0,180,216,.18);color:var(--ac);font-weight:bold}
+.ml-xp-cell.locked{background:rgba(239,35,60,.12);color:var(--red)}
+.ml-xp-cell.protected{background:rgba(255,209,102,.1);color:var(--ylw)}
+.ml-xp-hdr{padding:3px 6px;background:var(--bg2);font-size:9px;color:var(--mu2);text-align:center;font-weight:bold;white-space:nowrap}
+.umd-row{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg3);border-radius:3px;border:1px solid var(--bd);margin-bottom:4px}
+.umd-box{width:80px;height:22px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;border:1px solid var(--bd2);cursor:pointer;transition:all .15s}
+.umd-box.pgm{background:var(--red);color:#fff;border-color:var(--red)}
+.umd-box.pvw{background:var(--grn);color:#000;border-color:var(--grn)}
+.umd-box.off{background:var(--bg);color:var(--mu2)}
+.dev-ctrl-row{display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--bg3);border-radius:4px;border:1px solid var(--bd);margin-bottom:5px}
+.dev-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dev-status-dot.ok{background:var(--grn)}.dev-status-dot.warn{background:var(--ylw)}.dev-status-dot.err{background:var(--red)}.dev-status-dot.off{background:#333}
+.macro-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:3px;border:1px solid var(--bd);margin-bottom:4px}
+.macro-row .macro-name{flex:1;color:var(--tx);font-size:11px}
+.macro-row .macro-steps{color:var(--mu2);font-size:9px}
+.alarm-row{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:3px;margin-bottom:3px;font-size:10px}
+.alarm-row.crit{background:rgba(239,35,60,.1);border-left:3px solid var(--red)}
+.alarm-row.warn{background:rgba(255,209,102,.08);border-left:3px solid var(--ylw)}
+.alarm-row.info{background:rgba(0,180,216,.06);border-left:3px solid var(--ac)}
+.alarm-row.ok{background:rgba(6,214,160,.06);border-left:3px solid var(--grn)}
+.cb-badge{display:inline-block;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold;margin-left:4px}
+.cb-badge.live{background:rgba(239,35,60,.2);color:var(--red)}
+.cb-badge.ok{background:rgba(6,214,160,.15);color:var(--grn)}
+.cb-badge.warn{background:rgba(255,209,102,.1);color:var(--ylw)}
 </style></head><body>
 <div id="auth">
 <div class="abox">
@@ -113,6 +159,7 @@ input:focus,select:focus{border-color:var(--ac)}
 <div class="sbsec">ENGINEERING</div>
 <div class="sbi eng-only" id="sb-devices" onclick="sv('devices',this)"><span class="sbic">&#128225;</span><span class="sblb">DEVICES</span></div>
 <div class="sbi eng-only" id="sb-api" onclick="sv('api',this)"><span class="sbic">&#9889;</span><span class="sblb">API EXPLORER</span></div>
+<div class="sbi eng-only" id="sb-cerebrum" onclick="sv('cerebrum',this)"><span class="sbic">&#127760;</span><span class="sblb">CEREBRUM</span></div>
 <div class="sbi eng-only" id="sb-predeploy" onclick="sv('predeploy',this)"><span class="sbic">&#9989;</span><span class="sblb">PRE-DEPLOY</span></div>
 </div>
 <div class="sbft">
@@ -309,6 +356,144 @@ TX: <span class="tag live">LIVE</span> <span id="prod-tx">BBC ONE HD</span>
 <div id="gobanner" style="padding:14px 20px;border-radius:6px;font-size:14px;font-weight:bold;text-align:center;margin-top:12px;letter-spacing:2px;background:rgba(239,35,60,.1);border:2px solid rgba(239,35,60,.3);color:var(--red)">&#9940; NO-GO — Complete all checks</div>
 </div>
 </div>
+
+<div id="v-cerebrum" class="view">
+<div class="cb-tabs">
+<div class="cb-tab on" onclick="cbTab('ucp',this)">UCP PANEL</div>
+<div class="cb-tab" onclick="cbTab('mlrouter',this)">MULTILEVEL ROUTER</div>
+<div class="cb-tab" onclick="cbTab('tally',this)">TALLY / UMD</div>
+<div class="cb-tab" onclick="cbTab('devctrl',this)">DEVICE CONTROL</div>
+<div class="cb-tab" onclick="cbTab('macros',this)">MACROS</div>
+<div class="cb-tab" onclick="cbTab('automation',this)">AUTOMATION</div>
+<div class="cb-tab" onclick="cbTab('syshealth',this)">SYSTEM HEALTH</div>
+</div>
+
+<div id="cbp-ucp" class="cb-panel on">
+<div class="row" style="margin-bottom:10px;gap:8px;flex-wrap:wrap">
+<span style="color:var(--mu2);font-size:9px;text-transform:uppercase;letter-spacing:1px">UCP TYPE:</span>
+<button class="btn on" onclick="setUcpType('source',this)">SOURCE SELECT</button>
+<button class="btn" onclick="setUcpType('salvo',this)">SALVO</button>
+<button class="btn" onclick="setUcpType('macro',this)">MACRO</button>
+<button class="btn" onclick="setUcpType('tally',this)">TALLY MON</button>
+<span style="color:var(--bd2)">|</span>
+<span style="color:var(--mu2);font-size:9px">PAGE:</span>
+<button class="btn on" onclick="setUcpPage(1,this)">1</button>
+<button class="btn" onclick="setUcpPage(2,this)">2</button>
+<button class="btn" onclick="setUcpPage(3,this)">3</button>
+<button class="btn" onclick="setUcpPage(4,this)">4</button>
+<span style="color:var(--bd2)">|</span>
+<span style="color:var(--mu2);font-size:9px" id="ucp-status">32 buttons &bull; Page 1</span>
+</div>
+<div class="ucp-grid" id="ucp-grid"></div>
+<div class="card" style="margin-top:8px">
+<div class="card-title">SELECTED BUTTON CONFIG</div>
+<div id="ucp-config" style="color:var(--mu2);font-size:11px">Click a button to configure</div>
+</div>
+</div>
+
+<div id="cbp-mlrouter" class="cb-panel">
+<div class="row" style="margin-bottom:8px;gap:8px;flex-wrap:wrap">
+<span style="color:var(--mu2);font-size:9px;text-transform:uppercase;letter-spacing:1px">LEVEL:</span>
+<div class="ml-level-tabs" id="ml-level-tabs">
+<div class="ml-level-tab on" onclick="setMlLevel('V',this)">VIDEO</div>
+<div class="ml-level-tab" onclick="setMlLevel('A',this)">AUDIO</div>
+<div class="ml-level-tab" onclick="setMlLevel('D',this)">DATA</div>
+<div class="ml-level-tab" onclick="setMlLevel('AES',this)">AES67</div>
+<div class="ml-level-tab" onclick="setMlLevel('EMB',this)">EMBEDDED</div>
+</div>
+<span style="color:var(--bd2)">|</span>
+<button class="btn" onclick="mlProtect()">PROTECT</button>
+<button class="btn" onclick="mlLock()">LOCK</button>
+<button class="btn" onclick="mlForce()">FORCE ROUTE</button>
+<button class="btn" onclick="mlClearSel()">CLEAR SEL</button>
+<span style="color:var(--mu2);font-size:9px" id="ml-status">0 routes active</span>
+</div>
+<div class="ml-xp-wrap"><table id="ml-xp-table" style="border-collapse:collapse;font-size:9px"></table></div>
+</div>
+
+<div id="cbp-tally" class="cb-panel">
+<div class="row" style="margin-bottom:10px;gap:8px;flex-wrap:wrap">
+<span style="color:var(--mu2);font-size:9px;text-transform:uppercase;letter-spacing:1px">TALLY BUS:</span>
+<button class="btn on" onclick="setTallyBus('PGM',this)">PGM</button>
+<button class="btn" onclick="setTallyBus('PVW',this)">PVW</button>
+<button class="btn" onclick="setTallyBus('AUX1',this)">AUX 1</button>
+<button class="btn" onclick="setTallyBus('AUX2',this)">AUX 2</button>
+<span style="color:var(--bd2)">|</span>
+<button class="btn grn" onclick="tallyAll()">TALLY ALL</button>
+<button class="btn" onclick="tallyClear()">CLEAR</button>
+</div>
+<div id="umd-list" style="display:flex;flex-direction:column;gap:4px"></div>
+</div>
+
+<div id="cbp-devctrl" class="cb-panel">
+<div class="row" style="margin-bottom:10px;gap:8px;flex-wrap:wrap">
+<span style="color:var(--mu2);font-size:9px;text-transform:uppercase;letter-spacing:1px">PROTOCOL:</span>
+<button class="btn on" onclick="setDevProto('ember',this)">EMBER+</button>
+<button class="btn" onclick="setDevProto('nmos',this)">NMOS</button>
+<button class="btn" onclick="setDevProto('gvg',this)">GVG 7600</button>
+<button class="btn" onclick="setDevProto('probel',this)">PROBEL SW-P-08</button>
+<button class="btn" onclick="setDevProto('sony9',this)">SONY 9-PIN</button>
+<button class="btn" onclick="setDevProto('bvs',this)">BVS</button>
+<span style="color:var(--bd2)">|</span>
+<button class="btn grn" onclick="devCtrlScan()">SCAN NETWORK</button>
+</div>
+<div id="dev-ctrl-list" style="display:flex;flex-direction:column;gap:5px"></div>
+</div>
+
+<div id="cbp-macros" class="cb-panel">
+<div class="row" style="margin-bottom:10px;gap:8px;flex-wrap:wrap">
+<button class="btn grn" onclick="macroRecord()">&#9679; RECORD</button>
+<button class="btn red" onclick="macroStop()">&#9632; STOP</button>
+<button class="btn" onclick="macroNew()">+ NEW</button>
+<span style="color:var(--bd2)">|</span>
+<input id="macro-search" type="text" placeholder="Search macros..." style="width:180px" oninput="renderMacros()">
+<span style="color:var(--mu2);font-size:9px" id="macro-status">0 macros</span>
+</div>
+<div id="macro-list" style="display:flex;flex-direction:column;gap:4px"></div>
+</div>
+
+<div id="cbp-automation" class="cb-panel">
+<div class="card">
+<div class="card-title">AUTOMATION ENGINE</div>
+<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:wrap">
+<span style="color:var(--mu2);font-size:9px">MODE:</span>
+<button class="btn on" onclick="setAutoMode('manual',this)">MANUAL</button>
+<button class="btn" onclick="setAutoMode('semi',this)">SEMI-AUTO</button>
+<button class="btn" onclick="setAutoMode('full',this)">FULL AUTO</button>
+<span style="color:var(--bd2)">|</span>
+<span style="color:var(--mu2);font-size:9px">RUNDOWN:</span>
+<select id="auto-rundown" style="width:180px">
+<option>NEXUS LIVE EP.01</option>
+<option>MORNING SHOW</option>
+<option>SPORTS COVERAGE</option>
+</select>
+<button class="btn grn" onclick="autoLoad()">LOAD</button>
+</div>
+<div id="auto-timeline" style="background:var(--bg);border:1px solid var(--bd);border-radius:3px;padding:10px;min-height:80px;font-size:10px;color:var(--mu2)">
+No automation loaded. Select a rundown and click LOAD.
+</div>
+</div>
+<div class="card" style="margin-top:0">
+<div class="card-title">TRIGGER CONDITIONS</div>
+<div id="auto-triggers" style="display:flex;flex-direction:column;gap:4px"></div>
+<button class="btn" style="margin-top:8px" onclick="addAutoTrigger()">+ ADD TRIGGER</button>
+</div>
+</div>
+
+<div id="cbp-syshealth" class="cb-panel">
+<div class="col2">
+<div>
+<div class="card-title" style="margin-bottom:8px">SYSTEM STATUS</div>
+<div id="health-list" style="display:flex;flex-direction:column;gap:5px"></div>
+</div>
+<div>
+<div class="card-title" style="margin-bottom:8px">ALARM LOG</div>
+<div id="alarm-log" style="display:flex;flex-direction:column;gap:3px;max-height:300px;overflow-y:auto"></div>
+<button class="btn" style="margin-top:8px;width:100%" onclick="clearAlarms()">CLEAR ALARMS</button>
+</div>
+</div>
+</div>
+</div>
 <div id="sbar" style="background:var(--bg2);border-top:1px solid var(--bd);padding:4px 14px;display:flex;gap:16px;align-items:center;font-size:10px;color:var(--mu2);flex-shrink:0">
 <span><span class="dot g" id="sbptpdot"></span>PTP <span id="sbptp">LOCKED</span></span>
 <span style="color:var(--bd2)">|</span>
@@ -353,14 +538,14 @@ function doLogout(){SESS=null;document.getElementById("app").style.display="none
 function applyRole(){
   var r=SESS?SESS.role:"VIEWER";
   var isEng=r==="ENGINEER";
-  ["sb-devices","sb-api","sb-predeploy"].forEach(function(id){
+  ["sb-devices","sb-api","sb-predeploy","sb-cerebrum"].forEach(function(id){
     var el=document.getElementById(id);
     if(el){if(isEng)el.classList.add("unlocked");else el.classList.remove("unlocked");}
   });
   var canOp=r==="OPERATOR"||r==="ENGINEER"||r==="TRAINER";
   ["btn-cut","btn-auto","btn-ststart"].forEach(function(id){var el=document.getElementById(id);if(el){el.disabled=!canOp;el.style.opacity=canOp?"1":"0.35";}});
 }
-var TITLES={live:"ON AIR — Live Production",mosaic:"MOSAIC — Multiviewer",switch:"SWITCHER — Production Control",router:"ROUTER — Signal Matrix",cloud:"CLOUD / SRT — Media Transport",scope:"SCOPES — Signal Analysis",sync:"SYNC — PTP Clock",connect:"CONNECT — NMOS Devices",devices:"DEVICES — Broadcast Compatibility",api:"API EXPLORER — Engineering",predeploy:"PRE-DEPLOY — Checklist"};
+var TITLES={live:"ON AIR — Live Production",mosaic:"MOSAIC — Multiviewer",switch:"SWITCHER — Production Control",router:"ROUTER — Signal Matrix",cloud:"CLOUD / SRT — Media Transport",scope:"SCOPES — Signal Analysis",sync:"SYNC — PTP Clock",connect:"CONNECT — NMOS Devices",devices:"DEVICES — Broadcast Compatibility",api:"API EXPLORER — Engineering",cerebrum:"CEREBRUM — Broadcast Control System",predeploy:"PRE-DEPLOY — Checklist"};
 function sv(id,el){
   var r=SESS?SESS.role:"VIEWER";
   var perms=ROLE_PERMS[r]||[];

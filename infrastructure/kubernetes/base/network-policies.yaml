@@ -1,0 +1,48 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nexus-media-isolation
+  namespace: nexus-broadcast
+spec:
+  podSelector:
+    matchLabels:
+      broadcast-tier: media
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              broadcast-tier: control
+      ports:
+        - protocol: UDP
+          port: 5004   # RTP
+        - protocol: UDP
+          port: 319    # PTP event
+        - protocol: UDP
+          port: 320    # PTP general
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              broadcast-tier: media
+      ports:
+        - protocol: UDP
+          port: 5004
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nexus-api-policy
+  namespace: nexus-broadcast
+spec:
+  podSelector:
+    matchLabels:
+      app: nexus-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 8080

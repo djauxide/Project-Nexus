@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nexus-broadcast
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - api/deployment.yaml
+  - api/service.yaml
+  - router/daemonset.yaml
+  - switcher/deployment.yaml
+  - nmos/deployment.yaml
+  - nmos/service.yaml
+  - monitoring/servicemonitor.yaml
+  - network-policies.yaml

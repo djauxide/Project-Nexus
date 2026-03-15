@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nexus-router
+  namespace: nexus-broadcast
+  labels:
+    app: nexus-router
+spec:
+  selector:
+    matchLabels:
+      app: nexus-router
+  template:
+    metadata:
+      labels:
+        app: nexus-router
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        node-type: broadcast-router
+      tolerations:
+        - key: "broadcast-critical"
+          operator: "Exists"
+          effect: "NoSchedule"
+      initContainers:
+        - name: dpdk-setup
+          image: nexus-dpdk-init:latest
+          securityContext:
+            privileged: true
+          command:
+            - /bin/sh
+            - -c
+            - |
+              modprobe vfio-pci
+              echo 8 > /sys/kernel/mm/hugepages/hugepages-1048576kB/nr_hugepages
+          volumeMounts:
+            - name: sys
+              mountPath: /sys
+      containers:
+        - name: router
+          image: nexus-router:latest
+          securityContext:
+            privileged: true
+          env:
+            - name: NMOS_REGISTRY_URL
+              value: "http://nmos-registry:8010"
+            - name: PTP_DOMAIN
+              value: "0"
+          resources:
+            requests:
+              hugepages-1Gi: 8Gi
+              memory: "16Gi"
+              cpu: "8000m"
+            limits:
+              hugepages-1Gi: 8Gi
+              memory: "32Gi"
+              cpu: "16000m"
+          volumeMounts:
+            - name: hugepages
+              mountPath: /dev/hugepages
+            - name: sys
+              mountPath: /sys
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: hugepages
+          hostPath:
+            path: /dev/hugepages
+        - name: sys
+          hostPath:
+            path: /sys

@@ -1,0 +1,60 @@
+groups:
+  - name: broadcast-critical
+    interval: 10s
+    rules:
+      - alert: PTPOffsetCritical
+        expr: abs(nexus_ptp_offset_ns) > 100
+        for: 5s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PTP offset exceeded 100ns on {{ $labels.device }}"
+          description: "Current: {{ $value }}ns. Broadcast timing compromised."
+
+      - alert: PTPGrandmasterLost
+        expr: nexus_ptp_gm_present == 0
+        for: 2s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PTP Grandmaster lost — system on holdover"
+
+      - alert: ST2110PacketLoss
+        expr: rate(nexus_st2110_dropped_packets[5s]) > 0.001
+        for: 10s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Packet loss on flow {{ $labels.flow_id }}"
+
+      - alert: SwitcherCutLatencyHigh
+        expr: nexus_switcher_cut_latency_ms > 20
+        for: 5s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Switcher cut latency {{ $value }}ms exceeds 16ms target"
+
+      - alert: NMOSRegistryDown
+        expr: up{job="nmos-registry"} == 0
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "NMOS registry unreachable — device discovery impaired"
+
+      - alert: ReplayBufferLow
+        expr: nexus_replay_buffer_seconds < 30
+        for: 5s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Replay buffer below 30s on {{ $labels.unit }}"
+
+      - alert: RecordingStorageFull
+        expr: (nexus_recording_used_bytes / nexus_recording_total_bytes) > 0.85
+        for: 60s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Recording storage at {{ $value | humanizePercentage }}"

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-config
+  namespace: nexus-broadcast
+data:
+  NODE_ENV: "production"
+  API_PORT: "8080"
+  LOG_LEVEL: "info"
+  PTP_DOMAIN: "0"
+  ST2110_JITTER_BUFFER_MS: "5"
+  SWITCHER_ME_BANKS: "4"
+  SWITCHER_INPUTS: "32"
+  RECORDING_FORMAT: "prores422hq"
+  ENABLE_PRE_DEPLOY: "true"
+  ENABLE_TRAINING_MODE: "true"

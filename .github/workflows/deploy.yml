@@ -1,0 +1,75 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [staging, production]
+      version:
+        description: Version tag or SHA
+        required: true
+        default: latest
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment }}
+      url: https://nexus.control.studio
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.0"
+
+      - name: Terraform Init & Apply
+        run: |
+          cd infrastructure/terraform/environments/${{ github.event.inputs.environment }}
+          terraform init
+          terraform apply -auto-approve \
+            -var="version=${{ github.event.inputs.version }}"
+
+      - name: Update Kubernetes images
+        run: |
+          aws eks update-kubeconfig --name nexus-${{ github.event.inputs.environment }}
+          cd infrastructure/kubernetes/overlays/${{ github.event.inputs.environment }}
+          kustomize edit set image \
+            api=ghcr.io/${{ github.repository }}/api:${{ github.event.inputs.version }} \
+            switcher=ghcr.io/${{ github.repository }}/switcher:${{ github.event.inputs.version }} \
+            router=ghcr.io/${{ github.repository }}/router:${{ github.event.inputs.version }}
+          kustomize build . | kubectl apply --server-side -f -
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/nexus-api -n nexus-broadcast --timeout=300s
+          kubectl rollout status daemonset/nexus-router -n nexus-broadcast --timeout=300s
+
+      - name: Smoke tests
+        run: ./scripts/health-check.sh
+
+      - name: Notify
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#broadcast-ops'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

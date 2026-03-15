@@ -1,628 +1,1228 @@
-// NEXUS v4 — Cerebrum patch script
-// Reads nexus-demo.html, injects EVS Cerebrum BCS features, writes back
-const fs = require('fs'), path = require('path');
-const FILE = path.join(__dirname, 'nexus-demo.html');
-let html = fs.readFileSync(FILE, 'utf8');
+#!/usr/bin/env node
+'use strict';
+const fs = require('fs');
+const path = require('path');
 
-// ── 1. SIDEBAR: add Cerebrum after sb-predeploy ──────────────────────────
-if (!html.includes('id="sb-cerebrum"')) {
-  html = html.replace(
-    'id="sb-predeploy"',
-    'id="sb-predeploy"'
-  );
-  html = html.replace(
-    '<div class="sbi eng-only" id="sb-predeploy"',
-    '<div class="sbi eng-only" id="sb-cerebrum" onclick="sv(\'cerebrum\',this)"><span class="sbic">&#127760;</span><span class="sblb">CEREBRUM</span></div>\n<div class="sbi eng-only" id="sb-predeploy"'
-  );
-}
+// ─── helpers ──────────────────────────────────────────────────────────────────
+// All JS written as template-literal strings; we NEVER embed raw </script> or
+// backtick chars inside those strings — we use unicode escapes instead.
+// Backtick  → \u0060
+// </script> → <\/script>  (inside a JS string that is itself inside HTML)
 
-// ── 2. ROLE PERMS: add cerebrum to ENGINEER ──────────────────────────────
-html = html.replace(
-  '"predeploy"]}',
-  '"predeploy","cerebrum"]}'
-);
+function esc(s) { return s.replace(/`/g, '\\u0060'); }
 
-// ── 3. TITLES: add cerebrum title ────────────────────────────────────────
-html = html.replace(
-  'predeploy:"PRE-DEPLOY',
-  'cerebrum:"CEREBRUM \u2014 Broadcast Control System",predeploy:"PRE-DEPLOY'
-);
-
-// ── 4. ENG-ONLY unlock: add sb-cerebrum ──────────────────────────────────
-html = html.replace(
-  '["sb-devices","sb-api","sb-predeploy"]',
-  '["sb-devices","sb-api","sb-predeploy","sb-cerebrum"]'
-);
-
-// ── 5. CSS injection before </style></head> ──────────────────────────────
-const CEREBRUM_CSS = `
-/* ── CEREBRUM BCS ── */
-.cb-tabs{display:flex;gap:0;border-bottom:1px solid var(--bd);margin-bottom:12px;flex-wrap:wrap}
-.cb-tab{padding:7px 14px;cursor:pointer;font-size:10px;color:var(--mu2);border-bottom:2px solid transparent;transition:all .15s;user-select:none;white-space:nowrap}
-.cb-tab:hover{color:var(--tx)}.cb-tab.on{color:var(--ac);border-bottom-color:var(--ac)}
-.cb-panel{display:none}.cb-panel.on{display:block}
-.ucp-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:10px}
-.ucp-btn{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--bd2);border-radius:4px;cursor:pointer;font-size:8px;color:var(--mu2);text-align:center;padding:4px;transition:all .15s;user-select:none}
-.ucp-btn:hover{border-color:var(--ac);color:var(--tx)}
-.ucp-btn.active{background:rgba(0,180,216,.15);border-color:var(--ac);color:var(--ac)}
-.ucp-btn.pgm{background:rgba(239,35,60,.2);border-color:var(--red);color:var(--red)}
-.ucp-btn.pvw{background:rgba(6,214,160,.15);border-color:var(--grn);color:var(--grn)}
-.ucp-btn.salvo{background:rgba(255,209,102,.1);border-color:var(--ylw);color:var(--ylw)}
-.ucp-btn.macro{background:rgba(123,45,139,.2);border-color:#c084fc;color:#c084fc}
-.ucp-lbl{font-size:7px;margin-top:2px;color:var(--mu2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-.ml-level-tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
-.ml-level-tab{padding:3px 12px;border-radius:3px;cursor:pointer;font-size:10px;background:var(--bg3);color:var(--mu2);border:1px solid var(--bd2);transition:all .15s}
-.ml-level-tab.on{background:var(--ac);color:#000;border-color:var(--ac)}
-.ml-xp-wrap{overflow:auto;max-height:calc(100vh - 280px)}
-.ml-xp{display:grid;gap:1px;background:var(--bd)}
-.ml-xp-cell{padding:3px 2px;background:var(--bg);text-align:center;font-size:9px;cursor:pointer;transition:background .1s;min-width:52px}
-.ml-xp-cell:hover{background:var(--bg3)}
-.ml-xp-cell.routed{background:rgba(0,180,216,.18);color:var(--ac);font-weight:bold}
-.ml-xp-cell.locked{background:rgba(239,35,60,.12);color:var(--red)}
-.ml-xp-cell.protected{background:rgba(255,209,102,.1);color:var(--ylw)}
-.ml-xp-hdr{padding:3px 6px;background:var(--bg2);font-size:9px;color:var(--mu2);text-align:center;font-weight:bold;white-space:nowrap}
-.umd-row{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg3);border-radius:3px;border:1px solid var(--bd);margin-bottom:4px}
-.umd-box{width:80px;height:22px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;border:1px solid var(--bd2);cursor:pointer;transition:all .15s}
-.umd-box.pgm{background:var(--red);color:#fff;border-color:var(--red)}
-.umd-box.pvw{background:var(--grn);color:#000;border-color:var(--grn)}
-.umd-box.off{background:var(--bg);color:var(--mu2)}
-.dev-ctrl-row{display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--bg3);border-radius:4px;border:1px solid var(--bd);margin-bottom:5px}
-.dev-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dev-status-dot.ok{background:var(--grn)}.dev-status-dot.warn{background:var(--ylw)}.dev-status-dot.err{background:var(--red)}.dev-status-dot.off{background:#333}
-.macro-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:3px;border:1px solid var(--bd);margin-bottom:4px}
-.macro-row .macro-name{flex:1;color:var(--tx);font-size:11px}
-.macro-row .macro-steps{color:var(--mu2);font-size:9px}
-.alarm-row{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:3px;margin-bottom:3px;font-size:10px}
-.alarm-row.crit{background:rgba(239,35,60,.1);border-left:3px solid var(--red)}
-.alarm-row.warn{background:rgba(255,209,102,.08);border-left:3px solid var(--ylw)}
-.alarm-row.info{background:rgba(0,180,216,.06);border-left:3px solid var(--ac)}
-.alarm-row.ok{background:rgba(6,214,160,.06);border-left:3px solid var(--grn)}
-.cb-badge{display:inline-block;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:bold;margin-left:4px}
-.cb-badge.live{background:rgba(239,35,60,.2);color:var(--red)}
-.cb-badge.ok{background:rgba(6,214,160,.15);color:var(--grn)}
-.cb-badge.warn{background:rgba(255,209,102,.1);color:var(--ylw)}
+// ─── CSS ──────────────────────────────────────────────────────────────────────
+const CSS = `
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080808;color:#e0e0e0;font-family:'Courier New',monospace;font-size:12px}
+button{font-family:'Courier New',monospace;cursor:pointer}
+select,input{font-family:'Courier New',monospace}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#0f0f0f}
+::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
+#login-screen{position:fixed;inset:0;background:#080808;display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:#0f0f0f;border:1px solid #1e1e1e;border-top:2px solid #00b4d8;padding:40px;width:360px;border-radius:6px}
+.login-box h1{color:#00b4d8;font-size:18px;letter-spacing:3px;margin-bottom:4px}
+.login-box p{color:#555;font-size:10px;margin-bottom:24px}
+.login-box label{color:#888;font-size:10px;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+.login-box input,.login-box select{width:100%;background:#080808;border:1px solid #2a2a2a;color:#e0e0e0;padding:8px 10px;border-radius:3px;margin-bottom:14px;font-size:12px}
+.login-box button{width:100%;background:#00b4d8;color:#000;border:none;padding:10px;font-size:13px;font-weight:bold;border-radius:3px;letter-spacing:2px}
+.login-box .err{color:#ef233c;font-size:10px;margin-bottom:10px;display:none}
+#app{display:none;flex-direction:column;height:100vh}
+#topbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 12px;background:#0f0f0f;border-bottom:1px solid #1e1e1e}
+#topbar .logo{color:#00b4d8;font-weight:bold;font-size:13px;letter-spacing:3px;margin-right:8px}
+.nav-btn{padding:3px 10px;font-size:10px;border-radius:2px;border:1px solid #333;background:transparent;color:#888;transition:all .15s}
+.nav-btn.active{background:#00b4d8;color:#000;border-color:#00b4d8}
+#role-badge{margin-left:auto;font-size:9px;color:#555;padding:2px 8px;border:1px solid #1e1e1e;border-radius:8px}
+#main-content{flex:1;overflow:auto}
+.view{display:none;padding:12px;min-height:100%}
+.view.active{display:block}
+.panel{background:#0f0f0f;border:1px solid #1e1e1e;border-radius:6px;padding:14px;margin-bottom:10px}
+.panel-title{color:#00b4d8;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.tab-bar{display:flex;border-bottom:1px solid #1e1e1e;margin-bottom:14px;overflow-x:auto}
+.tab{padding:7px 14px;cursor:pointer;font-size:10px;color:#555;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab.active{color:#00b4d8;border-bottom-color:#00b4d8}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.btn{padding:3px 10px;font-size:10px;border-radius:3px;border:1px solid #2a2a2a;background:#161616;color:#888;cursor:pointer;transition:all .12s}
+.btn:hover{border-color:#00b4d8;color:#00b4d8}
+.btn-red{border-color:#ef233c;background:rgba(239,35,60,.1);color:#ef233c}
+.btn-grn{border-color:#06d6a0;background:rgba(6,214,160,.1);color:#06d6a0}
+.btn-ac{border-color:#00b4d8;background:rgba(0,180,216,.1);color:#00b4d8}
+.badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:8px;font-weight:bold}
+.badge-ok{background:rgba(6,214,160,.15);color:#06d6a0}
+.badge-warn{background:rgba(255,209,102,.1);color:#ffd166}
+.badge-crit{background:rgba(239,35,60,.15);color:#ef233c}
+.badge-info{background:rgba(0,180,216,.1);color:#00b4d8}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-ok{background:#06d6a0}.dot-warn{background:#ffd166}.dot-err{background:#ef233c}.dot-off{background:#333}
+table{border-collapse:collapse;font-size:9px}
+th,td{border:1px solid #1e1e1e;padding:3px 6px}
+th{background:#0f0f0f;color:#555;text-align:left}
+td{background:#080808}
+.me-bank{background:#0f0f0f;border:1px solid #1e1e1e;border-radius:6px;padding:12px;margin-bottom:10px}
+.src-btn{padding:3px 7px;font-size:9px;border-radius:2px;border:1px solid #1e1e1e;background:#0d0d0d;color:#333;cursor:pointer;transition:all .1s}
+.src-btn.pvw{background:#06d6a0;color:#000;border-color:#06d6a0}
+.src-btn.pgm{background:#ef233c;color:#fff;border-color:#ef233c}
+.src-row{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
+.progress-bar{height:4px;background:#1e1e1e;border-radius:2px;overflow:hidden;margin-bottom:8px}
+.progress-fill{height:100%;transition:width .04s linear}
+.rack-slot{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:3px;border:1px solid #1e1e1e;margin-bottom:2px;font-size:9px}
+.link-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0f0f0f;border-radius:4px;border:1px solid #1e1e1e;margin-bottom:6px}
+.alarm-row{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:3px;font-size:10px;margin-bottom:3px}
 `;
 
-if (!html.includes('CEREBRUM BCS')) {
-  html = html.replace('</style></head>', CEREBRUM_CSS + '</style></head>');
-}
-
-// ── 6. VIEW HTML: inject before <div id="sbar" ───────────────────────────
-const CEREBRUM_VIEW = `
-<div id="v-cerebrum" class="view">
-<div class="cb-tabs">
-<div class="cb-tab on" onclick="cbTab('ucp',this)">UCP PANEL</div>
-<div class="cb-tab" onclick="cbTab('mlrouter',this)">MULTILEVEL ROUTER</div>
-<div class="cb-tab" onclick="cbTab('tally',this)">TALLY / UMD</div>
-<div class="cb-tab" onclick="cbTab('devctrl',this)">DEVICE CONTROL</div>
-<div class="cb-tab" onclick="cbTab('macros',this)">MACROS</div>
-<div class="cb-tab" onclick="cbTab('automation',this)">AUTOMATION</div>
-<div class="cb-tab" onclick="cbTab('syshealth',this)">SYSTEM HEALTH</div>
-</div>
-
-<div id="cbp-ucp" class="cb-panel on">
-<div class="row" style="margin-bottom:10px;gap:8px;flex-wrap:wrap">
-<span style="color:var(--mu2);font-size:9px;text-transform:uppercase;letter-spacing:1px">UCP TYPE:</span>
-<button class="btn on" onclick="setUcpType('source',this)">SOURCE SELECT</button>
-<button class="btn" onclick="setUcpType('salvo',this)">SALVO</button>
-<button class="btn" onclick="setUcpType('macro',this)">MACRO</button>
-<button class="btn" onclick="setUcpType('tally',this)">TALLY MON</button>
-<span style="color:var(--bd2)">|</span>
-<span style="color:var(--mu2);font-size:9px">PAGE:</span>
-<button class="btn on" onclick="setUcpPage(1,this)">1</button>
-<button class="btn" onclick="setUcpPage(2,this)">2</button>
-<button class="btn" onclick="setUcpPage(3,this)">3</button>
-<button class="btn" onclick="setUcpPage(4,this)">4</button>
-<span style="color:var(--bd2)">|</span>
-<span style="color:var(--mu2);font-size:9px" id="ucp-status">32 buttons &bull; Page 1</span>
-</div>
-<div class="ucp-grid" id="ucp-grid"></div>
-<div class="card" style="margin-top:8px">
-<div class="card-title">SELECTED BUTTON CONFIG</div>
-<div id="ucp-config" style="color:var(--mu2);font-size:11px">Click a button to configure</div>
-</div>
-</div>
-
-<div id="cbp-mlrouter" class="cb-panel">
-<div class="row" style="margin-bottom:8px;gap:8px;flex-wrap:wrap">
-<span style="color:var(--mu2);font-size:9px;text-transform:uppercase;letter-spacing:1px">LEVEL:</span>
-<div class="ml-level-tabs" id="ml-level-tabs">
-<div class="ml-level-tab on" onclick="setMlLevel('V',this)">VIDEO</div>
-<div class="ml-level-tab" onclick="setMlLevel('A',this)">AUDIO</div>
-<div class="ml-level-tab" onclick="setMlLevel('D',this)">DATA</div>
-<div class="ml-level-tab" onclick="setMlLevel('AES',this)">AES67</div>
-<div class="ml-level-tab" onclick="setMlLevel('EMB',this)">EMBEDDED</div>
-</div>
-<span style="color:var(--bd2)">|</span>
-<button class="btn" onclick="mlProtect()">PROTECT</button>
-<button class="btn" onclick="mlLock()">LOCK</button>
-<button class="btn" onclick="mlForce()">FORCE ROUTE</button>
-<button class="btn" onclick="mlClearSel()">CLEAR SEL</button>
-<span style="color:var(--mu2);font-size:9px" id="ml-status">0 routes active</span>
-</div>
-<div class="ml-xp-wrap"><table id="ml-xp-table" style="border-collapse:collapse;font-size:9px"></table></div>
-</div>
-
-<div id="cbp-tally" class="cb-panel">
-<div class="row" style="margin-bottom:10px;gap:8px;flex-wrap:wrap">
-<span style="color:var(--mu2);font-size:9px;text-transform:uppercase;letter-spacing:1px">TALLY BUS:</span>
-<button class="btn on" onclick="setTallyBus('PGM',this)">PGM</button>
-<button class="btn" onclick="setTallyBus('PVW',this)">PVW</button>
-<button class="btn" onclick="setTallyBus('AUX1',this)">AUX 1</button>
-<button class="btn" onclick="setTallyBus('AUX2',this)">AUX 2</button>
-<span style="color:var(--bd2)">|</span>
-<button class="btn grn" onclick="tallyAll()">TALLY ALL</button>
-<button class="btn" onclick="tallyClear()">CLEAR</button>
-</div>
-<div id="umd-list" style="display:flex;flex-direction:column;gap:4px"></div>
-</div>
-
-<div id="cbp-devctrl" class="cb-panel">
-<div class="row" style="margin-bottom:10px;gap:8px;flex-wrap:wrap">
-<span style="color:var(--mu2);font-size:9px;text-transform:uppercase;letter-spacing:1px">PROTOCOL:</span>
-<button class="btn on" onclick="setDevProto('ember',this)">EMBER+</button>
-<button class="btn" onclick="setDevProto('nmos',this)">NMOS</button>
-<button class="btn" onclick="setDevProto('gvg',this)">GVG 7600</button>
-<button class="btn" onclick="setDevProto('probel',this)">PROBEL SW-P-08</button>
-<button class="btn" onclick="setDevProto('sony9',this)">SONY 9-PIN</button>
-<button class="btn" onclick="setDevProto('bvs',this)">BVS</button>
-<span style="color:var(--bd2)">|</span>
-<button class="btn grn" onclick="devCtrlScan()">SCAN NETWORK</button>
-</div>
-<div id="dev-ctrl-list" style="display:flex;flex-direction:column;gap:5px"></div>
-</div>
-
-<div id="cbp-macros" class="cb-panel">
-<div class="row" style="margin-bottom:10px;gap:8px;flex-wrap:wrap">
-<button class="btn grn" onclick="macroRecord()">&#9679; RECORD</button>
-<button class="btn red" onclick="macroStop()">&#9632; STOP</button>
-<button class="btn" onclick="macroNew()">+ NEW</button>
-<span style="color:var(--bd2)">|</span>
-<input id="macro-search" type="text" placeholder="Search macros..." style="width:180px" oninput="renderMacros()">
-<span style="color:var(--mu2);font-size:9px" id="macro-status">0 macros</span>
-</div>
-<div id="macro-list" style="display:flex;flex-direction:column;gap:4px"></div>
-</div>
-
-<div id="cbp-automation" class="cb-panel">
-<div class="card">
-<div class="card-title">AUTOMATION ENGINE</div>
-<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:wrap">
-<span style="color:var(--mu2);font-size:9px">MODE:</span>
-<button class="btn on" onclick="setAutoMode('manual',this)">MANUAL</button>
-<button class="btn" onclick="setAutoMode('semi',this)">SEMI-AUTO</button>
-<button class="btn" onclick="setAutoMode('full',this)">FULL AUTO</button>
-<span style="color:var(--bd2)">|</span>
-<span style="color:var(--mu2);font-size:9px">RUNDOWN:</span>
-<select id="auto-rundown" style="width:180px">
-<option>NEXUS LIVE EP.01</option>
-<option>MORNING SHOW</option>
-<option>SPORTS COVERAGE</option>
-</select>
-<button class="btn grn" onclick="autoLoad()">LOAD</button>
-</div>
-<div id="auto-timeline" style="background:var(--bg);border:1px solid var(--bd);border-radius:3px;padding:10px;min-height:80px;font-size:10px;color:var(--mu2)">
-No automation loaded. Select a rundown and click LOAD.
-</div>
-</div>
-<div class="card" style="margin-top:0">
-<div class="card-title">TRIGGER CONDITIONS</div>
-<div id="auto-triggers" style="display:flex;flex-direction:column;gap:4px"></div>
-<button class="btn" style="margin-top:8px" onclick="addAutoTrigger()">+ ADD TRIGGER</button>
-</div>
-</div>
-
-<div id="cbp-syshealth" class="cb-panel">
-<div class="col2">
-<div>
-<div class="card-title" style="margin-bottom:8px">SYSTEM STATUS</div>
-<div id="health-list" style="display:flex;flex-direction:column;gap:5px"></div>
-</div>
-<div>
-<div class="card-title" style="margin-bottom:8px">ALARM LOG</div>
-<div id="alarm-log" style="display:flex;flex-direction:column;gap:3px;max-height:300px;overflow-y:auto"></div>
-<button class="btn" style="margin-top:8px;width:100%" onclick="clearAlarms()">CLEAR ALARMS</button>
-</div>
-</div>
-</div>
-</div>`;
-
-if (!html.includes('id="v-cerebrum"')) {
-  html = html.replace('<div id="sbar"', CEREBRUM_VIEW + '\n<div id="sbar"');
-}
-
-// ── 7. JAVASCRIPT: inject Cerebrum JS before </script> ───────────────────
-const CEREBRUM_JS = `
-// ═══════════════════════════════════════════════════════════════
-// CEREBRUM BCS — EVS-style Broadcast Control System
-// ═══════════════════════════════════════════════════════════════
-var cbActiveTab='ucp',ucpType='source',ucpPage=1,mlLevel='V',tallyBus='PGM',devProto='ember';
-var mlRoutes={},mlLocks={},mlProtects={};
-var macroList=[
-  {name:'SHOW OPEN',steps:8,type:'salvo',running:false},
-  {name:'BREAK IN',steps:4,type:'salvo',running:false},
-  {name:'BREAK OUT',steps:4,type:'salvo',running:false},
-  {name:'SHOW CLOSE',steps:6,type:'salvo',running:false},
-  {name:'EMERGENCY CUT',steps:2,type:'macro',running:false},
-  {name:'REPLAY TRIGGER',steps:3,type:'macro',running:false}
-];
-var autoTriggers=[
-  {cond:'TIMECODE >= 10:00:00',action:'RUN MACRO: SHOW OPEN',active:true},
-  {cond:'TALLY PGM = CAM-01',action:'LOG: Camera 1 on air',active:true}
-];
-var alarmLog=[
-  {sev:'ok',msg:'Cerebrum BCS connected',time:'10:00:01'},
-  {sev:'info',msg:'Router matrix sync complete — 256x256',time:'10:00:03'},
-  {sev:'warn',msg:'Device LAWO-MC2-01 Ember+ latency 45ms',time:'10:02:11'},
-  {sev:'crit',msg:'SDI input LOSS on DST-07',time:'10:04:33'},
-  {sev:'ok',msg:'DST-07 signal restored',time:'10:04:41'},
-  {sev:'info',msg:'Macro SHOW OPEN executed',time:'10:05:00'}
-];
-var healthItems=[
-  {name:'Cerebrum Server',status:'ok',val:'v6.4.2 — Online'},
-  {name:'Router Matrix',status:'ok',val:'256x256 — Sync'},
-  {name:'Tally Engine',status:'ok',val:'48 outputs active'},
-  {name:'Ember+ Gateway',status:'warn',val:'Latency 45ms'},
-  {name:'NMOS Registry',status:'ok',val:'IS-04 v1.3'},
-  {name:'Automation Engine',status:'ok',val:'Manual mode'},
-  {name:'UCP Panels',status:'ok',val:'4 panels online'},
-  {name:'License',status:'ok',val:'Enterprise — Valid'}
+// ─── HTML skeleton ────────────────────────────────────────────────────────────
+const NAV = [
+  ['live',      'LIVE'],
+  ['mosaic',    'MOSAIC'],
+  ['switcher',  'SWITCH'],
+  ['cloudmcr',  'CLOUD MCR'],
+  ['router',    'ROUTER'],
+  ['cloudsrt',  'CLOUD/SRT'],
+  ['scopes',    'SCOPES'],
+  ['ptp',       'SYNC/PTP'],
+  ['nmos',      'CONNECT'],
+  ['devices',   'DEVICES'],
+  ['api',       'API'],
+  ['predeploy', 'PRE-DEPLOY'],
 ];
 
-var ML_SRCS=['CAM-01','CAM-02','CAM-03','CAM-04','CAM-05','CAM-06','CAM-07','CAM-08',
-             'REPLAY-01','REPLAY-02','GFX-01','GFX-02','PGM-OUT','PVW-OUT','AUX-01','AUX-02'];
-var ML_DSTS=['MON-01','MON-02','MON-03','MON-04','TX-OUT','RECORD','STREAM','MULTIVIEW',
-             'AUX-OUT-1','AUX-OUT-2','CONF-1','CONF-2'];
-
-var UCP_LABELS={source:['CAM-01','CAM-02','CAM-03','CAM-04','CAM-05','CAM-06','CAM-07','CAM-08',
-  'REPLAY-01','REPLAY-02','GFX-01','GFX-02','PGM','PVW','AUX-1','AUX-2',
-  'CAM-09','CAM-10','CAM-11','CAM-12','CLIP-1','CLIP-2','CLIP-3','CLIP-4',
-  'NET-1','NET-2','SAT-1','SAT-2','TEST-1','TEST-2','BLACK','BARS'],
-salvo:['SHOW OPEN','BREAK IN','BREAK OUT','SHOW CLOSE','SPORTS PKG','NEWS OPEN',
-  'WEATHER','TRAFFIC','INTERVIEW','PANEL','LIVE SHOT','REMOTE','REPLAY PKG',
-  'HIGHLIGHT','PROMO','STING','EMERGENCY','STANDBY','RESET','CLEAR',
-  'PRESET-1','PRESET-2','PRESET-3','PRESET-4','PRESET-5','PRESET-6',
-  'PRESET-7','PRESET-8','CUSTOM-1','CUSTOM-2','CUSTOM-3','CUSTOM-4'],
-macro:['MACRO-01','MACRO-02','MACRO-03','MACRO-04','MACRO-05','MACRO-06',
-  'MACRO-07','MACRO-08','MACRO-09','MACRO-10','MACRO-11','MACRO-12',
-  'MACRO-13','MACRO-14','MACRO-15','MACRO-16','MACRO-17','MACRO-18',
-  'MACRO-19','MACRO-20','MACRO-21','MACRO-22','MACRO-23','MACRO-24',
-  'MACRO-25','MACRO-26','MACRO-27','MACRO-28','MACRO-29','MACRO-30','MACRO-31','MACRO-32'],
-tally:['MON-01','MON-02','MON-03','MON-04','MON-05','MON-06','MON-07','MON-08',
-  'TX-OUT','RECORD','STREAM','MULTIVIEW','AUX-1','AUX-2','AUX-3','AUX-4',
-  'CONF-1','CONF-2','CONF-3','CONF-4','REMOTE-1','REMOTE-2','REMOTE-3','REMOTE-4',
-  'UMD-01','UMD-02','UMD-03','UMD-04','UMD-05','UMD-06','UMD-07','UMD-08']};
-
-var ucpSelected=null;
-
-function cbTab(id,el){
-  cbActiveTab=id;
-  document.querySelectorAll('.cb-tab').forEach(function(t){t.classList.remove('on');});
-  document.querySelectorAll('.cb-panel').forEach(function(p){p.classList.remove('on');});
-  if(el)el.classList.add('on');
-  var panel=document.getElementById('cbp-'+id);
-  if(panel)panel.classList.add('on');
-  if(id==='ucp')renderUcp();
-  if(id==='mlrouter')renderMlRouter();
-  if(id==='tally')renderTally2();
-  if(id==='devctrl')renderDevCtrl();
-  if(id==='macros')renderMacros();
-  if(id==='syshealth')renderSysHealth();
-  if(id==='automation')renderAutomation();
+function navBtns() {
+  return NAV.map(([id, label]) =>
+    `<button class="nav-btn" id="nav-${id}" onclick="showView('${id}')">${label}</button>`
+  ).join('\n    ');
 }
 
-function setUcpType(t,el){
-  ucpType=t;
-  document.querySelectorAll('#cbp-ucp .btn').forEach(function(b){if(['SOURCE SELECT','SALVO','MACRO','TALLY MON'].indexOf(b.textContent)>=0)b.classList.remove('on');});
-  if(el)el.classList.add('on');
-  renderUcp();
-}
-function setUcpPage(p,el){
-  ucpPage=p;
-  document.querySelectorAll('#cbp-ucp .btn').forEach(function(b){if(['1','2','3','4'].indexOf(b.textContent)>=0)b.classList.remove('on');});
-  if(el)el.classList.add('on');
-  renderUcp();
+function viewDivs() {
+  return NAV.map(([id]) => `<div class="view" id="view-${id}"></div>`).join('\n  ');
 }
 
-function renderUcp(){
-  var grid=document.getElementById('ucp-grid');
-  if(!grid)return;
-  grid.innerHTML='';
-  var labels=UCP_LABELS[ucpType]||UCP_LABELS.source;
-  var offset=(ucpPage-1)*32;
-  for(var i=0;i<32;i++){
-    var lbl=labels[i]||('BTN-'+(offset+i+1));
-    var btn=document.createElement('div');
-    btn.className='ucp-btn'+(ucpType==='salvo'?' salvo':ucpType==='macro'?' macro':'');
-    btn.setAttribute('data-idx',i);
-    btn.innerHTML='<span style="font-size:9px;font-weight:bold">'+(i+1)+'</span><span class="ucp-lbl">'+lbl+'</span>';
-    (function(idx,label){
-      btn.onclick=function(){ucpBtnClick(idx,label,this);};
-    })(i,lbl);
-    grid.appendChild(btn);
-  }
-  document.getElementById('ucp-status').textContent='32 buttons \u2022 Page '+ucpPage+' \u2022 '+ucpType.toUpperCase();
+const HTML_HEAD = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXUS v4 — Broadcast IP Platform</title>
+<style>${CSS}</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>NEXUS v4</h1>
+    <p>Broadcast IP Production Platform</p>
+    <div class="err" id="login-err">Invalid password</div>
+    <label>Password</label>
+    <input type="password" id="pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+    <label>Role</label>
+    <select id="role-sel">
+      <option value="ENGINEER">ENGINEER</option>
+      <option value="OPERATOR">OPERATOR</option>
+      <option value="VIEWER">VIEWER</option>
+    </select>
+    <button onclick="doLogin()">LOGIN</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="topbar">
+    <span class="logo">NEXUS v4</span>
+    ${navBtns()}
+    <span id="role-badge">ROLE</span>
+  </div>
+  <div id="main-content">
+    ${viewDivs()}
+  </div>
+</div>
+
+<script>
+`;
+
+// ─── JS block (all as one big string, built in sections) ──────────────────────
+// Rules: no backticks, no </script> raw, no template literals in output JS.
+// We build the JS as a regular JS string using single quotes throughout.
+
+const JS_AUTH = `
+var NEXUS_ROLE = 'VIEWER';
+var NEXUS_PW   = 'nexus2024';
+
+function doLogin() {
+  var pw = document.getElementById('pw').value;
+  var err = document.getElementById('login-err');
+  if (pw !== NEXUS_PW) { err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  NEXUS_ROLE = document.getElementById('role-sel').value;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('role-badge').textContent = NEXUS_ROLE;
+  initAllViews();
+  showView('live');
 }
 
-function ucpBtnClick(idx,label,el){
-  document.querySelectorAll('.ucp-btn').forEach(function(b){b.classList.remove('active');});
-  el.classList.add('active');
-  ucpSelected={idx:idx,label:label};
-  var cfg=document.getElementById('ucp-config');
-  if(ucpType==='source'){
-    el.classList.remove('active');
-    el.classList.add('pgm');
-    cfg.innerHTML='<span style="color:var(--grn)">&#10003;</span> Routed <b style="color:var(--tx)">'+label+'</b> to PGM bus via Cerebrum';
-  } else if(ucpType==='salvo'){
-    cfg.innerHTML='<span style="color:var(--ylw)">&#9654;</span> Executing salvo: <b style="color:var(--tx)">'+label+'</b> &mdash; <span style="color:var(--mu2)">'+Math.floor(Math.random()*6+2)+' routes applied</span>';
-  } else if(ucpType==='macro'){
-    cfg.innerHTML='<span style="color:#c084fc">&#9654;</span> Running macro: <b style="color:var(--tx)">'+label+'</b>';
-  } else {
-    cfg.innerHTML='Monitoring tally for: <b style="color:var(--tx)">'+label+'</b>';
-  }
+function canOperate() { return NEXUS_ROLE !== 'VIEWER'; }
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+  var v = document.getElementById('view-' + id);
+  var b = document.getElementById('nav-' + id);
+  if (v) v.classList.add('active');
+  if (b) b.classList.add('active');
 }
 
-function setMlLevel(l,el){
-  mlLevel=l;
-  document.querySelectorAll('.ml-level-tab').forEach(function(t){t.classList.remove('on');});
-  if(el)el.classList.add('on');
-  renderMlRouter();
+function showTab(groupId, tabId) {
+  var panels = document.querySelectorAll('#' + groupId + ' .tab-panel');
+  var tabs   = document.querySelectorAll('#' + groupId + ' .tab');
+  panels.forEach(function(p){ p.classList.remove('active'); });
+  tabs.forEach(function(t){ t.classList.remove('active'); });
+  var p = document.getElementById(groupId + '-' + tabId);
+  var t = document.querySelector('#' + groupId + ' .tab[data-tab="' + tabId + '"]');
+  if (p) p.classList.add('active');
+  if (t) t.classList.add('active');
 }
 
-function renderMlRouter(){
-  var tbl=document.getElementById('ml-xp-table');
-  if(!tbl)return;
-  var cols=ML_SRCS.length;
-  var rows=ML_DSTS.length;
-  var html2='<tr><th class="ml-xp-hdr" style="background:var(--bg2)">DST \\ SRC</th>';
-  ML_SRCS.forEach(function(s){html2+='<th class="ml-xp-hdr">'+s+'</th>';});
-  html2+='</tr>';
-  ML_DSTS.forEach(function(dst,di){
-    html2+='<tr><td class="ml-xp-hdr" style="text-align:left;padding-left:8px">'+dst+'</td>';
-    ML_SRCS.forEach(function(src,si){
-      var key=mlLevel+':'+dst+':'+src;
-      var routed=mlRoutes[mlLevel+':'+dst]===src;
-      var locked=mlLocks[key];
-      var prot=mlProtects[key];
-      var cls=routed?'routed':locked?'locked':prot?'protected':'';
-      var lbl=routed?src.split('-')[1]||src:'';
-      html2+='<td class="ml-xp-cell '+cls+'" onclick="mlRoute(\''+dst+'\',\''+src+'\')" title="'+src+' \u2192 '+dst+'">'+lbl+'</td>';
-    });
-    html2+='</tr>';
+function makeTabs(groupId, tabs, defaultTab) {
+  var bar = '<div class="tab-bar">';
+  tabs.forEach(function(t) {
+    bar += '<div class="tab" data-tab="' + t.id + '" onclick="showTab(\\'' + groupId + '\\',\\'' + t.id + '\\')">' + t.label + '</div>';
   });
-  tbl.innerHTML=html2;
-  var active=Object.keys(mlRoutes).filter(function(k){return k.indexOf(mlLevel+':')===0;}).length;
-  var st=document.getElementById('ml-status');
-  if(st)st.textContent=active+' routes active on '+mlLevel+' level';
+  bar += '</div>';
+  return bar;
 }
 
-function mlRoute(dst,src){
-  mlRoutes[mlLevel+':'+dst]=src;
-  renderMlRouter();
-  addAlarm('info','Route: '+src+' \u2192 '+dst+' ['+mlLevel+']');
+function badge(cls, text) {
+  return '<span class="badge badge-' + cls + '">' + text + '</span>';
 }
-function mlProtect(){if(ucpSelected)mlProtects[mlLevel+':'+ucpSelected.label+':'+ucpSelected.label]=true;}
-function mlLock(){if(ucpSelected)mlLocks[mlLevel+':'+ucpSelected.label+':'+ucpSelected.label]=true;}
-function mlForce(){renderMlRouter();}
-function mlClearSel(){ucpSelected=null;}
-
-var UMD_SOURCES=['CAM-01','CAM-02','CAM-03','CAM-04','CAM-05','CAM-06','CAM-07','CAM-08',
-  'REPLAY-01','REPLAY-02','GFX-01','GFX-02'];
-var umdStates={};
-
-function setTallyBus(b,el){
-  tallyBus=b;
-  document.querySelectorAll('#cbp-tally .btn').forEach(function(btn){if(['PGM','PVW','AUX 1','AUX 2'].indexOf(btn.textContent)>=0)btn.classList.remove('on');});
-  if(el)el.classList.add('on');
-  renderTally2();
+function dot(cls) {
+  return '<span class="dot dot-' + cls + '"></span>';
 }
+`;
 
-function renderTally2(){
-  var list=document.getElementById('umd-list');
-  if(!list)return;
-  list.innerHTML='';
-  UMD_SOURCES.forEach(function(src,i){
-    var state=umdStates[src]||'off';
-    var row=document.createElement('div');
-    row.className='umd-row';
-    row.innerHTML='<span style="flex:1;color:var(--tx);font-size:11px">'+src+'</span>'+
-      '<div class="umd-box '+(state==='pgm'?'pgm':state==='pvw'?'pvw':'off')+'" onclick="cycleUmd(\''+src+'\')" title="Click to cycle tally">'+
-      (state==='pgm'?'PGM':state==='pvw'?'PVW':'OFF')+'</div>'+
-      '<span style="color:var(--mu2);font-size:9px;width:60px">'+tallyBus+'</span>'+
-      '<span style="color:var(--mu2);font-size:9px;width:80px">UMD-'+(i<9?'0'+(i+1):(i+1))+'</span>';
-    list.appendChild(row);
-  });
+const JS_LIVE = `
+function initLive() {
+  var el = document.getElementById('view-live');
+  el.innerHTML = '<div class="panel"><div class="panel-title">LIVE PRODUCTION STATUS</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">' +
+    liveCard('ON AIR','CAM-01','#ef233c','pgm') +
+    liveCard('PREVIEW','CAM-03','#06d6a0','pvw') +
+    liveCard('RECORD','INGEST-01','#ffd166','rec') +
+    liveCard('STREAM','SRT-OUT-01','#00b4d8','str') +
+    '</div></div>' +
+    '<div class="panel"><div class="panel-title">SYSTEM STATUS</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
+    statusPill('API','ok') + statusPill('ROUTER','ok') + statusPill('SWITCHER','ok') +
+    statusPill('NMOS','ok') + statusPill('PTP','ok') + statusPill('CLOUD','ok') +
+    statusPill('RECORDER','ok') + statusPill('STREAM','warn') +
+    '</div></div>';
 }
 
-function cycleUmd(src){
-  var cur=umdStates[src]||'off';
-  umdStates[src]=cur==='off'?'pvw':cur==='pvw'?'pgm':'off';
-  renderTally2();
+function liveCard(label, src, color, type) {
+  var icons = { pgm:'&#9654;', pvw:'&#9654;', rec:'&#9679;', str:'&#9654;' };
+  return '<div style="background:#0d0d0d;border:1px solid ' + color + ';border-radius:4px;padding:12px">' +
+    '<div style="color:' + color + ';font-size:9px;letter-spacing:2px;margin-bottom:6px">' + label + '</div>' +
+    '<div style="color:#e0e0e0;font-size:14px;font-weight:bold;margin-bottom:4px">' + src + '</div>' +
+    '<div style="color:' + color + ';font-size:10px">' + icons[type] + ' ACTIVE</div>' +
+    '</div>';
 }
-function tallyAll(){UMD_SOURCES.forEach(function(s){umdStates[s]='pvw';});renderTally2();}
-function tallyClear(){umdStates={};renderTally2();}
 
-var DEV_CTRL_DATA={
-  ember:[
-    {name:'LAWO MC2-56',type:'Audio Console',proto:'Ember+',ip:'192.168.1.10',status:'ok',val:'Online — 96ch'},
-    {name:'LAWO A__UHD Core',type:'Audio Engine',proto:'Ember+',ip:'192.168.1.11',status:'ok',val:'Online — 256ch'},
-    {name:'Calrec Apollo',type:'Audio Console',proto:'Ember+',ip:'192.168.1.12',status:'warn',val:'Latency 45ms'},
-    {name:'Nevion VideoIPath',type:'Router',proto:'Ember+',ip:'192.168.1.20',status:'ok',val:'256x256 sync'}
+function statusPill(name, status) {
+  var colors = { ok:'#06d6a0', warn:'#ffd166', err:'#ef233c' };
+  var c = colors[status] || '#555';
+  return '<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:3px">' +
+    '<span class="dot dot-' + status + '"></span>' +
+    '<span style="font-size:10px;color:#e0e0e0">' + name + '</span>' +
+    '</div>';
+}
+`;
+
+const JS_MOSAIC = `
+function initMosaic() {
+  var el = document.getElementById('view-mosaic');
+  var cells = [];
+  var srcs = ['CAM-01','CAM-02','CAM-03','CAM-04','CAM-05','CAM-06','CAM-07','CAM-08',
+               'REPLAY-01','REPLAY-02','PGM-OUT','PVW-OUT','GFX-01','AUX-01','RECORD','STREAM'];
+  for (var i = 0; i < 16; i++) {
+    var isPgm = i === 10, isPvw = i === 11;
+    cells.push('<div style="background:#0d0d0d;border:1px solid ' + (isPgm?'#ef233c':isPvw?'#06d6a0':'#1e1e1e') + ';border-radius:3px;padding:8px;aspect-ratio:16/9;display:flex;flex-direction:column;justify-content:space-between">' +
+      '<div style="color:#333;font-size:8px;text-align:center;flex:1;display:flex;align-items:center;justify-content:center">' +
+        '<span style="color:#1e1e1e;font-size:24px">&#9654;</span>' +
+      '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<span style="font-size:9px;color:' + (isPgm?'#ef233c':isPvw?'#06d6a0':'#888') + '">' + srcs[i] + '</span>' +
+        (isPgm ? '<span class="badge badge-crit">PGM</span>' : isPvw ? '<span class="badge badge-ok">PVW</span>' : '') +
+      '</div>' +
+      '</div>');
+  }
+  el.innerHTML = '<div class="panel"><div class="panel-title">NEXUS MOSAIC — 4x4 MULTIVIEWER</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">' + cells.join('') + '</div></div>';
+}
+`;
+
+// ─── SWITCHER view JS ─────────────────────────────────────────────────────────
+const JS_SWITCHER = `
+var SW = {
+  mes: [
+    { pgm:1, pvw:2, trans:'CUT', rate:25, inTrans:false, prog:0 },
+    { pgm:3, pvw:4, trans:'CUT', rate:25, inTrans:false, prog:0 },
+    { pgm:5, pvw:6, trans:'CUT', rate:25, inTrans:false, prog:0 }
   ],
-  nmos:[
-    {name:'Sony HDC-5500',type:'Camera',proto:'NMOS IS-04',ip:'192.168.2.10',status:'ok',val:'IS-04 v1.3'},
-    {name:'Grass Valley LDX 150',type:'Camera',proto:'NMOS IS-04',ip:'192.168.2.11',status:'ok',val:'IS-04 v1.3'},
-    {name:'Evertz 7800',type:'Multiviewer',proto:'NMOS IS-05',ip:'192.168.2.20',status:'ok',val:'IS-05 v1.1'}
+  timers: [null, null, null],
+  alarms: [
+    { sev:'ok',   msg:'Switcher BCS connected',       time:'10:00:01' },
+    { sev:'info', msg:'Router matrix sync 256x256',   time:'10:00:03' },
+    { sev:'warn', msg:'LAWO Ember+ latency 45ms',     time:'10:02:11' },
+    { sev:'crit', msg:'SDI input LOSS on DST-07',     time:'10:04:33' },
+    { sev:'ok',   msg:'DST-07 signal restored',       time:'10:04:41' }
   ],
-  gvg:[
-    {name:'GVG Kayenne',type:'Switcher',proto:'GVG 7600',ip:'192.168.3.10',status:'ok',val:'Connected'},
-    {name:'GVG Korona',type:'Switcher',proto:'GVG 7600',ip:'192.168.3.11',status:'ok',val:'Connected'}
-  ],
-  probel:[
-    {name:'Miranda NV8576',type:'Router',proto:'SW-P-08',ip:'192.168.4.10',status:'ok',val:'576x576'},
-    {name:'Snell Sirius 800',type:'Router',proto:'SW-P-08',ip:'192.168.4.11',status:'warn',val:'Partial sync'}
-  ],
-  sony9:[
-    {name:'Sony BVW-75',type:'VTR',proto:'Sony 9-pin',ip:'COM3',status:'ok',val:'STOP'},
-    {name:'Sony SRW-5800',type:'VTR',proto:'Sony 9-pin',ip:'COM4',status:'ok',val:'PLAY'}
-  ],
-  bvs:[
-    {name:'Sony BVS-3200',type:'Switcher',proto:'BVS',ip:'192.168.5.10',status:'ok',val:'Connected'},
-    {name:'Sony MVS-8000X',type:'Switcher',proto:'BVS',ip:'192.168.5.11',status:'ok',val:'Connected'}
+  routes: {},
+  routeLevel: 'V',
+  tallyStates: {},
+  tallyBus: 'PGM',
+  devProto: 'ember',
+  macros: [
+    { id:'m1', name:'SHOW OPEN',     steps:8, type:'salvo' },
+    { id:'m2', name:'BREAK IN',      steps:4, type:'salvo' },
+    { id:'m3', name:'BREAK OUT',     steps:4, type:'salvo' },
+    { id:'m4', name:'SHOW CLOSE',    steps:6, type:'salvo' },
+    { id:'m5', name:'EMERGENCY CUT', steps:2, type:'macro' },
+    { id:'m6', name:'REPLAY TRIG',   steps:3, type:'macro' }
   ]
 };
 
-function setDevProto(p,el){
-  devProto=p;
-  document.querySelectorAll('#cbp-devctrl .btn').forEach(function(b){
-    if(['EMBER+','NMOS','GVG 7600','PROBEL SW-P-08','SONY 9-PIN','BVS'].indexOf(b.textContent)>=0)b.classList.remove('on');
-  });
-  if(el)el.classList.add('on');
-  renderDevCtrl();
-}
-
-function renderDevCtrl(){
-  var list=document.getElementById('dev-ctrl-list');
-  if(!list)return;
-  list.innerHTML='';
-  var devs=DEV_CTRL_DATA[devProto]||[];
-  devs.forEach(function(d){
-    var row=document.createElement('div');
-    row.className='dev-ctrl-row';
-    row.innerHTML='<div class="dev-status-dot '+d.status+'"></div>'+
-      '<span style="flex:1;color:var(--tx);font-size:11px">'+d.name+'</span>'+
-      '<span style="color:var(--mu2);font-size:9px;width:120px">'+d.type+'</span>'+
-      '<span style="color:var(--mu2);font-size:9px;width:100px">'+d.ip+'</span>'+
-      '<span class="cb-badge '+(d.status==='ok'?'ok':d.status==='warn'?'warn':'live')+'">'+d.val+'</span>'+
-      '<button class="btn" style="padding:2px 8px;font-size:9px" onclick="devCtrlAction(\''+d.name+'\')">CTRL</button>';
-    list.appendChild(row);
-  });
-  if(!devs.length){list.innerHTML='<div style="color:var(--mu2);font-size:11px;padding:10px">No devices found for '+devProto+' protocol</div>';}
-}
-
-function devCtrlAction(name){addAlarm('info','Control request sent to: '+name);}
-function devCtrlScan(){addAlarm('info','Network scan initiated for '+devProto+' devices...');setTimeout(function(){addAlarm('ok','Scan complete');},1500);}
-
-function renderMacros(){
-  var list=document.getElementById('macro-list');
-  if(!list)return;
-  var q=(document.getElementById('macro-search')||{}).value||'';
-  list.innerHTML='';
-  var filtered=macroList.filter(function(m){return !q||m.name.toLowerCase().indexOf(q.toLowerCase())>=0;});
-  filtered.forEach(function(m,i){
-    var row=document.createElement('div');
-    row.className='macro-row';
-    row.innerHTML='<span class="macro-name">'+m.name+'</span>'+
-      '<span class="macro-steps">'+m.steps+' steps</span>'+
-      '<span class="cb-badge '+(m.type==='salvo'?'warn':'ok')+'">'+m.type.toUpperCase()+'</span>'+
-      '<button class="btn grn" style="padding:2px 8px;font-size:9px" onclick="runMacro(\''+m.name+'\')">&#9654; RUN</button>'+
-      '<button class="btn" style="padding:2px 8px;font-size:9px" onclick="editMacro(\''+m.name+'\')">EDIT</button>'+
-      '<button class="btn red" style="padding:2px 8px;font-size:9px" onclick="deleteMacro('+i+')">&#10005;</button>';
-    list.appendChild(row);
-  });
-  var st=document.getElementById('macro-status');
-  if(st)st.textContent=filtered.length+' macros';
-}
-
-function runMacro(name){addAlarm('info','Macro executing: '+name);}
-function editMacro(name){addAlarm('info','Edit macro: '+name);}
-function deleteMacro(i){macroList.splice(i,1);renderMacros();}
-function macroRecord(){addAlarm('warn','Macro recording started...');}
-function macroStop(){addAlarm('ok','Macro recording stopped');}
-function macroNew(){var n='MACRO-'+(macroList.length+1);macroList.push({name:n,steps:0,type:'macro',running:false});renderMacros();}
-
-function renderAutomation(){
-  var trig=document.getElementById('auto-triggers');
-  if(!trig)return;
-  trig.innerHTML='';
-  autoTriggers.forEach(function(t,i){
-    var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg3);border-radius:3px;border:1px solid var(--bd);margin-bottom:4px;font-size:10px';
-    row.innerHTML='<input type="checkbox" '+(t.active?'checked':'')+'  onchange="autoTriggers['+i+'].active=this.checked">'+
-      '<span style="flex:1;color:var(--mu2)">IF <b style="color:var(--tx)">'+t.cond+'</b></span>'+
-      '<span style="color:var(--ac)">&#8594; '+t.action+'</span>'+
-      '<button class="btn red" style="padding:1px 6px;font-size:9px" onclick="autoTriggers.splice('+i+',1);renderAutomation()">&#10005;</button>';
-    trig.appendChild(row);
-  });
-}
-
-function addAutoTrigger(){
-  autoTriggers.push({cond:'TIMECODE >= 00:00:00',action:'RUN MACRO: CUSTOM',active:false});
-  renderAutomation();
-}
-
-function setAutoMode(m,el){
-  document.querySelectorAll('#cbp-automation .btn').forEach(function(b){if(['MANUAL','SEMI-AUTO','FULL AUTO'].indexOf(b.textContent)>=0)b.classList.remove('on');});
-  if(el)el.classList.add('on');
-  addAlarm('info','Automation mode: '+m.toUpperCase());
-}
-function autoLoad(){addAlarm('ok','Rundown loaded into automation engine');}
-
-function renderSysHealth(){
-  var list=document.getElementById('health-list');
-  if(!list)return;
-  list.innerHTML='';
-  healthItems.forEach(function(h){
-    var row=document.createElement('div');
-    row.className='dev-ctrl-row';
-    row.innerHTML='<div class="dev-status-dot '+h.status+'"></div>'+
-      '<span style="flex:1;color:var(--tx);font-size:11px">'+h.name+'</span>'+
-      '<span class="cb-badge '+(h.status==='ok'?'ok':h.status==='warn'?'warn':'live')+'">'+h.val+'</span>';
-    list.appendChild(row);
-  });
-  renderAlarmLog();
-}
-
-function addAlarm(sev,msg){
-  var now=new Date();
-  var t=now.toLocaleTimeString('en-GB',{hour12:false});
-  alarmLog.unshift({sev:sev,msg:msg,time:t});
-  if(alarmLog.length>50)alarmLog.pop();
-  renderAlarmLog();
-}
-
-function renderAlarmLog(){
-  var log=document.getElementById('alarm-log');
-  if(!log)return;
-  log.innerHTML='';
-  alarmLog.slice(0,20).forEach(function(a){
-    var row=document.createElement('div');
-    row.className='alarm-row '+a.sev;
-    var icon=a.sev==='crit'?'\u26a0':a.sev==='warn'?'\u26a0':a.sev==='ok'?'\u2713':'\u2139';
-    row.innerHTML='<span style="color:var(--mu2);font-size:9px;white-space:nowrap">'+a.time+'</span>'+
-      '<span style="font-size:10px">'+icon+'</span>'+
-      '<span style="flex:1">'+a.msg+'</span>';
-    log.appendChild(row);
-  });
-}
-
-function clearAlarms(){alarmLog=[];renderAlarmLog();}
-
-// Init Cerebrum when view is opened
-var _origSv=sv;
-sv=function(id,el){
-  _origSv(id,el);
-  if(id==='cerebrum'){
-    renderUcp();
-    renderSysHealth();
+var SOURCES = [];
+(function() {
+  for (var i = 1; i <= 32; i++) {
+    var n;
+    if (i <= 24) n = 'CAM-' + (i < 10 ? '0' + i : i);
+    else if (i <= 29) n = 'REPLAY-0' + (i - 24);
+    else n = ['PGM','PVW','GFX'][i - 30] || ('SRC-' + i);
+    SOURCES.push({ id: i, name: n });
   }
+})();
+
+var ML_SRCS = ['CAM-01','CAM-02','CAM-03','CAM-04','CAM-05','CAM-06','CAM-07','CAM-08',
+               'REPLAY-01','REPLAY-02','GFX-01','GFX-02','PGM-OUT','PVW-OUT','AUX-01','AUX-02'];
+var ML_DSTS = ['MON-01','MON-02','MON-03','MON-04','TX-OUT','RECORD',
+               'STREAM','MULTIVIEW','AUX-OUT-1','AUX-OUT-2','CONF-1','CONF-2'];
+var ROUTER_LEVELS = ['V','A','D','AES','EMB'];
+var LEVEL_LABELS  = { V:'VIDEO', A:'AUDIO', D:'DATA', AES:'AES67', EMB:'EMBEDDED' };
+
+var TALLY_SRCS = ML_SRCS.slice(0, 12);
+
+var DEV_PROTOCOLS = ['ember','nmos','gvg','probel','sony9','bvs'];
+var PROTO_LABELS  = { ember:'Ember+', nmos:'NMOS IS-04', gvg:'GVG 7600', probel:'Probel SW-P-08', sony9:'Sony 9-pin', bvs:'BVS' };
+
+var SEED_DEVICES = {
+  ember:  [
+    { name:'LAWO MC2-56',       type:'Audio Console', addr:'192.168.1.10', status:'ok',   info:'Online 96ch' },
+    { name:'LAWO A__UHD Core',  type:'Audio Engine',  addr:'192.168.1.11', status:'ok',   info:'Online 256ch' },
+    { name:'Calrec Apollo',     type:'Audio Console', addr:'192.168.1.12', status:'warn', info:'Latency 45ms' },
+    { name:'Nevion VideoIPath', type:'Router',        addr:'192.168.1.20', status:'ok',   info:'256x256 sync' }
+  ],
+  nmos: [
+    { name:'Sony HDC-5500',  type:'Camera',      addr:'192.168.2.10', status:'ok', info:'IS-04 v1.3' },
+    { name:'GV LDX 150',     type:'Camera',      addr:'192.168.2.11', status:'ok', info:'IS-04 v1.3' },
+    { name:'Evertz 7800',    type:'Multiviewer', addr:'192.168.2.20', status:'ok', info:'IS-05 v1.1' }
+  ],
+  gvg: [
+    { name:'GVG Kayenne', type:'Switcher', addr:'192.168.3.10', status:'ok', info:'Connected' },
+    { name:'GVG Korona',  type:'Switcher', addr:'192.168.3.11', status:'ok', info:'Connected' }
+  ],
+  probel: [
+    { name:'Miranda NV8576',   type:'Router', addr:'192.168.4.10', status:'ok',   info:'576x576' },
+    { name:'Snell Sirius 800', type:'Router', addr:'192.168.4.11', status:'warn', info:'Partial sync' }
+  ],
+  sony9: [
+    { name:'Sony BVW-75',   type:'VTR', addr:'COM3', status:'ok', info:'STOP' },
+    { name:'Sony SRW-5800', type:'VTR', addr:'COM4', status:'ok', info:'PLAY' }
+  ],
+  bvs: [
+    { name:'Sony BVS-3200',  type:'Switcher', addr:'192.168.5.10', status:'ok', info:'Connected' },
+    { name:'Sony MVS-8000X', type:'Switcher', addr:'192.168.5.11', status:'ok', info:'Connected' }
+  ]
 };
+
+function srcName(id) {
+  var s = SOURCES.find(function(x){ return x.id === id; });
+  return s ? s.name : 'SRC-' + id;
+}
+
+function swAddAlarm(sev, msg) {
+  var now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  SW.alarms.unshift({ sev: sev, msg: msg, time: now });
+  if (SW.alarms.length > 50) SW.alarms.pop();
+  renderSwitcherAlarms();
+  updateAlarmBadge();
+}
+
+function updateAlarmBadge() {
+  var cnt = SW.alarms.filter(function(a){ return a.sev === 'crit' || a.sev === 'warn'; }).length;
+  var el = document.getElementById('sw-alarm-badge');
+  if (el) { el.textContent = cnt > 0 ? ('\\u26a0 ' + cnt + ' ALARM' + (cnt > 1 ? 'S' : '')) : ''; el.style.display = cnt > 0 ? 'inline-block' : 'none'; }
+  var tab = document.querySelector('#sw-tabs .tab[data-tab="alarms"]');
+  if (tab) tab.innerHTML = 'ALARMS' + (cnt > 0 ? ' <span class="badge badge-crit">' + cnt + '</span>' : '');
+}
 `;
 
-// inject before closing </script>
-if (!html.includes('CEREBRUM BCS')) {
-  html = html.replace('</script>', CEREBRUM_JS + '\n</script>');
+const JS_SWITCHER_RENDER = `
+function renderMEBanks() {
+  var html = '';
+  var accents = ['#00b4d8','#06d6a0','#ffd166'];
+  SW.mes.forEach(function(me, i) {
+    var ac = accents[i];
+    html += '<div class="me-bank" style="border-top:2px solid ' + ac + '">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+    html += '<span style="color:' + ac + ';font-weight:bold;font-size:13px;letter-spacing:2px">ME-' + (i+1) + '</span>';
+    html += '<span style="color:#555;font-size:10px">PGM: <b style="color:#ef233c">' + srcName(me.pgm) + '</b>&nbsp;&nbsp;PVW: <b style="color:#06d6a0">' + srcName(me.pvw) + '</b></span>';
+    if (me.inTrans) html += '<span style="color:' + ac + ';font-size:10px;margin-left:auto">' + me.trans + ' ' + Math.round(me.prog) + '%</span>';
+    html += '</div>';
+
+    // PVW bus
+    html += '<div style="color:#06d6a0;font-size:9px;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Preview</div>';
+    html += '<div class="src-row">';
+    SOURCES.forEach(function(src) {
+      var on = me.pvw === src.id;
+      html += '<button class="src-btn' + (on ? ' pvw' : '') + '" onclick="swPvw(' + i + ',' + src.id + ')">' + src.name + '</button>';
+    });
+    html += '</div>';
+
+    // PGM bus (display only)
+    html += '<div style="color:#ef233c;font-size:9px;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Program</div>';
+    html += '<div class="src-row">';
+    SOURCES.forEach(function(src) {
+      var on = me.pgm === src.id;
+      html += '<div style="padding:3px 7px;font-size:9px;border-radius:2px;border:1px solid ' + (on?'#ef233c':'#1e1e1e') + ';background:' + (on?'#ef233c':'#0d0d0d') + ';color:' + (on?'#fff':'#2a2a2a') + '">' + src.name + '</div>';
+    });
+    html += '</div>';
+
+    // Progress bar
+    if (me.inTrans) {
+      html += '<div class="progress-bar"><div class="progress-fill" id="me-prog-' + i + '" style="width:' + me.prog + '%;background:' + ac + '"></div></div>';
+    }
+
+    // Controls
+    html += '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px">';
+    html += '<div><div style="font-size:9px;color:#555;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px">Transition</div><div style="display:flex;gap:3px">';
+    ['CUT','MIX','WIPE','DIP','STING'].forEach(function(t) {
+      var on = me.trans === t;
+      html += '<button class="btn' + (on ? '" style="background:' + ac + ';color:#000;border-color:' + ac : '') + '" onclick="swSetTrans(' + i + ',\\'' + t + '\\')">' + t + '</button>';
+    });
+    html += '</div></div>';
+    html += '<div><div style="font-size:9px;color:#555;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px">Rate (f)</div>';
+    html += '<input type="number" min="1" max="250" value="' + me.rate + '" style="width:55px;background:#0d0d0d;color:#e0e0e0;border:1px solid #2a2a2a;padding:3px 6px;border-radius:2px;font-family:inherit;font-size:11px" onchange="swSetRate(' + i + ',this.value)"></div>';
+    html += '<button style="padding:7px 22px;font-size:13px;font-weight:bold;background:#ef233c;color:#fff;border:none;border-radius:3px;cursor:pointer;letter-spacing:1px;font-family:inherit" onclick="swCut(' + i + ')">CUT</button>';
+    html += '<button style="padding:7px 22px;font-size:13px;font-weight:bold;background:' + ac + ';color:#000;border:none;border-radius:3px;cursor:pointer;letter-spacing:1px;font-family:inherit" onclick="swAuto(' + i + ')">AUTO</button>';
+    html += '</div></div>';
+  });
+  var el = document.getElementById('sw-me-content');
+  if (el) el.innerHTML = html;
 }
 
-// ── 8. Write output ───────────────────────────────────────────────────────
-fs.writeFileSync(FILE, html, 'utf8');
-console.log('Cerebrum patch applied. File size: ' + html.length + ' bytes');
-
-// ── 9. Validate JS ────────────────────────────────────────────────────────
-var m = html.match(/<script>([\s\S]*?)<\/script>/);
-if (m) {
-  try { new Function(m[1]); console.log('JS VALID'); }
-  catch(e) { console.log('JS ERROR:', e.message); }
-} else {
-  console.log('No script tag found');
+function swPvw(meIdx, id) {
+  if (!canOperate()) return;
+  SW.mes[meIdx].pvw = id;
+  renderMEBanks();
 }
+function swCut(meIdx) {
+  if (!canOperate()) return;
+  var me = SW.mes[meIdx];
+  var tmp = me.pgm; me.pgm = me.pvw; me.pvw = tmp;
+  swAddAlarm('info', 'ME-' + (meIdx+1) + ' CUT: ' + srcName(me.pvw) + ' to PGM');
+  renderMEBanks();
+}
+function swSetTrans(meIdx, t) { SW.mes[meIdx].trans = t; renderMEBanks(); }
+function swSetRate(meIdx, v) { SW.mes[meIdx].rate = parseInt(v) || 25; }
+
+function swAuto(meIdx) {
+  if (!canOperate()) return;
+  var me = SW.mes[meIdx];
+  if (me.inTrans) return;
+  me.inTrans = true; me.prog = 0;
+  renderMEBanks();
+  var totalMs = (me.rate / 25) * 1000;
+  var step = 100 / (totalMs / 40);
+  var prog = 0;
+  var timer = setInterval(function() {
+    prog += step;
+    if (prog >= 100) {
+      clearInterval(timer);
+      SW.timers[meIdx] = null;
+      var tmp = me.pgm; me.pgm = me.pvw; me.pvw = tmp;
+      me.inTrans = false; me.prog = 0;
+      swAddAlarm('info', 'ME-' + (meIdx+1) + ' AUTO ' + me.trans + ' complete');
+      renderMEBanks();
+    } else {
+      me.prog = prog;
+      var bar = document.getElementById('me-prog-' + meIdx);
+      if (bar) bar.style.width = prog + '%';
+    }
+  }, 40);
+  if (SW.timers[meIdx]) clearInterval(SW.timers[meIdx]);
+  SW.timers[meIdx] = timer;
+}
+`;
+
+const JS_SWITCHER_TABS = `
+function renderRouterTab() {
+  var html = '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">';
+  ROUTER_LEVELS.forEach(function(l) {
+    var on = SW.routeLevel === l;
+    html += '<button class="btn' + (on ? ' btn-ac' : '') + '" onclick="swSetLevel(\\'' + l + '\\')">' + LEVEL_LABELS[l] + '</button>';
+  });
+  html += '<span style="color:#2a2a2a;margin:0 4px">|</span>';
+  html += '<button class="btn" onclick="SW.routes={};renderRouterTab()">CLEAR ALL</button>';
+  var cnt = Object.keys(SW.routes).filter(function(k){ return k.indexOf(SW.routeLevel + ':') === 0; }).length;
+  html += '<span style="color:#555;font-size:9px;margin-left:8px">' + cnt + ' routes on ' + LEVEL_LABELS[SW.routeLevel] + '</span>';
+  html += '</div>';
+  html += '<div style="overflow-x:auto"><table><thead><tr><th>DST \\ SRC</th>';
+  ML_SRCS.forEach(function(s){ html += '<th style="white-space:nowrap">' + s + '</th>'; });
+  html += '</tr></thead><tbody>';
+  ML_DSTS.forEach(function(dst) {
+    var routed = SW.routes[SW.routeLevel + ':' + dst];
+    html += '<tr><td style="font-weight:bold;white-space:nowrap;color:#888">' + dst + '</td>';
+    ML_SRCS.forEach(function(src) {
+      var isRouted = routed === src;
+      html += '<td style="text-align:center;min-width:52px;background:' + (isRouted ? 'rgba(0,180,216,.18)' : '#080808') + ';color:' + (isRouted ? '#00b4d8' : 'transparent') + ';cursor:pointer;font-weight:bold" onclick="swRoute(\\'' + dst + '\\',\\'' + src + '\\')">' + (isRouted ? src.split('-')[1] || src : '.') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  var el = document.getElementById('sw-router-content');
+  if (el) el.innerHTML = html;
+}
+
+function swSetLevel(l) { SW.routeLevel = l; renderRouterTab(); }
+function swRoute(dst, src) {
+  if (!canOperate()) return;
+  SW.routes[SW.routeLevel + ':' + dst] = src;
+  renderRouterTab();
+}
+
+function renderTallyTab() {
+  var html = '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">';
+  ['PGM','PVW','AUX 1','AUX 2'].forEach(function(b) {
+    var on = SW.tallyBus === b;
+    html += '<button class="btn' + (on ? ' btn-ac' : '') + '" onclick="swSetBus(\\'' + b + '\\')">' + b + '</button>';
+  });
+  html += '<span style="color:#2a2a2a;margin:0 4px">|</span>';
+  html += '<button class="btn" onclick="swTallyAll()">TALLY ALL</button>';
+  html += '<button class="btn" onclick="SW.tallyStates={};renderTallyTab()">CLEAR</button>';
+  html += '</div><div style="display:flex;flex-direction:column;gap:4px">';
+  TALLY_SRCS.forEach(function(src, i) {
+    var s = SW.tallyStates[src] || 'off';
+    var bg = s === 'pgm' ? '#ef233c' : s === 'pvw' ? '#06d6a0' : '#161616';
+    var col = s === 'pgm' ? '#fff' : s === 'pvw' ? '#000' : '#555';
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#0f0f0f;border-radius:3px;border:1px solid #1e1e1e">';
+    html += '<span style="flex:1;color:#e0e0e0;font-size:11px">' + src + '</span>';
+    html += '<div onclick="swCycleTally(\\'' + src + '\\')" style="width:80px;height:22px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;background:' + bg + ';color:' + col + ';border:1px solid ' + bg + ';cursor:pointer;transition:all .15s">' + s.toUpperCase() + '</div>';
+    html += '<span style="color:#555;font-size:9px;width:60px">' + SW.tallyBus + '</span>';
+    html += '<span style="color:#555;font-size:9px;width:70px">UMD-' + (i < 9 ? '0' : '') + (i+1) + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+  var el = document.getElementById('sw-tally-content');
+  if (el) el.innerHTML = html;
+}
+
+function swSetBus(b) { SW.tallyBus = b; renderTallyTab(); }
+function swCycleTally(src) {
+  if (!canOperate()) return;
+  var c = SW.tallyStates[src] || 'off';
+  SW.tallyStates[src] = c === 'off' ? 'pvw' : c === 'pvw' ? 'pgm' : 'off';
+  renderTallyTab();
+}
+function swTallyAll() {
+  if (!canOperate()) return;
+  TALLY_SRCS.forEach(function(s){ SW.tallyStates[s] = 'pvw'; });
+  renderTallyTab();
+}
+
+function renderDevicesTab() {
+  var devs = SEED_DEVICES[SW.devProto] || [];
+  var html = '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">';
+  DEV_PROTOCOLS.forEach(function(p) {
+    var on = SW.devProto === p;
+    html += '<button class="btn' + (on ? ' btn-ac' : '') + '" onclick="swSetProto(\\'' + p + '\\')">' + PROTO_LABELS[p] + '</button>';
+  });
+  html += '<span style="color:#2a2a2a;margin:0 4px">|</span>';
+  html += '<button class="btn" onclick="swAddAlarm(\\''+'info'+'\\',\\'Scan: ' + PROTO_LABELS[SW.devProto] + '\\')" >SCAN NETWORK</button>';
+  html += '</div><div style="display:flex;flex-direction:column;gap:5px">';
+  devs.forEach(function(d) {
+    var dotCls = d.status === 'ok' ? 'ok' : d.status === 'warn' ? 'warn' : 'err';
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:#0f0f0f;border-radius:4px;border:1px solid #1e1e1e">';
+    html += '<span class="dot dot-' + dotCls + '"></span>';
+    html += '<span style="flex:1;color:#e0e0e0;font-size:11px">' + d.name + '</span>';
+    html += '<span style="color:#555;font-size:9px;width:120px">' + d.type + '</span>';
+    html += '<span style="color:#555;font-size:9px;width:110px">' + d.addr + '</span>';
+    html += '<span class="badge badge-' + dotCls + '">' + d.info + '</span>';
+    html += '<button class="btn" style="padding:2px 8px;font-size:9px" onclick="swAddAlarm(\\'info\\',\\'CTRL: ' + d.name + '\\')">CTRL</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  var el = document.getElementById('sw-devices-content');
+  if (el) el.innerHTML = html;
+}
+
+function swSetProto(p) { SW.devProto = p; renderDevicesTab(); }
+
+function renderMacrosTab() {
+  var html = '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">';
+  html += '<button class="btn btn-red" onclick="swAddAlarm(\\'info\\',\\'Macro recording started\\')">&#9679; RECORD</button>';
+  html += '<button class="btn" onclick="swAddAlarm(\\'info\\',\\'Macro recording stopped\\')">&#9632; STOP</button>';
+  html += '<button class="btn" onclick="swNewMacro()">+ NEW</button>';
+  html += '<span style="color:#2a2a2a;margin:0 4px">|</span>';
+  html += '<input id="macro-search" placeholder="Search macros..." oninput="renderMacrosTab()" style="background:#0d0d0d;border:1px solid #2a2a2a;color:#e0e0e0;padding:3px 8px;border-radius:3px;font-family:inherit;font-size:11px;width:180px">';
+  html += '<span style="color:#555;font-size:9px">' + SW.macros.length + ' macros</span>';
+  html += '</div><div style="display:flex;flex-direction:column;gap:4px">';
+  var search = (document.getElementById('macro-search') || {}).value || '';
+  var filtered = SW.macros.filter(function(m){ return !search || m.name.toLowerCase().indexOf(search.toLowerCase()) >= 0; });
+  filtered.forEach(function(m, i) {
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#0f0f0f;border-radius:3px;border:1px solid #1e1e1e">';
+    html += '<span style="flex:1;color:#e0e0e0;font-size:11px">' + m.name + '</span>';
+    html += '<span style="color:#555;font-size:9px">' + m.steps + ' steps</span>';
+    html += '<span class="badge badge-' + (m.type === 'salvo' ? 'warn' : 'ok') + '">' + m.type.toUpperCase() + '</span>';
+    html += '<button class="btn btn-grn" style="padding:2px 8px;font-size:9px" onclick="swRunMacro(\\'' + m.id + '\\')">&#9654; RUN</button>';
+    html += '<button class="btn" style="padding:2px 8px;font-size:9px">EDIT</button>';
+    html += '<button class="btn btn-red" style="padding:2px 8px;font-size:9px" onclick="swDelMacro(\\'' + m.id + '\\')">&#10005;</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  var el = document.getElementById('sw-macros-content');
+  if (el) el.innerHTML = html;
+}
+
+function swNewMacro() {
+  SW.macros.push({ id: 'm' + Date.now(), name: 'MACRO-' + (SW.macros.length + 1), steps: 0, type: 'macro' });
+  renderMacrosTab();
+}
+function swRunMacro(id) {
+  if (!canOperate()) return;
+  var m = SW.macros.find(function(x){ return x.id === id; });
+  if (m) swAddAlarm('info', 'RUN: ' + m.name);
+}
+function swDelMacro(id) {
+  SW.macros = SW.macros.filter(function(m){ return m.id !== id; });
+  renderMacrosTab();
+}
+
+function renderSwitcherAlarms() {
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+  html += '<span style="color:#555;font-size:9px;text-transform:uppercase;letter-spacing:1px">' + SW.alarms.length + ' events</span>';
+  html += '<button class="btn" style="padding:2px 8px;font-size:9px" onclick="SW.alarms=[];renderSwitcherAlarms();updateAlarmBadge()">CLEAR ALL</button>';
+  html += '</div><div style="display:flex;flex-direction:column;gap:3px;max-height:400px;overflow-y:auto">';
+  var sevMap = { ok:'rgba(6,214,160,.06)', warn:'rgba(255,209,102,.06)', crit:'rgba(239,35,60,.08)', info:'rgba(0,180,216,.05)' };
+  var bdrMap = { ok:'#06d6a0', warn:'#ffd166', crit:'#ef233c', info:'#00b4d8' };
+  var iconMap = { ok:'&#10003;', warn:'&#9888;', crit:'&#9888;', info:'&#9432;' };
+  SW.alarms.forEach(function(a) {
+    html += '<div class="alarm-row" style="background:' + (sevMap[a.sev]||sevMap.info) + ';border-left:3px solid ' + (bdrMap[a.sev]||bdrMap.info) + '">';
+    html += '<span style="color:#555;font-size:9px;white-space:nowrap">' + a.time + '</span>';
+    html += '<span>' + (iconMap[a.sev]||iconMap.info) + '</span>';
+    html += '<span style="flex:1">' + a.msg + '</span>';
+    html += '</div>';
+  });
+  if (SW.alarms.length === 0) html += '<div style="color:#555;font-size:11px;padding:10px">No alarms</div>';
+  html += '</div>';
+  var el = document.getElementById('sw-alarms-content');
+  if (el) el.innerHTML = html;
+}
+`;
+
+const JS_SWITCHER_INIT = `
+function initSwitcher() {
+  var el = document.getElementById('view-switcher');
+  var cnt = SW.alarms.filter(function(a){ return a.sev === 'crit' || a.sev === 'warn'; }).length;
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">' +
+      '<span style="color:#00b4d8;font-weight:bold;font-size:13px;letter-spacing:2px">NEXUS SWITCH</span>' +
+      '<span style="color:#555;font-size:10px">Virtual Production Switcher — 3 M/E Banks</span>' +
+      '<span id="sw-alarm-badge" class="badge badge-crit" style="cursor:pointer;' + (cnt > 0 ? '' : 'display:none') + '" onclick="showTab(\\'sw-tabs\\',\\'alarms\\')">' + (cnt > 0 ? '\\u26a0 ' + cnt + ' ALARM' + (cnt > 1 ? 'S' : '') : '') + '</span>' +
+      '<span style="margin-left:auto" class="badge badge-info">' + NEXUS_ROLE + '</span>' +
+    '</div>' +
+    '<div class="tab-bar" id="sw-tabs">' +
+      '<div class="tab active" data-tab="me"     onclick="showTab(\\'sw-tabs\\',\\'me\\')">M/E BANKS</div>' +
+      '<div class="tab"        data-tab="router"  onclick="showTab(\\'sw-tabs\\',\\'router\\')">MULTILEVEL ROUTER</div>' +
+      '<div class="tab"        data-tab="tally"   onclick="showTab(\\'sw-tabs\\',\\'tally\\')">TALLY / UMD</div>' +
+      '<div class="tab"        data-tab="devices" onclick="showTab(\\'sw-tabs\\',\\'devices\\')">DEVICE CONTROL</div>' +
+      '<div class="tab"        data-tab="macros"  onclick="showTab(\\'sw-tabs\\',\\'macros\\')">MACROS &amp; SALVOS</div>' +
+      '<div class="tab"        data-tab="alarms"  onclick="showTab(\\'sw-tabs\\',\\'alarms\\')">ALARMS' + (cnt > 0 ? ' <span class=\\"badge badge-crit\\">' + cnt + '</span>' : '') + '</div>' +
+    '</div>' +
+    '<div class="tab-panel active" id="sw-tabs-me"><div id="sw-me-content"></div></div>' +
+    '<div class="tab-panel" id="sw-tabs-router"><div id="sw-router-content"></div></div>' +
+    '<div class="tab-panel" id="sw-tabs-tally"><div id="sw-tally-content"></div></div>' +
+    '<div class="tab-panel" id="sw-tabs-devices"><div id="sw-devices-content"></div></div>' +
+    '<div class="tab-panel" id="sw-tabs-macros"><div id="sw-macros-content"></div></div>' +
+    '<div class="tab-panel" id="sw-tabs-alarms"><div id="sw-alarms-content"></div></div>';
+
+  renderMEBanks();
+  renderRouterTab();
+  renderTallyTab();
+  renderDevicesTab();
+  renderMacrosTab();
+  renderSwitcherAlarms();
+}
+`;
+
+// ─── CLOUD MCR / VIRTUAL RACK ─────────────────────────────────────────────────
+const JS_CLOUDMCR = `
+var RACK = {
+  tab: 'rack',
+  mode: 'hybrid',
+  addType: 'encoder',
+  addLoc: 'cloud',
+  addRegion: 'eu-west-1',
+  slots: [
+    { id:'s1',  unit:1,  h:2, type:'switcher',      label:'NEXUS SWITCH ME-1',    loc:'cloud', region:'eu-west-1',      status:'ok',   info:'3 M/E active',      proto:'ST2110',        br:'3x3G' },
+    { id:'s2',  unit:3,  h:2, type:'router',        label:'NEXUS ROUTER 256x256', loc:'cloud', region:'eu-west-1',      status:'ok',   info:'256x256 routed',    proto:'ST2110/Ember+', br:'10G' },
+    { id:'s3',  unit:5,  h:2, type:'multiviewer',   label:'NEXUS MOSAIC 4K',      loc:'cloud', region:'eu-west-1',      status:'ok',   info:'4x4 layout',        proto:'ST2110',        br:'12G' },
+    { id:'s4',  unit:7,  h:2, type:'audio_console', label:'VIRTUAL AUDIO 96ch',   loc:'cloud', region:'eu-west-1',      status:'warn', info:'Latency 45ms',      proto:'AES67',         br:'1G' },
+    { id:'s5',  unit:9,  h:1, type:'encoder',       label:'SRT ENCODER x4',       loc:'ground',region:null,             status:'ok',   info:'4 streams active',  proto:'SRT',           br:'4x50Mbps' },
+    { id:'s6',  unit:10, h:1, type:'decoder',       label:'SRT DECODER x4',       loc:'cloud', region:'eu-west-1',      status:'ok',   info:'4 streams active',  proto:'SRT',           br:'4x50Mbps' },
+    { id:'s7',  unit:11, h:1, type:'recorder',      label:'INGEST RECORDER',      loc:'cloud', region:'eu-west-1',      status:'ok',   info:'840GB / 2TB',       proto:'ST2110',        br:'3G' },
+    { id:'s8',  unit:12, h:1, type:'clock',         label:'PTP GRANDMASTER',      loc:'ground',region:null,             status:'ok',   info:'Domain 0 Locked',   proto:'IEEE 1588',     br:'' },
+    { id:'s9',  unit:13, h:1, type:'gateway',       label:'SDI-ST2110 GW',        loc:'ground',region:null,             status:'ok',   info:'8ch SDI active',    proto:'SDI/ST2110',    br:'8x3G' },
+    { id:'s10', unit:14, h:2, type:'playout',       label:'PLAYOUT SERVER',       loc:'cloud', region:'eu-west-1',      status:'ok',   info:'2ch playout ready', proto:'ST2110',        br:'2x3G' },
+    { id:'s11', unit:16, h:1, type:'graphics',      label:'GRAPHICS ENGINE',      loc:'cloud', region:'eu-west-1',      status:'ok',   info:'CG + DSK active',   proto:'NDI/ST2110',    br:'3G' },
+    { id:'s12', unit:17, h:1, type:'comms',         label:'COMMS / IFB',          loc:'cloud', region:'eu-west-1',      status:'ok',   info:'8 IFB channels',    proto:'VoIP/AES67',    br:'100M' }
+  ],
+  links: [
+    { id:'l1', name:'STUDIO-A to CLOUD',  src:'Studio A (Ground)', dst:'EU West MCR',  proto:'SRT',       region:'eu-west-1',      status:'connected', lat:18,  mbps:150 },
+    { id:'l2', name:'CLOUD to TX-OUT',    src:'EU West MCR',       dst:'TX Playout',   proto:'ST2110-GW', region:'eu-west-1',      status:'connected', lat:2,   mbps:270 },
+    { id:'l3', name:'REMOTE CAM FEED',    src:'Remote Location',   dst:'EU West MCR',  proto:'RIST',      region:'eu-west-1',      status:'connected', lat:45,  mbps:50  },
+    { id:'l4', name:'US CONTRIBUTION',    src:'US East Studio',    dst:'EU West MCR',  proto:'SRT',       region:'us-east-1',      status:'degraded',  lat:120, mbps:35  },
+    { id:'l5', name:'APAC FEED',          src:'Singapore Bureau',  dst:'EU West MCR',  proto:'RIST',      region:'ap-southeast-1', status:'standby',   lat:0,   mbps:0   }
+  ]
+};
+
+var RACK_CATALOG = [
+  { type:'switcher',      label:'Virtual Switcher ME',   h:2, proto:'ST2110' },
+  { type:'router',        label:'Signal Router 256x256', h:2, proto:'ST2110/Ember+' },
+  { type:'multiviewer',   label:'Multiviewer 4K',        h:2, proto:'ST2110' },
+  { type:'audio_console', label:'Virtual Audio Console', h:2, proto:'AES67/Ember+' },
+  { type:'encoder',       label:'SRT/RIST Encoder',      h:1, proto:'SRT/RIST' },
+  { type:'decoder',       label:'SRT/RIST Decoder',      h:1, proto:'SRT/RIST' },
+  { type:'recorder',      label:'Ingest Recorder',       h:1, proto:'ST2110' },
+  { type:'playout',       label:'Playout Server',        h:2, proto:'ST2110' },
+  { type:'graphics',      label:'Graphics Engine',       h:1, proto:'NDI/ST2110' },
+  { type:'comms',         label:'Comms / IFB System',    h:1, proto:'VoIP/AES67' },
+  { type:'monitoring',    label:'Monitoring & Scopes',   h:1, proto:'ST2110' },
+  { type:'gateway',       label:'ST2110-SDI Gateway',    h:1, proto:'SDI/ST2110' },
+  { type:'clock',         label:'PTP Grandmaster',       h:1, proto:'IEEE 1588' }
+];
+
+var RACK_ACCENTS = {
+  switcher:'#00b4d8', router:'#06d6a0', multiviewer:'#ffd166', audio_console:'#c084fc',
+  encoder:'#00b4d8', decoder:'#06d6a0', recorder:'#ef233c', playout:'#ef233c',
+  graphics:'#06d6a0', comms:'#00b4d8', monitoring:'#ffd166', gateway:'#ffd166',
+  clock:'#00b4d8', empty:'#222'
+};
+
+var REGION_LABELS = {
+  'eu-west-1':'EU West (London)', 'us-east-1':'US East (Virginia)',
+  'ap-southeast-1':'APAC (Singapore)', 'on-prem':'On-Premises'
+};
+
+function rackStatusColor(s) {
+  return s === 'ok' ? '#06d6a0' : s === 'warn' ? '#ffd166' : s === 'err' ? '#ef233c' : '#333';
+}
+function linkStatusColor(s) {
+  return s === 'connected' ? '#06d6a0' : s === 'degraded' ? '#ffd166' : s === 'offline' ? '#ef233c' : '#333';
+}
+
+function renderRackSlot(slot) {
+  var ac = RACK_ACCENTS[slot.type] || '#555';
+  var unitPx = 28;
+  var h = slot.h * unitPx - 2;
+  return '<div style="height:' + h + 'px;background:#0d0d0d;border:1px solid #1e1e1e;border-left:3px solid ' + ac + ';border-radius:3px;padding:4px 8px;display:flex;align-items:center;gap:8px;margin-bottom:2px;overflow:hidden">' +
+    '<div style="width:6px;height:6px;border-radius:50%;background:' + rackStatusColor(slot.status) + ';flex-shrink:0"></div>' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="color:' + ac + ';font-size:9px;font-weight:bold;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + slot.label + '</div>' +
+      '<div style="color:#888;font-size:8px;margin-top:1px">' + slot.info + '</div>' +
+    '</div>' +
+    (slot.h > 1 ? '<div style="text-align:right;flex-shrink:0"><div style="color:#555;font-size:8px">' + slot.proto + '</div>' + (slot.br ? '<div style="color:#555;font-size:8px">' + slot.br + '</div>' : '') + '</div>' : '') +
+    '<div style="padding:1px 5px;border-radius:8px;font-size:7px;font-weight:bold;flex-shrink:0;background:' + (slot.loc === 'cloud' ? 'rgba(0,180,216,.15)' : 'rgba(6,214,160,.1)') + ';color:' + (slot.loc === 'cloud' ? '#00b4d8' : '#06d6a0') + '">' +
+      (slot.loc === 'cloud' ? (slot.region ? REGION_LABELS[slot.region].split(' ')[0] + ' \u2601' : '\u2601 CLOUD') : '\u25a0 GROUND') +
+    '</div>' +
+    (canOperate() ? '<button onclick="rackRemoveSlot(\\'' + slot.id + '\\')" style="background:none;border:none;color:#555;cursor:pointer;font-size:10px;padding:0 2px;flex-shrink:0">&#10005;</button>' : '') +
+    '</div>';
+}
+
+function rackRemoveSlot(id) {
+  RACK.slots = RACK.slots.filter(function(s){ return s.id !== id; });
+  renderRackView();
+}
+
+function rackAddSlot() {
+  var cat = RACK_CATALOG.find(function(c){ return c.type === RACK.addType; });
+  if (!cat) return;
+  var maxUnit = 0;
+  RACK.slots.forEach(function(s){ if (s.unit + s.h > maxUnit) maxUnit = s.unit + s.h; });
+  RACK.slots.push({
+    id: 's' + Date.now(), unit: maxUnit + 1, h: cat.h,
+    type: RACK.addType, label: cat.label.toUpperCase(),
+    loc: RACK.addLoc, region: RACK.addLoc === 'cloud' ? RACK.addRegion : null,
+    status: 'ok', info: 'Provisioning...', proto: cat.proto, br: ''
+  });
+  renderRackView();
+}
+
+function renderRackView() {
+  var ground = RACK.slots.filter(function(s){ return s.loc === 'ground'; }).sort(function(a,b){ return a.unit - b.unit; });
+  var cloud  = RACK.slots.filter(function(s){ return s.loc === 'cloud';  }).sort(function(a,b){ return a.unit - b.unit; });
+  var html = '';
+
+  if (canOperate()) {
+    html += '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#0f0f0f;border-radius:4px;border:1px solid #1e1e1e">';
+    html += '<span style="color:#555;font-size:9px;text-transform:uppercase;letter-spacing:1px">Add to rack:</span>';
+    html += '<select id="rack-add-type" onchange="RACK.addType=this.value" style="background:#0d0d0d;border:1px solid #2a2a2a;color:#e0e0e0;padding:3px 8px;border-radius:3px;font-family:inherit;font-size:11px">';
+    RACK_CATALOG.forEach(function(c){ html += '<option value="' + c.type + '"' + (c.type === RACK.addType ? ' selected' : '') + '>' + c.label + '</option>'; });
+    html += '</select>';
+    html += '<select id="rack-add-loc" onchange="RACK.addLoc=this.value;renderRackView()" style="background:#0d0d0d;border:1px solid #2a2a2a;color:#e0e0e0;padding:3px 8px;border-radius:3px;font-family:inherit;font-size:11px">';
+    html += '<option value="ground"' + (RACK.addLoc === 'ground' ? ' selected' : '') + '>Ground</option>';
+    html += '<option value="cloud"'  + (RACK.addLoc === 'cloud'  ? ' selected' : '') + '>Cloud</option>';
+    html += '</select>';
+    if (RACK.addLoc === 'cloud') {
+      html += '<select id="rack-add-region" onchange="RACK.addRegion=this.value" style="background:#0d0d0d;border:1px solid #2a2a2a;color:#e0e0e0;padding:3px 8px;border-radius:3px;font-family:inherit;font-size:11px">';
+      ['eu-west-1','us-east-1','ap-southeast-1'].forEach(function(r){ html += '<option value="' + r + '"' + (r === RACK.addRegion ? ' selected' : '') + '>' + REGION_LABELS[r] + '</option>'; });
+      html += '</select>';
+    }
+    html += '<button class="btn btn-grn" style="padding:4px 14px" onclick="rackAddSlot()">+ PROVISION</button>';
+    html += '</div>';
+  }
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  html += '<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="color:#06d6a0;font-size:10px;font-weight:bold;letter-spacing:2px">\u25a0 GROUND RACK</span><span style="color:#555;font-size:9px">On-premises hardware</span></div>';
+  html += '<div style="background:#050505;border:1px solid #1e1e1e;border-radius:4px;padding:6px;min-height:200px">';
+  if (ground.length === 0) html += '<div style="color:#555;font-size:10px;padding:20px;text-align:center">No ground units</div>';
+  ground.forEach(function(s){ html += renderRackSlot(s); });
+  html += '</div></div>';
+
+  html += '<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="color:#00b4d8;font-size:10px;font-weight:bold;letter-spacing:2px">\u2601 CLOUD RACK</span><span style="color:#555;font-size:9px">Virtualised MCR</span></div>';
+  html += '<div style="background:#050505;border:1px solid #1e1e1e;border-radius:4px;padding:6px;min-height:200px">';
+  if (cloud.length === 0) html += '<div style="color:#555;font-size:10px;padding:20px;text-align:center">No cloud units</div>';
+  cloud.forEach(function(s){ html += renderRackSlot(s); });
+  html += '</div></div></div>';
+
+  var el = document.getElementById('rack-tab-rack');
+  if (el) el.innerHTML = html;
+}
+`;
+
+const JS_CLOUDMCR_TABS = `
+function renderLinksView() {
+  var active = RACK.links.filter(function(l){ return l.status === 'connected'; }).length;
+  var html = '<div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+  html += '<span style="color:#555;font-size:9px;text-transform:uppercase;letter-spacing:1px">Ground-to-Cloud transport links</span>';
+  html += '<span style="margin-left:auto;color:#555;font-size:9px">' + active + ' / ' + RACK.links.length + ' active</span>';
+  html += '</div>';
+  RACK.links.forEach(function(l) {
+    var sc = linkStatusColor(l.status);
+    html += '<div class="link-row" style="border-left:3px solid ' + sc + '">';
+    html += '<div style="width:8px;height:8px;border-radius:50%;background:' + sc + ';flex-shrink:0"></div>';
+    html += '<div style="flex:1;min-width:0"><div style="color:#e0e0e0;font-size:11px;font-weight:bold">' + l.name + '</div><div style="color:#555;font-size:9px;margin-top:2px">' + l.src + ' \u2192 ' + l.dst + '</div></div>';
+    html += '<div style="text-align:center;width:70px"><div style="color:#555;font-size:8px">PROTOCOL</div><div style="color:#00b4d8;font-size:10px;font-weight:bold">' + l.proto + '</div></div>';
+    html += '<div style="text-align:center;width:70px"><div style="color:#555;font-size:8px">LATENCY</div><div style="color:' + (l.lat > 80 ? '#ffd166' : '#06d6a0') + ';font-size:10px;font-weight:bold">' + (l.status === 'standby' ? '\u2014' : l.lat + 'ms') + '</div></div>';
+    html += '<div style="text-align:center;width:80px"><div style="color:#555;font-size:8px">BITRATE</div><div style="color:#e0e0e0;font-size:10px;font-weight:bold">' + (l.status === 'standby' ? 'STANDBY' : l.mbps + ' Mbps') + '</div></div>';
+    html += '<div style="padding:2px 8px;border-radius:8px;font-size:8px;font-weight:bold;flex-shrink:0;background:rgba(0,0,0,.3);color:' + sc + '">' + l.status.toUpperCase() + '</div>';
+    if (canOperate()) {
+      html += '<button class="btn" style="padding:2px 8px;font-size:9px" onclick="rackToggleLink(\\'' + l.id + '\\')">' + (l.status === 'standby' ? 'ACTIVATE' : 'STANDBY') + '</button>';
+    }
+    html += '</div>';
+  });
+  var el = document.getElementById('rack-tab-links');
+  if (el) el.innerHTML = html;
+}
+
+function rackToggleLink(id) {
+  RACK.links.forEach(function(l) {
+    if (l.id === id) l.status = l.status === 'standby' ? 'connected' : 'standby';
+  });
+  renderLinksView();
+}
+
+function renderRegionsView() {
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">';
+  Object.keys(REGION_LABELS).forEach(function(region) {
+    var label = REGION_LABELS[region];
+    var regionSlots = RACK.slots.filter(function(s){ return s.region === region || (region === 'on-prem' && s.loc === 'ground'); });
+    var ok = regionSlots.filter(function(s){ return s.status === 'ok'; }).length;
+    var warn = regionSlots.filter(function(s){ return s.status === 'warn'; }).length;
+    var ac = region === 'on-prem' ? '#06d6a0' : '#00b4d8';
+    html += '<div style="background:#0f0f0f;border:1px solid #1e1e1e;border-radius:6px;padding:14px;border-top:2px solid ' + ac + '">';
+    html += '<div style="color:' + ac + ';font-weight:bold;font-size:11px;margin-bottom:4px">' + label + '</div>';
+    html += '<div style="color:#555;font-size:9px;margin-bottom:10px">' + region + '</div>';
+    html += '<div style="display:flex;gap:12px;font-size:10px"><span style="color:#06d6a0">&#10003; ' + ok + ' ok</span>' + (warn > 0 ? '<span style="color:#ffd166">&#9888; ' + warn + ' warn</span>' : '') + '<span style="color:#555">' + regionSlots.length + ' units</span></div>';
+    if (regionSlots.length === 0) html += '<div style="color:#555;font-size:9px;margin-top:8px">No units deployed</div>';
+    regionSlots.slice(0, 3).forEach(function(s) {
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:9px"><div style="width:5px;height:5px;border-radius:50%;background:' + rackStatusColor(s.status) + '"></div><span style="color:#888">' + s.label + '</span></div>';
+    });
+    if (regionSlots.length > 3) html += '<div style="color:#555;font-size:8px;margin-top:4px">+' + (regionSlots.length - 3) + ' more</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  var el = document.getElementById('rack-tab-regions');
+  if (el) el.innerHTML = html;
+}
+
+function renderHealthView() {
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  html += '<div><div style="color:#555;font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Rack Unit Status</div><div style="display:flex;flex-direction:column;gap:4px">';
+  RACK.slots.forEach(function(s) {
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#0f0f0f;border-radius:3px;border:1px solid #1e1e1e">';
+    html += '<div style="width:7px;height:7px;border-radius:50%;background:' + rackStatusColor(s.status) + '"></div>';
+    html += '<span style="flex:1;color:#e0e0e0;font-size:10px">' + s.label + '</span>';
+    html += '<span style="color:#555;font-size:8px">' + (s.loc === 'cloud' ? '\u2601 ' + s.region : '\u25a0 ground') + '</span>';
+    html += '<span style="color:' + rackStatusColor(s.status) + ';font-size:9px;font-weight:bold">' + s.status.toUpperCase() + '</span>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  html += '<div><div style="color:#555;font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Link Health</div><div style="display:flex;flex-direction:column;gap:4px">';
+  RACK.links.forEach(function(l) {
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#0f0f0f;border-radius:3px;border:1px solid #1e1e1e">';
+    html += '<div style="width:7px;height:7px;border-radius:50%;background:' + linkStatusColor(l.status) + '"></div>';
+    html += '<span style="flex:1;color:#e0e0e0;font-size:10px">' + l.name + '</span>';
+    html += '<span style="color:#555;font-size:8px">' + l.proto + '</span>';
+    html += '<span style="color:' + (l.lat > 80 ? '#ffd166' : '#06d6a0') + ';font-size:9px">' + (l.status === 'standby' ? 'STANDBY' : l.lat + 'ms') + '</span>';
+    html += '</div>';
+  });
+  html += '</div></div></div>';
+  var el = document.getElementById('rack-tab-health');
+  if (el) el.innerHTML = html;
+}
+
+function initCloudMCR() {
+  var el = document.getElementById('view-cloudmcr');
+  var cloudCnt  = RACK.slots.filter(function(s){ return s.loc === 'cloud'; }).length;
+  var groundCnt = RACK.slots.filter(function(s){ return s.loc === 'ground'; }).length;
+  var warnCnt   = RACK.slots.filter(function(s){ return s.status === 'warn' || s.status === 'err'; }).length;
+  var activeLnk = RACK.links.filter(function(l){ return l.status === 'connected'; }).length;
+
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">' +
+      '<span style="color:#00b4d8;font-weight:bold;font-size:13px;letter-spacing:2px">NEXUS CLOUD MCR</span>' +
+      '<span style="color:#555;font-size:10px">Virtual Rack \u2014 Hybrid Ground-to-Cloud Production</span>' +
+      '<div style="display:flex;gap:6px;margin-left:auto">' +
+        '<button class="btn' + (RACK.mode==='ground'?' btn-grn':'') + '" onclick="RACK.mode=\\'ground\\';initCloudMCR()">\u25a0 GROUND</button>' +
+        '<button class="btn' + (RACK.mode==='cloud'?' btn-ac':'') + '" onclick="RACK.mode=\\'cloud\\';initCloudMCR()">\u2601 CLOUD</button>' +
+        '<button class="btn' + (RACK.mode==='hybrid'?' btn-ac':'') + '" onclick="RACK.mode=\\'hybrid\\';initCloudMCR()">\u26a1 HYBRID</button>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:16px;margin-bottom:12px;padding:8px 12px;background:#0f0f0f;border-radius:4px;border:1px solid #1e1e1e;flex-wrap:wrap;font-size:10px">' +
+      '<span style="color:#06d6a0">\u25a0 ' + groundCnt + ' ground units</span>' +
+      '<span style="color:#2a2a2a">|</span>' +
+      '<span style="color:#00b4d8">\u2601 ' + cloudCnt + ' cloud units</span>' +
+      '<span style="color:#2a2a2a">|</span>' +
+      '<span style="color:#888">' + RACK.slots.length + ' total slots</span>' +
+      '<span style="color:#2a2a2a">|</span>' +
+      '<span style="color:' + (activeLnk > 0 ? '#06d6a0' : '#555') + '">' + activeLnk + ' active links</span>' +
+      (warnCnt > 0 ? '<span style="color:#2a2a2a">|</span><span style="color:#ffd166">\u26a0 ' + warnCnt + ' warnings</span>' : '') +
+      '<span style="margin-left:auto;color:#00b4d8;font-weight:bold">MODE: ' + RACK.mode.toUpperCase() + '</span>' +
+    '</div>' +
+    '<div class="tab-bar" id="rack-tabs">' +
+      '<div class="tab active" data-tab="rack"    onclick="showTab(\\'rack-tabs\\',\\'rack\\');renderRackView()">VIRTUAL RACK</div>' +
+      '<div class="tab"        data-tab="links"   onclick="showTab(\\'rack-tabs\\',\\'links\\');renderLinksView()">CLOUD LINKS</div>' +
+      '<div class="tab"        data-tab="regions" onclick="showTab(\\'rack-tabs\\',\\'regions\\');renderRegionsView()">REGIONS</div>' +
+      '<div class="tab"        data-tab="health"  onclick="showTab(\\'rack-tabs\\',\\'health\\');renderHealthView()">HEALTH</div>' +
+    '</div>' +
+    '<div class="tab-panel active" id="rack-tabs-rack"><div id="rack-tab-rack"></div></div>' +
+    '<div class="tab-panel" id="rack-tabs-links"><div id="rack-tab-links"></div></div>' +
+    '<div class="tab-panel" id="rack-tabs-regions"><div id="rack-tab-regions"></div></div>' +
+    '<div class="tab-panel" id="rack-tabs-health"><div id="rack-tab-health"></div></div>';
+
+  renderRackView();
+}
+`;
+
+// ─── ROUTER view ──────────────────────────────────────────────────────────────
+const JS_ROUTER = `
+var ROUTER_STATE = { level: 'V', routes: {} };
+var ROUTER_SRCS = ['CAM-01','CAM-02','CAM-03','CAM-04','CAM-05','CAM-06','CAM-07','CAM-08',
+                   'REPLAY-01','REPLAY-02','GFX-01','GFX-02','PGM-OUT','PVW-OUT','AUX-01','AUX-02',
+                   'CLOUD-IN-1','CLOUD-IN-2','SRT-IN-1','SRT-IN-2'];
+var ROUTER_DSTS = ['TX-OUT-1','TX-OUT-2','RECORD-1','RECORD-2','STREAM-1','STREAM-2',
+                   'MULTIVIEW','AUX-1','AUX-2','CONF-1','CONF-2','CLOUD-OUT-1','CLOUD-OUT-2'];
+
+function initRouter() {
+  var el = document.getElementById('view-router');
+  el.innerHTML = '<div class="panel"><div class="panel-title">NEXUS ROUTER — 256x256 MULTILEVEL</div><div id="router-content"></div></div>';
+  renderRouterView();
+}
+
+function renderRouterView() {
+  var html = '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">';
+  ['V','A','D','AES','EMB'].forEach(function(l) {
+    var on = ROUTER_STATE.level === l;
+    html += '<button class="btn' + (on ? ' btn-ac' : '') + '" onclick="routerSetLevel(\\'' + l + '\\')">' + LEVEL_LABELS[l] + '</button>';
+  });
+  html += '<span style="color:#2a2a2a;margin:0 4px">|</span>';
+  html += '<button class="btn" onclick="ROUTER_STATE.routes={};renderRouterView()">CLEAR ALL</button>';
+  var cnt = Object.keys(ROUTER_STATE.routes).filter(function(k){ return k.indexOf(ROUTER_STATE.level + ':') === 0; }).length;
+  html += '<span style="color:#555;font-size:9px;margin-left:8px">' + cnt + ' routes on ' + LEVEL_LABELS[ROUTER_STATE.level] + '</span>';
+  html += '</div><div style="overflow-x:auto"><table><thead><tr><th>DST \\ SRC</th>';
+  ROUTER_SRCS.forEach(function(s){ html += '<th style="white-space:nowrap">' + s + '</th>'; });
+  html += '</tr></thead><tbody>';
+  ROUTER_DSTS.forEach(function(dst) {
+    var routed = ROUTER_STATE.routes[ROUTER_STATE.level + ':' + dst];
+    html += '<tr><td style="font-weight:bold;white-space:nowrap;color:#888">' + dst + '</td>';
+    ROUTER_SRCS.forEach(function(src) {
+      var isRouted = routed === src;
+      html += '<td style="text-align:center;min-width:52px;background:' + (isRouted ? 'rgba(0,180,216,.18)' : '#080808') + ';color:' + (isRouted ? '#00b4d8' : 'transparent') + ';cursor:pointer;font-weight:bold" onclick="routerSetRoute(\\'' + dst + '\\',\\'' + src + '\\')">' + (isRouted ? (src.split('-')[1] || src) : '.') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  var el = document.getElementById('router-content');
+  if (el) el.innerHTML = html;
+}
+
+function routerSetLevel(l) { ROUTER_STATE.level = l; renderRouterView(); }
+function routerSetRoute(dst, src) {
+  if (!canOperate()) return;
+  ROUTER_STATE.routes[ROUTER_STATE.level + ':' + dst] = src;
+  renderRouterView();
+}
+`;
+
+// ─── CLOUD/SRT, SCOPES, PTP, NMOS, DEVICES, API, PRE-DEPLOY views ─────────────
+const JS_OTHER_VIEWS = `
+function initCloudSRT() {
+  var el = document.getElementById('view-cloudsrt');
+  var streams = [
+    { name:'SRT-OUT-01', dst:'CDN-PRIMARY',   proto:'SRT',  bitrate:'15 Mbps', lat:'120ms', status:'ok' },
+    { name:'SRT-OUT-02', dst:'CDN-BACKUP',    proto:'SRT',  bitrate:'15 Mbps', lat:'118ms', status:'ok' },
+    { name:'RIST-OUT-01',dst:'PARTNER-A',     proto:'RIST', bitrate:'50 Mbps', lat:'45ms',  status:'ok' },
+    { name:'RTMP-01',    dst:'SOCIAL-LIVE',   proto:'RTMP', bitrate:'6 Mbps',  lat:'2000ms',status:'warn' },
+    { name:'NDI-OUT-01', dst:'LOCAL-NETWORK', proto:'NDI',  bitrate:'125 Mbps',lat:'1ms',   status:'ok' }
+  ];
+  var html = '<div class="panel"><div class="panel-title">CLOUD / SRT STREAMING</div>';
+  streams.forEach(function(s) {
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0d0d0d;border-radius:4px;border:1px solid #1e1e1e;margin-bottom:6px">';
+    html += '<span class="dot dot-' + s.status + '"></span>';
+    html += '<span style="flex:1;color:#e0e0e0;font-size:11px">' + s.name + '</span>';
+    html += '<span style="color:#555;font-size:9px;width:120px">' + s.dst + '</span>';
+    html += '<span class="badge badge-info">' + s.proto + '</span>';
+    html += '<span style="color:#888;font-size:9px;width:80px">' + s.bitrate + '</span>';
+    html += '<span style="color:#888;font-size:9px;width:70px">' + s.lat + '</span>';
+    html += '<span class="badge badge-' + s.status + '">' + s.status.toUpperCase() + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function initScopes() {
+  var el = document.getElementById('view-scopes');
+  var html = '<div class="panel"><div class="panel-title">NEXUS SCOPES — VIDEO / AUDIO ANALYSIS</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">';
+  var scopes = [
+    { name:'WAVEFORM', color:'#06d6a0' },
+    { name:'VECTORSCOPE', color:'#00b4d8' },
+    { name:'HISTOGRAM', color:'#ffd166' },
+    { name:'AUDIO METERS', color:'#c084fc' },
+    { name:'LOUDNESS', color:'#ef233c' },
+    { name:'PHASE METER', color:'#06d6a0' }
+  ];
+  scopes.forEach(function(s) {
+    html += '<div style="background:#0d0d0d;border:1px solid #1e1e1e;border-top:2px solid ' + s.color + ';border-radius:4px;padding:12px;aspect-ratio:4/3;display:flex;flex-direction:column">';
+    html += '<div style="color:' + s.color + ';font-size:9px;letter-spacing:2px;margin-bottom:8px">' + s.name + '</div>';
+    html += '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:#1e1e1e;font-size:10px">[ SCOPE DISPLAY ]</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function initPTP() {
+  var el = document.getElementById('view-ptp');
+  var html = '<div class="panel"><div class="panel-title">SYNC / PTP — IEEE 1588 GRANDMASTER</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:14px">';
+  var stats = [
+    { label:'PTP Domain', value:'0', color:'#00b4d8' },
+    { label:'Grandmaster', value:'LOCKED', color:'#06d6a0' },
+    { label:'Offset', value:'±2ns', color:'#06d6a0' },
+    { label:'Path Delay', value:'1.2μs', color:'#06d6a0' },
+    { label:'Freq Adj', value:'+0.3ppb', color:'#ffd166' },
+    { label:'Sync Interval', value:'125ms', color:'#888' }
+  ];
+  stats.forEach(function(s) {
+    html += '<div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:4px;padding:12px">';
+    html += '<div style="color:#555;font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">' + s.label + '</div>';
+    html += '<div style="color:' + s.color + ';font-size:16px;font-weight:bold">' + s.value + '</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function initNMOS() {
+  var el = document.getElementById('view-nmos');
+  var nodes = [
+    { name:'Sony HDC-5500 CAM-01', type:'Camera',      id:'urn:uuid:a1b2c3d4', status:'ok',   ver:'IS-04 v1.3' },
+    { name:'Sony HDC-5500 CAM-02', type:'Camera',      id:'urn:uuid:a1b2c3d5', status:'ok',   ver:'IS-04 v1.3' },
+    { name:'Evertz 7800 MV',       type:'Multiviewer', id:'urn:uuid:b2c3d4e5', status:'ok',   ver:'IS-05 v1.1' },
+    { name:'NEXUS SWITCH',         type:'Switcher',    id:'urn:uuid:c3d4e5f6', status:'ok',   ver:'IS-04/05 v1.3' },
+    { name:'NEXUS ROUTER',         type:'Router',      id:'urn:uuid:d4e5f6a7', status:'warn', ver:'IS-04 v1.2' }
+  ];
+  var html = '<div class="panel"><div class="panel-title">NMOS CONNECT — IS-04 / IS-05 REGISTRY</div>';
+  nodes.forEach(function(n) {
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0d0d0d;border-radius:4px;border:1px solid #1e1e1e;margin-bottom:6px">';
+    html += '<span class="dot dot-' + n.status + '"></span>';
+    html += '<div style="flex:1"><div style="color:#e0e0e0;font-size:11px">' + n.name + '</div><div style="color:#555;font-size:9px;margin-top:2px">' + n.id + '</div></div>';
+    html += '<span style="color:#555;font-size:9px;width:100px">' + n.type + '</span>';
+    html += '<span class="badge badge-info">' + n.ver + '</span>';
+    html += '<span class="badge badge-' + n.status + '">' + n.status.toUpperCase() + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function initDevices() {
+  var el = document.getElementById('view-devices');
+  var html = '<div class="panel"><div class="panel-title">DEVICE COMPATIBILITY MATRIX</div>';
+  var devs = [
+    { name:'Sony HDC-5500',       cat:'Camera',       proto:'NMOS IS-04',  status:'ok',   fw:'v3.40' },
+    { name:'LAWO MC2-56',         cat:'Audio Console',proto:'Ember+',      status:'ok',   fw:'v6.2.1' },
+    { name:'Evertz 7800',         cat:'Multiviewer',  proto:'NMOS IS-05',  status:'ok',   fw:'v2.1.0' },
+    { name:'Miranda NV8576',      cat:'Router',       proto:'Probel SW-P', status:'ok',   fw:'v4.5.2' },
+    { name:'Calrec Apollo',       cat:'Audio Console',proto:'Ember+',      status:'warn', fw:'v2.8.0' },
+    { name:'GVG Kayenne',         cat:'Switcher',     proto:'GVG 7600',    status:'ok',   fw:'v12.1' },
+    { name:'Snell Sirius 800',    cat:'Router',       proto:'Probel SW-P', status:'warn', fw:'v3.2.1' },
+    { name:'Sony BVS-3200',       cat:'Switcher',     proto:'BVS',         status:'ok',   fw:'v5.0.1' }
+  ];
+  devs.forEach(function(d) {
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:#0d0d0d;border-radius:4px;border:1px solid #1e1e1e;margin-bottom:5px">';
+    html += '<span class="dot dot-' + d.status + '"></span>';
+    html += '<span style="flex:1;color:#e0e0e0;font-size:11px">' + d.name + '</span>';
+    html += '<span style="color:#555;font-size:9px;width:120px">' + d.cat + '</span>';
+    html += '<span class="badge badge-info">' + d.proto + '</span>';
+    html += '<span style="color:#555;font-size:9px;width:60px">' + d.fw + '</span>';
+    html += '<span class="badge badge-' + d.status + '">' + d.status.toUpperCase() + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function initAPI() {
+  var el = document.getElementById('view-api');
+  var endpoints = [
+    { method:'GET',    path:'/api/v1/health',           desc:'System health check' },
+    { method:'GET',    path:'/api/v1/switcher/status',  desc:'Switcher ME states' },
+    { method:'POST',   path:'/api/v1/switcher/cut',     desc:'Execute cut on ME bank' },
+    { method:'POST',   path:'/api/v1/switcher/auto',    desc:'Execute auto transition' },
+    { method:'GET',    path:'/api/v1/router/matrix',    desc:'Full router matrix' },
+    { method:'POST',   path:'/api/v1/router/route',     desc:'Set a route' },
+    { method:'GET',    path:'/api/v1/nmos/nodes',       desc:'NMOS IS-04 node registry' },
+    { method:'POST',   path:'/api/v1/nmos/connect',     desc:'NMOS IS-05 connection' },
+    { method:'GET',    path:'/api/v1/ptp/status',       desc:'PTP grandmaster status' },
+    { method:'GET',    path:'/api/v1/rack/slots',       desc:'Virtual rack slots' },
+    { method:'POST',   path:'/api/v1/rack/provision',   desc:'Provision new rack slot' },
+    { method:'DELETE', path:'/api/v1/rack/slots/:id',   desc:'Remove rack slot' },
+    { method:'GET',    path:'/api/v1/rack/links',       desc:'Cloud transport links' },
+    { method:'POST',   path:'/api/v1/rack/links/:id',   desc:'Toggle link state' }
+  ];
+  var methodColors = { GET:'#06d6a0', POST:'#00b4d8', DELETE:'#ef233c', PUT:'#ffd166', PATCH:'#c084fc' };
+  var html = '<div class="panel"><div class="panel-title">API EXPLORER — REST v1</div>';
+  endpoints.forEach(function(e) {
+    var mc = methodColors[e.method] || '#888';
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:6px 12px;background:#0d0d0d;border-radius:3px;border:1px solid #1e1e1e;margin-bottom:4px">';
+    html += '<span style="width:60px;font-size:9px;font-weight:bold;color:' + mc + '">' + e.method + '</span>';
+    html += '<span style="flex:1;color:#e0e0e0;font-size:10px;font-family:monospace">' + e.path + '</span>';
+    html += '<span style="color:#555;font-size:9px">' + e.desc + '</span>';
+    html += '<button class="btn" style="padding:2px 8px;font-size:9px" onclick="alert(\\'Simulated: ' + e.method + ' ' + e.path + '\\')">TRY</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function initPreDeploy() {
+  var el = document.getElementById('view-predeploy');
+  var checks = [
+    { label:'Network: ST2110 VLAN configured',       status:'ok' },
+    { label:'PTP: Grandmaster locked, offset < 5ns', status:'ok' },
+    { label:'NMOS: Registry reachable',              status:'ok' },
+    { label:'Switcher: All 3 M/E banks online',      status:'ok' },
+    { label:'Router: 256x256 matrix sync',           status:'ok' },
+    { label:'Audio: AES67 streams aligned',          status:'warn' },
+    { label:'Cloud: SRT encoders connected',         status:'ok' },
+    { label:'Cloud: RIST links active',              status:'ok' },
+    { label:'Monitoring: Scopes calibrated',         status:'ok' },
+    { label:'Recording: Storage > 80% free',         status:'ok' },
+    { label:'Comms: IFB channels tested',            status:'warn' },
+    { label:'Security: TLS certs valid',             status:'ok' }
+  ];
+  var ok   = checks.filter(function(c){ return c.status === 'ok'; }).length;
+  var warn = checks.filter(function(c){ return c.status === 'warn'; }).length;
+  var html = '<div class="panel"><div class="panel-title">PRE-DEPLOY CHECKLIST</div>';
+  html += '<div style="display:flex;gap:12px;margin-bottom:14px;font-size:10px">';
+  html += '<span style="color:#06d6a0">&#10003; ' + ok + ' passed</span>';
+  html += '<span style="color:#ffd166">&#9888; ' + warn + ' warnings</span>';
+  html += '<span style="color:#555">' + checks.length + ' total</span>';
+  html += '</div>';
+  checks.forEach(function(c) {
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:6px 12px;background:#0d0d0d;border-radius:3px;border:1px solid #1e1e1e;margin-bottom:4px">';
+    html += '<span class="dot dot-' + c.status + '"></span>';
+    html += '<span style="flex:1;color:#e0e0e0;font-size:11px">' + c.label + '</span>';
+    html += '<span class="badge badge-' + c.status + '">' + (c.status === 'ok' ? 'PASS' : 'WARN') + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+`;
+
+// ─── INIT ALL + FOOTER ────────────────────────────────────────────────────────
+const JS_INIT = `
+function initAllViews() {
+  initLive();
+  initMosaic();
+  initSwitcher();
+  initCloudMCR();
+  initRouter();
+  initCloudSRT();
+  initScopes();
+  initPTP();
+  initNMOS();
+  initDevices();
+  initAPI();
+  initPreDeploy();
+}
+`;
+
+const HTML_FOOT = `
+</script>
+</body>
+</html>`;
+
+// ─── Assemble and write ───────────────────────────────────────────────────────
+const JS_ALL = [
+  JS_AUTH,
+  JS_LIVE,
+  JS_MOSAIC,
+  JS_SWITCHER,
+  JS_SWITCHER_RENDER,
+  JS_SWITCHER_TABS,
+  JS_SWITCHER_INIT,
+  JS_CLOUDMCR,
+  JS_CLOUDMCR_TABS,
+  JS_ROUTER,
+  JS_OTHER_VIEWS,
+  JS_INIT,
+].join('\n');
+
+// Validate JS before writing
+try {
+  new Function(JS_ALL);
+  console.log('JS VALID — ' + JS_ALL.length + ' chars');
+} catch (e) {
+  console.error('JS ERROR:', e.message);
+  process.exit(1);
+}
+
+const HTML = HTML_HEAD + JS_ALL + HTML_FOOT;
+const OUT = path.join(__dirname, 'nexus-demo.html');
+fs.writeFileSync(OUT, HTML, 'utf8');
+console.log('Written: ' + OUT + ' (' + Math.round(HTML.length / 1024) + ' KB)');

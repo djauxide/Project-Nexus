@@ -191,6 +191,42 @@ async function bootstrap() {
     return { success: true, id };
   });
 
+  // ── Virtual Rack / Cloud MCR ──────────────────────────────────────────────
+
+  fastify.get('/api/v1/rack/slots', async () => ({ slots: [] }));
+
+  fastify.post('/api/v1/rack/slots', async (req) => {
+    const slot = req.body as { type: string; location: string; region?: string; label: string };
+    wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER'], {
+      type: 'RACK_SLOT_ADDED', slot, timestamp: Date.now(),
+    });
+    return { success: true, id: `slot-${Date.now()}` };
+  });
+
+  fastify.delete('/api/v1/rack/slots/:id', async (req) => {
+    const { id } = req.params as { id: string };
+    wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER'], {
+      type: 'RACK_SLOT_REMOVED', id, timestamp: Date.now(),
+    });
+    return { success: true };
+  });
+
+  fastify.get('/api/v1/rack/links', async () => ({ links: [] }));
+
+  fastify.post('/api/v1/rack/links/:id/activate', async (req) => {
+    const { id } = req.params as { id: string };
+    wsManager.broadcast({ type: 'RACK_LINK_ACTIVATED', id, timestamp: Date.now() });
+    return { success: true };
+  });
+
+  fastify.get('/api/v1/rack/health', async () => ({
+    mode: 'hybrid',
+    groundUnits: 0,
+    cloudUnits: 0,
+    activeLinks: 0,
+    regions: [],
+  }));
+
   wsManager.startHeartbeat();
 
   await fastify.listen({ port: parseInt(process.env.API_PORT ?? '8080'), host: '0.0.0.0' });

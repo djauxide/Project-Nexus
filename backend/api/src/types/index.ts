@@ -104,3 +104,38 @@ export interface CerebrumState {
   alarms: AlarmEntry[];
   automationMode: 'manual' | 'semi' | 'full';
 }
+
+// ── Virtual Rack / Cloud MCR types ────────────────────────────────────────
+
+export type CloudRegion = 'eu-west-1' | 'us-east-1' | 'ap-southeast-1' | 'on-prem';
+export type RackSlotType = 'empty' | 'switcher' | 'router' | 'multiviewer' | 'audio_console'
+  | 'encoder' | 'decoder' | 'recorder' | 'playout' | 'graphics'
+  | 'comms' | 'monitoring' | 'gateway' | 'clock';
+export type LinkStatus = 'connected' | 'degraded' | 'offline' | 'standby';
+export type RackMode = 'ground' | 'cloud' | 'hybrid';
+
+export interface VirtualRackSlot {
+  id: string;
+  unit: number;
+  height: number;
+  type: RackSlotType;
+  label: string;
+  location: 'ground' | 'cloud';
+  region?: CloudRegion;
+  status: 'ok' | 'warn' | 'err' | 'off';
+  info: string;
+  protocol?: string;
+  bitrate?: string;
+}
+
+export interface CloudTransportLink {
+  id: string;
+  name: string;
+  src: string;
+  dst: string;
+  protocol: 'SRT' | 'RIST' | 'NDI' | 'RTMP' | 'ST2110-GW';
+  region: CloudRegion;
+  status: LinkStatus;
+  latencyMs: number;
+  bitrateMbps: number;
+}

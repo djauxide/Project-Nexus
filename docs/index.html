@@ -2,10 +2,649 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=../backend/api/nexus-demo.html">
-<title>NEXUS v4 Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS v4 — Broadcast IP Platform Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#e0e0e0;font-family:monospace;font-size:13px}
+nav{display:flex;background:#111;border-bottom:1px solid #222;padding:0 8px}
+nav button{padding:10px 18px;background:none;border:none;color:#888;cursor:pointer;font-family:monospace;font-size:13px;border-bottom:2px solid transparent}
+nav button.active{color:#0af;border-bottom-color:#0af}
+nav .logo{padding:10px 16px;color:#0af;font-weight:bold;font-size:15px;letter-spacing:2px;margin-right:8px}
+.view{display:none;padding:12px}
+.view.active{display:block}
+/* MOSAIC */
+.mv-grid{display:grid;gap:2px;background:#000}
+.mv-cell{aspect-ratio:16/9;position:relative;overflow:hidden;cursor:pointer;border:2px solid #333}
+.mv-cell.pgm{border-color:#f00}
+.mv-cell.pvw{border-color:#0f0}
+.mv-cell .bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.mv-cell .lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.75);padding:2px 4px;font-size:10px;display:flex;justify-content:space-between}
+.mv-cell .tally-tag{font-weight:bold}
+.mv-cell.pgm .tally-tag{color:#f00}
+.mv-cell.pvw .tally-tag{color:#0f0}
+.layout-btns{display:flex;gap:4px;margin-bottom:8px;align-items:center}
+.layout-btns button{padding:3px 9px;background:#222;color:#aaa;border:1px solid #333;border-radius:2px;cursor:pointer;font-family:monospace;font-size:11px}
+.layout-btns button.active{background:#0af;color:#000}
+/* SWITCH */
+.bus-row{margin-bottom:8px}
+.bus-label{font-size:10px;margin-bottom:3px;font-weight:bold}
+.bus-label.pgm{color:#f44}
+.bus-label.pvw{color:#4f4}
+.bus-btns{display:flex;flex-wrap:wrap;gap:3px}
+.bus-btns button{padding:3px 7px;font-size:10px;font-family:monospace;border:1px solid #333;border-radius:2px;cursor:pointer;background:#1e1e1e;color:#777}
+.bus-btns button.pgm-active{background:#c00;color:#fff;border-color:#f00}
+.bus-btns button.pvw-active{background:#060;color:#fff;border-color:#0f0}
+.sw-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px;padding:10px;background:#111;border-radius:4px}
+.btn-cut{padding:8px 28px;background:#c00;color:#fff;border:none;border-radius:3px;font-size:15px;font-weight:bold;cursor:pointer;font-family:monospace}
+.btn-cut:hover{background:#f00}
+.btn-auto{padding:8px 28px;background:#0af;color:#000;border:none;border-radius:3px;font-size:15px;font-weight:bold;cursor:pointer;font-family:monospace}
+.btn-auto:hover{background:#0cf}
+.trans-btns button{padding:3px 9px;font-size:11px;font-family:monospace;border:1px solid #333;border-radius:2px;cursor:pointer;background:#1e1e1e;color:#aaa}
+.trans-btns button.active{background:#0af;color:#000}
+.progress-bar{height:6px;background:#222;border-radius:3px;margin-top:6px;overflow:hidden;width:200px}
+.progress-fill{height:100%;background:#0af;width:0%;transition:width 0.05s linear}
+/* SCOPE */
+.scope-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.scope-panel{background:#111;border:1px solid #222;border-radius:4px;padding:8px}
+.scope-panel h3{font-size:11px;color:#888;margin-bottom:6px;text-transform:uppercase}
+.scope-panel canvas{width:100%;display:block;background:#000;border-radius:2px}
+/* SYNC */
+.ptp-card{background:#111;border:1px solid #222;border-radius:4px;padding:12px;margin-bottom:8px}
+.ptp-offset{font-size:36px;font-weight:bold;color:#0af}
+.ptp-offset span{font-size:14px;color:#888}
+.ptp-meta{display:flex;gap:24px;margin-top:8px;font-size:11px;color:#888}
+.ptp-meta b{color:#ccc}
+.ptp-log{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:3px;padding:8px;height:140px;overflow-y:auto;font-size:10px;color:#4a4}
+.ptp-log .entry{margin-bottom:2px}
+.ptp-log .ts{color:#555;margin-right:6px}
+/* CONNECT */
+.nmos-list{display:flex;flex-direction:column;gap:6px}
+.nmos-device{display:flex;align-items:center;justify-content:space-between;background:#111;border:1px solid #222;border-radius:4px;padding:8px 12px}
+.nmos-device .info{display:flex;flex-direction:column;gap:2px}
+.nmos-device .name{color:#ccc;font-size:12px}
+.nmos-device .meta{color:#555;font-size:10px}
+.nmos-device .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.nmos-device .dot.on{background:#0f0}
+.nmos-device .dot.off{background:#555}
+.btn-connect{padding:4px 14px;font-size:11px;font-family:monospace;border:1px solid #0af;border-radius:2px;background:none;color:#0af;cursor:pointer}
+.btn-connect.connected{border-color:#f44;color:#f44}
+/* PRE-DEPLOY */
+.phase{background:#111;border:1px solid #222;border-radius:4px;padding:10px 14px;margin-bottom:8px}
+.phase h3{font-size:12px;color:#0af;margin-bottom:8px}
+.check-item{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11px;color:#aaa}
+.check-item input[type=checkbox]{accent-color:#0af;width:14px;height:14px;cursor:pointer}
+.check-item.done{color:#4f4}
+.go-banner{padding:12px 20px;border-radius:4px;font-size:16px;font-weight:bold;text-align:center;margin-top:10px;letter-spacing:2px}
+.go-banner.go{background:#0a2a0a;border:2px solid #0f0;color:#0f0}
+.go-banner.nogo{background:#2a0a0a;border:2px solid #f00;color:#f00}
+/* STATUS BAR */
+.statusbar{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid #222;padding:4px 12px;display:flex;gap:20px;align-items:center;font-size:10px;color:#666;z-index:100}
+.statusbar .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
+.statusbar .dot.green{background:#0f0}
+.statusbar .dot.red{background:#f00}
+.statusbar .dot.yellow{background:#fa0}
+.statusbar .dot.grey{background:#555}
+.statusbar .sep{color:#333}
+</style>
 </head>
 <body>
-<p>Redirecting to <a href="../backend/api/nexus-demo.html">NEXUS v4 Demo</a>...</p>
+<nav>
+  <div class="logo">NEXUS v4</div>
+  <button class="active" onclick="showView('mosaic',this)">MOSAIC</button>
+  <button onclick="showView('switch',this)">SWITCH</button>
+  <button onclick="showView('scope',this)">SCOPE</button>
+  <button onclick="showView('sync',this)">SYNC</button>
+  <button onclick="showView('connect',this)">CONNECT</button>
+  <button onclick="showView('predeploy',this)">PRE-DEPLOY</button>
+</nav>
+
+<!-- MOSAIC VIEW -->
+<div id="view-mosaic" class="view active">
+  <div class="layout-btns">
+    <span style="color:#666;margin-right:4px">LAYOUT:</span>
+    <button class="active" onclick="setLayout(1,1,this)">1×1</button>
+    <button onclick="setLayout(2,2,this)">2×2</button>
+    <button onclick="setLayout(3,3,this)">3×3</button>
+    <button onclick="setLayout(4,4,this)">4×4</button>
+    <button onclick="setLayout(2,4,this)">2×4</button>
+    <button onclick="setLayout(3,4,this)">3×4</button>
+  </div>
+  <div id="mv-grid" class="mv-grid"></div>
+</div>
+
+<!-- SWITCH VIEW -->
+<div id="view-switch" class="view">
+  <div class="bus-row">
+    <div class="bus-label pvw">PREVIEW BUS</div>
+    <div id="pvw-bus" class="bus-btns"></div>
+  </div>
+  <div class="bus-row">
+    <div class="bus-label pgm">PROGRAM BUS</div>
+    <div id="pgm-bus" class="bus-btns"></div>
+  </div>
+  <div class="sw-controls">
+    <div>
+      <div style="font-size:10px;color:#666;margin-bottom:4px">TRANSITION</div>
+      <div class="trans-btns" id="trans-btns">
+        <button class="active" onclick="setTrans('CUT',this)">CUT</button>
+        <button onclick="setTrans('MIX',this)">MIX</button>
+        <button onclick="setTrans('WIPE',this)">WIPE</button>
+        <button onclick="setTrans('DIP',this)">DIP</button>
+        <button onclick="setTrans('STING',this)">STING</button>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:#666;margin-bottom:4px">RATE (frames)</div>
+      <input id="rate-input" type="number" min="1" max="250" value="25" style="width:60px;background:#222;color:#eee;border:1px solid #333;padding:4px;border-radius:2px;font-family:monospace">
+    </div>
+    <button class="btn-cut" onclick="doCut()">CUT</button>
+    <button class="btn-auto" onclick="doAuto()">AUTO</button>
+    <div>
+      <div style="font-size:10px;color:#666;margin-bottom:2px" id="auto-label"></div>
+      <div class="progress-bar"><div class="progress-fill" id="auto-progress"></div></div>
+    </div>
+  </div>
+  <div style="margin-top:8px;font-size:10px;color:#555" id="sw-status"></div>
+</div>
+
+<!-- SCOPE VIEW -->
+<div id="view-scope" class="view">
+  <div class="scope-grid">
+    <div class="scope-panel">
+      <h3>Waveform Monitor</h3>
+      <canvas id="cv-wave" height="180"></canvas>
+    </div>
+    <div class="scope-panel">
+      <h3>Vectorscope</h3>
+      <canvas id="cv-vec" height="180"></canvas>
+    </div>
+    <div class="scope-panel">
+      <h3>RGB Parade</h3>
+      <canvas id="cv-parade" height="180"></canvas>
+    </div>
+    <div class="scope-panel">
+      <h3>Loudness (LUFS)</h3>
+      <canvas id="cv-loud" height="180"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- SYNC VIEW -->
+<div id="view-sync" class="view">
+  <div class="ptp-card">
+    <div style="font-size:10px;color:#666;margin-bottom:4px">PTP OFFSET FROM MASTER</div>
+    <div class="ptp-offset"><span id="ptp-offset-val">8</span><span> ns</span></div>
+    <div class="ptp-meta">
+      <div><b id="ptp-locked">LOCKED</b> &nbsp;Status</div>
+      <div>Grandmaster: <b id="ptp-gm">NEXUS-GM-01</b></div>
+      <div>Domain: <b>0</b></div>
+      <div>Clock Class: <b>6</b></div>
+      <div>Devices: <b id="ptp-devcount">12</b></div>
+    </div>
+  </div>
+  <div style="font-size:10px;color:#666;margin-bottom:4px">LIVE LOG</div>
+  <div class="ptp-log" id="ptp-log"></div>
+</div>
+
+<!-- CONNECT VIEW -->
+<div id="view-connect" class="view">
+  <div style="font-size:10px;color:#666;margin-bottom:8px">NMOS IS-04 DISCOVERED DEVICES</div>
+  <div class="nmos-list" id="nmos-list"></div>
+</div>
+
+<!-- PRE-DEPLOY VIEW -->
+<div id="view-predeploy" class="view">
+  <div id="phases-container"></div>
+  <div class="go-banner nogo" id="go-banner">⛔ NO-GO — Complete all checks before deployment</div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar" style="padding-bottom:6px">
+  <span><span class="dot green" id="sb-ptp-dot"></span>PTP <span id="sb-ptp-txt">LOCKED 8ns</span></span>
+  <span class="sep">|</span>
+  <span>NMOS <span id="sb-nmos-txt">0 devices</span></span>
+  <span class="sep">|</span>
+  <span>ST2110 <span id="sb-flows-txt">0 flows</span></span>
+  <span class="sep">|</span>
+  <span><span class="dot grey" id="sb-ws-dot"></span><span id="sb-ws-txt">WS connecting...</span></span>
+  <span class="sep">|</span>
+  <span id="sb-clock"></span>
+</div>
+<div style="height:28px"></div>
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+var pgm = 1, pvw = 2, trans = "CUT";
+var mvCols = 4, mvRows = 4;
+var ws = null, wsOk = false;
+
+var SOURCES = [];
+for (var i = 1; i <= 32; i++) {
+  var n = i <= 24 ? "CAM-" + String(i).padStart(2,"0")
+        : i <= 29 ? "REPLAY-0" + (i-24)
+        : ["PGM","PVW","GFX"][i-30] || ("SRC-"+i);
+  SOURCES.push({id:i, name:n});
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────
+function showView(id, btn) {
+  document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active")});
+  document.querySelectorAll("nav button").forEach(function(b){b.classList.remove("active")});
+  document.getElementById("view-"+id).classList.add("active");
+  btn.classList.add("active");
+  if (id === "scope") startScopes();
+}
+
+// ── MOSAIC ──────────────────────────────────────────────────────────────
+function setLayout(r, c, btn) {
+  mvRows = r; mvCols = c;
+  document.querySelectorAll(".layout-btns button").forEach(function(b){b.classList.remove("active")});
+  btn.classList.add("active");
+  renderMosaic();
+}
+
+function renderMosaic() {
+  var g = document.getElementById("mv-grid");
+  g.style.gridTemplateColumns = "repeat("+mvCols+", 1fr)";
+  g.innerHTML = "";
+  var count = mvRows * mvCols;
+  for (var i = 0; i < count; i++) {
+    var src = SOURCES[i % SOURCES.length];
+    var tally = src.id === pgm ? "pgm" : src.id === pvw ? "pvw" : "";
+    var hue = (src.id * 37) % 360;
+    var cell = document.createElement("div");
+    cell.className = "mv-cell " + tally;
+    cell.dataset.srcId = src.id;
+    cell.innerHTML =
+      "<div class=\"bg\" style=\"background:hsl("+hue+",20%,12%)\"><span style=\"color:#333;font-size:9px\">VIDEO</span></div>" +
+      "<div class=\"lbl\"><span>"+src.name+"</span>" +
+      (tally ? "<span class=\"tally-tag\">"+tally.toUpperCase()+"</span>" : "") +
+      "</div>";
+    cell.onclick = (function(sid){ return function(){ setPvw(sid); }; })(src.id);
+    g.appendChild(cell);
+  }
+}
+
+// ── SWITCH ──────────────────────────────────────────────────────────────
+function renderBuses() {
+  var pvwBus = document.getElementById("pvw-bus");
+  var pgmBus = document.getElementById("pgm-bus");
+  pvwBus.innerHTML = ""; pgmBus.innerHTML = "";
+  SOURCES.forEach(function(src) {
+    var bp = document.createElement("button");
+    bp.textContent = src.name;
+    bp.className = src.id === pvw ? "pvw-active" : "";
+    bp.onclick = (function(sid){ return function(){ setPvw(sid); }; })(src.id);
+    pvwBus.appendChild(bp);
+
+    var bg = document.createElement("button");
+    bg.textContent = src.name;
+    bg.className = src.id === pgm ? "pgm-active" : "";
+    bg.style.cursor = "default";
+    pgmBus.appendChild(bg);
+  });
+  var s = document.getElementById("sw-status");
+  if (s) s.textContent = "PGM: " + (SOURCES[pgm-1]||{name:"?"}).name + "  |  PVW: " + (SOURCES[pvw-1]||{name:"?"}).name;
+}
+
+function setPvw(id) {
+  pvw = id;
+  renderBuses(); renderMosaic();
+  wsSend({type:"SWITCHER_PVW", payload:{source:id}});
+}
+
+function doCut() {
+  var tmp = pgm; pgm = pvw; pvw = tmp;
+  renderBuses(); renderMosaic();
+  wsSend({type:"SWITCHER_CUT", payload:{pvw:pvw, pgm:pgm}});
+}
+
+function doAuto() {
+  var rate = parseInt(document.getElementById("rate-input").value) || 25;
+  var ms = Math.round((rate / 25) * 1000);
+  var fill = document.getElementById("auto-progress");
+  var lbl = document.getElementById("auto-label");
+  lbl.textContent = trans + " " + rate + "f";
+  fill.style.width = "0%";
+  var start = Date.now();
+  var timer = setInterval(function() {
+    var pct = Math.min(100, ((Date.now()-start)/ms)*100);
+    fill.style.width = pct + "%";
+    if (pct >= 100) {
+      clearInterval(timer);
+      lbl.textContent = "";
+      var tmp2 = pgm; pgm = pvw; pvw = tmp2;
+      renderBuses(); renderMosaic();
+      wsSend({type:"SWITCHER_AUTO", payload:{transition:trans, rate:rate}});
+    }
+  }, 40);
+}
+
+function setTrans(t, btn) {
+  trans = t;
+  document.querySelectorAll("#trans-btns button").forEach(function(b){b.classList.remove("active")});
+  btn.classList.add("active");
+}
+
+// ── SCOPE ───────────────────────────────────────────────────────────────
+var scopeTimer = null;
+function startScopes() {
+  if (scopeTimer) return;
+  drawScopes();
+  scopeTimer = setInterval(drawScopes, 80);
+}
+
+function drawScopes() {
+  drawWaveform();
+  drawVectorscope();
+  drawParade();
+  drawLoudness();
+}
+
+function resizeCanvas(id) {
+  var c = document.getElementById(id);
+  var w = c.parentElement.clientWidth - 16;
+  if (c.width !== w) { c.width = w; }
+  return c;
+}
+
+function drawWaveform() {
+  var c = resizeCanvas("cv-wave");
+  var ctx = c.getContext("2d");
+  var W = c.width, H = c.height;
+  ctx.fillStyle = "#000"; ctx.fillRect(0,0,W,H);
+  // grid lines
+  ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 1;
+  for (var y = 0; y <= 4; y++) {
+    ctx.beginPath(); ctx.moveTo(0, H*y/4); ctx.lineTo(W, H*y/4); ctx.stroke();
+  }
+  // waveform
+  ctx.strokeStyle = "#0f0"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  var t = Date.now()/1000;
+  for (var x = 0; x < W; x++) {
+    var v = 0.5 + 0.35*Math.sin(x/W*Math.PI*2 + t) + 0.05*Math.sin(x/W*Math.PI*8 + t*2);
+    var py = H - v*H;
+    x === 0 ? ctx.moveTo(x,py) : ctx.lineTo(x,py);
+  }
+  ctx.stroke();
+  ctx.fillStyle="#0f0"; ctx.font="9px monospace";
+  ctx.fillText("100%",2,10); ctx.fillText("0%",2,H-2);
+}
+
+function drawVectorscope() {
+  var c = resizeCanvas("cv-vec");
+  var ctx = c.getContext("2d");
+  var W = c.width, H = c.height;
+  var cx = W/2, cy = H/2, r = Math.min(W,H)*0.45;
+  ctx.fillStyle = "#000"; ctx.fillRect(0,0,W,H);
+  // graticule
+  ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-r,cy); ctx.lineTo(cx+r,cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx,cy-r); ctx.lineTo(cx,cy+r); ctx.stroke();
+  // color targets
+  var targets=[{a:0,c:"#f00"},{a:60,c:"#ff0"},{a:120,c:"#0f0"},{a:180,c:"#0ff"},{a:240,c:"#00f"},{a:300,c:"#f0f"}];
+  targets.forEach(function(t){
+    var rad=t.a*Math.PI/180;
+    var tx=cx+r*0.75*Math.cos(rad), ty=cy-r*0.75*Math.sin(rad);
+    ctx.fillStyle=t.c; ctx.beginPath(); ctx.arc(tx,ty,4,0,Math.PI*2); ctx.fill();
+  });
+  // signal blob
+  var now=Date.now()/1000;
+  ctx.fillStyle="rgba(0,255,200,0.6)";
+  for(var i=0;i<80;i++){
+    var angle=(now*0.3+i*0.08)%(Math.PI*2);
+    var dist=r*0.4*(0.8+0.2*Math.sin(now+i));
+    var px=cx+dist*Math.cos(angle)+((Math.random()-0.5)*6);
+    var py=cy+dist*Math.sin(angle)+((Math.random()-0.5)*6);
+    ctx.beginPath(); ctx.arc(px,py,1,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function drawParade() {
+  var c = resizeCanvas("cv-parade");
+  var ctx = c.getContext("2d");
+  var W = c.width, H = c.height;
+  ctx.fillStyle = "#000"; ctx.fillRect(0,0,W,H);
+  var t = Date.now()/1000;
+  var channels = [{c:"#f44",o:0},{c:"#4f4",o:1},{c:"#44f",o:2}];
+  var cw = Math.floor(W/3) - 2;
+  channels.forEach(function(ch) {
+    var ox = ch.o*(cw+3);
+    ctx.strokeStyle = ch.c; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for(var x=0;x<cw;x++){
+      var v=0.5+0.3*Math.sin(x/cw*Math.PI*2+t+ch.o)+0.1*Math.sin(x/cw*Math.PI*6+t);
+      var py=H-v*H;
+      x===0?ctx.moveTo(ox+x,py):ctx.lineTo(ox+x,py);
+    }
+    ctx.stroke();
+  });
+  ctx.fillStyle="#555"; ctx.font="9px monospace";
+  ctx.fillText("R",4,H-4); ctx.fillText("G",W/3+4,H-4); ctx.fillText("B",2*W/3+4,H-4);
+}
+
+function drawLoudness() {
+  var c = resizeCanvas("cv-loud");
+  var ctx = c.getContext("2d");
+  var W = c.width, H = c.height;
+  ctx.fillStyle = "#000"; ctx.fillRect(0,0,W,H);
+  var t = Date.now()/1000;
+  var channels = ["L","R","C","Ls","Rs","LFE"];
+  var bw = Math.floor(W/channels.length) - 3;
+  channels.forEach(function(ch,i){
+    var level = 0.55 + 0.3*Math.sin(t*1.3+i*1.1) + 0.1*Math.random();
+    level = Math.max(0.05, Math.min(0.98, level));
+    var bh = level*H;
+    var color = level > 0.9 ? "#f00" : level > 0.75 ? "#fa0" : "#0af";
+    var ox = i*(bw+3);
+    ctx.fillStyle = "#111"; ctx.fillRect(ox,0,bw,H);
+    ctx.fillStyle = color; ctx.fillRect(ox, H-bh, bw, bh);
+    ctx.fillStyle = "#555"; ctx.font = "9px monospace";
+    ctx.fillText(ch, ox+2, H-2);
+    var lufs = Math.round(-23 + level*20);
+    ctx.fillStyle = "#888";
+    ctx.fillText(lufs+"L", ox, 10);
+  });
+}
+
+// ── SYNC / PTP ──────────────────────────────────────────────────────────
+function startPtp() {
+  updatePtp();
+  setInterval(updatePtp, 3000);
+}
+
+function updatePtp() {
+  var offset = Math.floor(4 + Math.random()*10);
+  document.getElementById("ptp-offset-val").textContent = offset;
+  document.getElementById("sb-ptp-txt").textContent = "LOCKED " + offset + "ns";
+  var log = document.getElementById("ptp-log");
+  var ts = new Date().toLocaleTimeString();
+  var entry = document.createElement("div");
+  entry.className = "entry";
+  entry.innerHTML = "<span class=\"ts\">" + ts + "</span>offset=" + offset + "ns  gm=NEXUS-GM-01  domain=0  steps=1";
+  log.insertBefore(entry, log.firstChild);
+  if (log.children.length > 40) log.removeChild(log.lastChild);
+}
+
+// ── CONNECT / NMOS ──────────────────────────────────────────────────────
+var nmos_devices = [
+  {id:1, name:"NEXUS-CAM-01", type:"Node", ip:"10.0.1.11", flows:4, connected:true},
+  {id:2, name:"NEXUS-CAM-02", type:"Node", ip:"10.0.1.12", flows:4, connected:true},
+  {id:3, name:"NEXUS-CAM-03", type:"Node", ip:"10.0.1.13", flows:4, connected:false},
+  {id:4, name:"NEXUS-REPLAY-01", type:"Node", ip:"10.0.1.21", flows:8, connected:true},
+  {id:5, name:"NEXUS-ROUTER-01", type:"Device", ip:"10.0.1.31", flows:64, connected:true},
+  {id:6, name:"NEXUS-MONITOR-01", type:"Receiver", ip:"10.0.1.41", flows:2, connected:false},
+  {id:7, name:"NEXUS-ENCODER-01", type:"Sender", ip:"10.0.1.51", flows:4, connected:true},
+  {id:8, name:"NEXUS-DECODER-01", type:"Receiver", ip:"10.0.1.52", flows:4, connected:false},
+];
+
+function renderNmos() {
+  var list = document.getElementById("nmos-list");
+  list.innerHTML = "";
+  var connected = 0;
+  var totalFlows = 0;
+  nmos_devices.forEach(function(dev) {
+    if (dev.connected) { connected++; totalFlows += dev.flows; }
+    var el = document.createElement("div");
+    el.className = "nmos-device";
+    el.innerHTML =
+      "<div class=\"info\">" +
+      "<div class=\"name\"><span class=\"dot " + (dev.connected?"on":"off") + "\"></span>" + dev.name + "</div>" +
+      "<div class=\"meta\">" + dev.type + " &nbsp;·&nbsp; " + dev.ip + " &nbsp;·&nbsp; " + dev.flows + " flows</div>" +
+      "</div>" +
+      "<button class=\"btn-connect " + (dev.connected?"connected":"") + "\" data-id=\"" + dev.id + "\">" +
+      (dev.connected ? "DISCONNECT" : "CONNECT") + "</button>";
+    list.appendChild(el);
+  });
+  document.getElementById("sb-nmos-txt").textContent = connected + " devices";
+  document.getElementById("sb-flows-txt").textContent = totalFlows + " flows";
+  list.querySelectorAll(".btn-connect").forEach(function(btn) {
+    btn.onclick = function() {
+      var id = parseInt(this.dataset.id);
+      var dev = nmos_devices.find(function(d){return d.id===id});
+      if (dev) { dev.connected = !dev.connected; renderNmos(); }
+    };
+  });
+}
+
+// ── PRE-DEPLOY ──────────────────────────────────────────────────────────
+var phases = [
+  { title: "Phase 1 — Network Infrastructure", items: [
+    "10GbE switches configured with VLAN isolation",
+    "PTP grandmaster clock installed and locked",
+    "Multicast routing enabled on all switches",
+    "Network latency < 1ms verified end-to-end"
+  ]},
+  { title: "Phase 2 — Hardware Integration", items: [
+    "FPGA SDI bridge firmware flashed and tested",
+    "ST 2110-20 video flows verified on analyzer",
+    "ST 2110-30 audio flows verified",
+    "PTP sync < 50ns on all endpoints"
+  ]},
+  { title: "Phase 3 — Software Services", items: [
+    "Kubernetes cluster healthy (all nodes Ready)",
+    "NMOS IS-04 registry responding",
+    "Switcher service latency < 5ms",
+    "Router service routing table loaded"
+  ]},
+  { title: "Phase 4 — Monitoring & Alerting", items: [
+    "Prometheus scraping all targets",
+    "Grafana dashboards loading correctly",
+    "Alert rules tested and firing correctly",
+    "On-call rotation confirmed"
+  ]},
+  { title: "Phase 5 — Security & Access", items: [
+    "JWT secrets rotated for production",
+    "Network policies applied in Kubernetes",
+    "Operator credentials distributed",
+    "Audit logging enabled"
+  ]}
+];
+
+var checkState = {};
+
+function renderPhases() {
+  var container = document.getElementById("phases-container");
+  container.innerHTML = "";
+  phases.forEach(function(phase, pi) {
+    var div = document.createElement("div");
+    div.className = "phase";
+    var h = document.createElement("h3");
+    h.textContent = phase.title;
+    div.appendChild(h);
+    phase.items.forEach(function(item, ii) {
+      var key = pi+"-"+ii;
+      var row = document.createElement("div");
+      row.className = "check-item" + (checkState[key] ? " done" : "");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!checkState[key];
+      cb.dataset.key = key;
+      cb.onchange = function() {
+        checkState[this.dataset.key] = this.checked;
+        renderPhases(); updateGoBanner();
+      };
+      var lbl = document.createElement("label");
+      lbl.textContent = item;
+      row.appendChild(cb); row.appendChild(lbl);
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+}
+
+function updateGoBanner() {
+  var total = 0, checked = 0;
+  phases.forEach(function(phase,pi){
+    phase.items.forEach(function(_,ii){
+      total++;
+      if (checkState[pi+"-"+ii]) checked++;
+    });
+  });
+  var banner = document.getElementById("go-banner");
+  if (checked === total) {
+    banner.className = "go-banner go";
+    banner.textContent = "✅ GO — All " + total + " checks passed. Ready for deployment.";
+  } else {
+    banner.className = "go-banner nogo";
+    banner.textContent = "⛔ NO-GO — " + checked + "/" + total + " checks complete";
+  }
+}
+
+// ── WEBSOCKET ───────────────────────────────────────────────────────────
+function initWs() {
+  try {
+    ws = new WebSocket("ws://localhost:8080/ws/control?token=demo-token");
+    ws.onopen = function() {
+      wsOk = true;
+      document.getElementById("sb-ws-dot").className = "dot green";
+      document.getElementById("sb-ws-txt").textContent = "WS connected";
+    };
+    ws.onclose = function() {
+      wsOk = false;
+      document.getElementById("sb-ws-dot").className = "dot grey";
+      document.getElementById("sb-ws-txt").textContent = "WS offline (demo mode)";
+    };
+    ws.onerror = function() {
+      wsOk = false;
+      document.getElementById("sb-ws-dot").className = "dot grey";
+      document.getElementById("sb-ws-txt").textContent = "WS offline (demo mode)";
+    };
+    ws.onmessage = function(e) {
+      try {
+        var msg = JSON.parse(e.data);
+        if (msg.type === "TALLY_UPDATE") {
+          pgm = msg.pgm; pvw = msg.pvw;
+          renderBuses(); renderMosaic();
+        }
+      } catch(ex) {}
+    };
+  } catch(ex) {
+    document.getElementById("sb-ws-txt").textContent = "WS offline (demo mode)";
+  }
+}
+
+function wsSend(msg) {
+  if (ws && wsOk) { try { ws.send(JSON.stringify(msg)); } catch(ex) {} }
+}
+
+// ── CLOCK ───────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById("sb-clock").textContent = new Date().toLocaleTimeString();
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────
+renderMosaic();
+renderBuses();
+renderNmos();
+renderPhases();
+updateGoBanner();
+startPtp();
+initWs();
+updateClock();
+setInterval(updateClock, 1000);
+</script>
 </body>
 </html>

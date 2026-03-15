@@ -1,897 +1,578 @@
-// NEXUS v4 Demo Generator — writes nexus-demo.html
 const fs = require('fs'), path = require('path');
 const OUT = path.join(__dirname, 'nexus-demo.html');
-const L = []; const p = s => L.push(s);
+// Build HTML as array of strings, joined at end
+// RULE: no backticks, no </script> or </span> inside JS string literals in output
+const H = [];
+const a = s => H.push(s);
+const TICK = '\u2713'; // ✓
+const DASH = '\u2014'; // —
+const HALF = '\u25d1'; // ◑
 
-// ── HEAD + CSS ────────────────────────────────────────────────────────────
-p(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NEXUS v4 — Broadcast IP Platform</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--border:#222;--accent:#0af;--red:#f44;--green:#4f4;--yellow:#fa0;--text:#ddd;--muted:#666}
-body{background:var(--bg);color:var(--text);font-family:monospace;font-size:13px;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+// ── HEAD ──────────────────────────────────────────────────────────────────
+a('<!DOCTYPE html>');
+a('<html lang="en">');
+a('<head>');
+a('<meta charset="UTF-8">');
+a('<meta name="viewport" content="width=device-width,initial-scale=1">');
+a('<title>NEXUS v4 \u2014 Broadcast IP Platform</title>');
+a('<style>');
+a('*{box-sizing:border-box;margin:0;padding:0}');
+a(':root{--bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--bd:#222;--ac:#0af;--red:#f44;--grn:#4f4;--ylw:#fa0;--tx:#ddd;--mu:#666}');
+a('body{background:var(--bg);color:var(--tx);font-family:monospace;font-size:13px;display:flex;flex-direction:column;height:100vh;overflow:hidden}');
+a('#auth{position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;z-index:999}');
+a('.abox{background:#111;border:1px solid #222;border-radius:8px;padding:40px 48px;width:380px;text-align:center}');
+a('.alogo{font-size:28px;font-weight:bold;color:var(--ac);letter-spacing:4px;margin-bottom:4px}');
+a('.asub{color:var(--mu);font-size:11px;margin-bottom:28px;letter-spacing:1px}');
+a('.abox input,.abox select{width:100%;background:#0a0a0a;border:1px solid #333;color:var(--tx);padding:9px 12px;border-radius:4px;font-family:monospace;font-size:13px;margin-bottom:12px;outline:none}');
+a('.abox input:focus,.abox select:focus{border-color:var(--ac)}');
+a('.abox label{display:block;text-align:left;font-size:10px;color:var(--mu);margin-bottom:4px;text-transform:uppercase}');
+a('.btnlogin{width:100%;padding:10px;background:var(--ac);color:#000;border:none;border-radius:4px;font-family:monospace;font-size:14px;font-weight:bold;cursor:pointer;margin-top:4px}');
+a('.btnlogin:hover{background:#0cf}');
+a('.aerr{color:var(--red);font-size:11px;margin-top:8px;min-height:16px}');
+a('.ahint{color:#444;font-size:10px;margin-top:16px;line-height:1.6}');
+a('#app{display:flex;flex:1;overflow:hidden}');
+a('#sb{width:200px;background:#0d0d0d;border-right:1px solid var(--bd);display:flex;flex-direction:column;transition:width .2s;flex-shrink:0}');
+a('#sb.col{width:48px}');
+a('.sbh{display:flex;align-items:center;justify-content:space-between;padding:12px 10px;border-bottom:1px solid var(--bd);min-height:44px}');
+a('.sblogo{color:var(--ac);font-weight:bold;font-size:14px;letter-spacing:2px;white-space:nowrap;overflow:hidden}');
+a('#sb.col .sblogo{display:none}');
+a('.sbtog{background:none;border:none;color:var(--mu);cursor:pointer;font-size:16px;padding:2px 4px;flex-shrink:0}');
+a('.sbnav{flex:1;overflow-y:auto;padding:6px 0}');
+a('.sbi{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-left:3px solid transparent;color:var(--mu);white-space:nowrap;overflow:hidden;user-select:none}');
+a('.sbi:hover{background:#151515;color:var(--tx)}');
+a('.sbi.on{border-left-color:var(--ac);color:var(--ac);background:#0d1a22}');
+a('.sbic{font-size:15px;flex-shrink:0;width:20px;text-align:center}');
+a('.sblb{font-size:12px}');
+a('#sb.col .sblb{display:none}');
+a('.sbsec{font-size:9px;color:#333;padding:10px 12px 4px;text-transform:uppercase;letter-spacing:1px;white-space:nowrap;overflow:hidden}');
+a('#sb.col .sbsec{display:none}');
+a('.sbft{padding:10px;border-top:1px solid var(--bd)}');
+a('.sbuser{display:flex;align-items:center;gap:8px;padding:6px 4px}');
+a('.sbav{width:26px;height:26px;border-radius:50%;background:var(--ac);color:#000;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px;flex-shrink:0}');
+a('.sbui{overflow:hidden}');
+a('.sbun{font-size:11px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}');
+a('.sbrl{font-size:9px;color:var(--mu);text-transform:uppercase}');
+a('#sb.col .sbui{display:none}');
+a('.btnout{width:100%;margin-top:6px;padding:5px;background:none;border:1px solid #333;color:var(--mu);border-radius:3px;cursor:pointer;font-family:monospace;font-size:10px}');
+a('.btnout:hover{border-color:var(--red);color:var(--red)}');
+a('#sb.col .btnout{display:none}');
+a('#main{flex:1;display:flex;flex-direction:column;overflow:hidden}');
+a('.topbar{background:#0d0d0d;border-bottom:1px solid var(--bd);padding:0 16px;height:44px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}');
+a('.tbtitle{color:var(--tx);font-size:13px;font-weight:bold}');
+a('.tbr{display:flex;align-items:center;gap:14px;font-size:10px;color:var(--mu)}');
+a('.dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}');
+a('.dot.g{background:var(--grn)}.dot.r{background:var(--red)}.dot.y{background:var(--ylw)}.dot.x{background:#444}');
+a('.content{flex:1;overflow-y:auto;padding:16px}');
+a('.view{display:none}.view.on{display:block}');
+a('.rbadge{padding:2px 8px;border-radius:10px;font-size:9px;font-weight:bold;text-transform:uppercase}');
+a('.rbadge.VIEWER{background:#1a1a1a;color:#888}.rbadge.OPERATOR{background:#0a2a0a;color:#4f4}.rbadge.ENGINEER{background:#0a1a2a;color:#0af}.rbadge.TRAINER{background:#2a1a0a;color:#fa0}');
+a('.card{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:14px;margin-bottom:12px}');
+a('.card h3{font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}');
 
-/* ── AUTH SCREEN ── */
-#auth-screen{position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:0}
-.auth-box{background:#111;border:1px solid #222;border-radius:8px;padding:40px 48px;width:380px;text-align:center}
-.auth-logo{font-size:28px;font-weight:bold;color:var(--accent);letter-spacing:4px;margin-bottom:4px}
-.auth-sub{color:var(--muted);font-size:11px;margin-bottom:28px;letter-spacing:1px}
-.auth-box input,.auth-box select{width:100%;background:#0a0a0a;border:1px solid #333;color:var(--text);padding:9px 12px;border-radius:4px;font-family:monospace;font-size:13px;margin-bottom:12px;outline:none}
-.auth-box input:focus,.auth-box select:focus{border-color:var(--accent)}
-.auth-box label{display:block;text-align:left;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase}
-.btn-login{width:100%;padding:10px;background:var(--accent);color:#000;border:none;border-radius:4px;font-family:monospace;font-size:14px;font-weight:bold;cursor:pointer;margin-top:4px;letter-spacing:1px}
-.btn-login:hover{background:#0cf}
-.auth-err{color:var(--red);font-size:11px;margin-top:8px;min-height:16px}
-.auth-hint{color:#444;font-size:10px;margin-top:16px;line-height:1.6}
-
-/* ── LAYOUT ── */
-#app{display:flex;flex:1;overflow:hidden}
-#sidebar{width:200px;background:#0d0d0d;border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;flex-shrink:0}
-#sidebar.collapsed{width:48px}
-.sb-header{display:flex;align-items:center;justify-content:space-between;padding:12px 10px;border-bottom:1px solid var(--border);min-height:44px}
-.sb-logo{color:var(--accent);font-weight:bold;font-size:14px;letter-spacing:2px;white-space:nowrap;overflow:hidden}
-#sidebar.collapsed .sb-logo{display:none}
-.sb-toggle{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 4px;flex-shrink:0}
-.sb-toggle:hover{color:var(--text)}
-.sb-nav{flex:1;overflow-y:auto;padding:6px 0}
-.sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-left:3px solid transparent;color:var(--muted);white-space:nowrap;overflow:hidden;user-select:none}
-.sb-item:hover{background:#151515;color:var(--text)}
-.sb-item.active{border-left-color:var(--accent);color:var(--accent);background:#0d1a22}
-.sb-icon{font-size:15px;flex-shrink:0;width:20px;text-align:center}
-.sb-label{font-size:12px}
-#sidebar.collapsed .sb-label{display:none}
-.sb-section{font-size:9px;color:#333;padding:10px 12px 4px;text-transform:uppercase;letter-spacing:1px;white-space:nowrap;overflow:hidden}
-#sidebar.collapsed .sb-section{display:none}
-.sb-footer{padding:10px;border-top:1px solid var(--border)}
-.sb-user{display:flex;align-items:center;gap:8px;padding:6px 4px}
-.sb-avatar{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px;flex-shrink:0}
-.sb-userinfo{overflow:hidden}
-.sb-username{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-role{font-size:9px;color:var(--muted);text-transform:uppercase}
-#sidebar.collapsed .sb-userinfo{display:none}
-.btn-logout{width:100%;margin-top:6px;padding:5px;background:none;border:1px solid #333;color:var(--muted);border-radius:3px;cursor:pointer;font-family:monospace;font-size:10px}
-.btn-logout:hover{border-color:var(--red);color:var(--red)}
-#sidebar.collapsed .btn-logout{display:none}
-
-/* ── MAIN CONTENT ── */
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{background:#0d0d0d;border-bottom:1px solid var(--border);padding:0 16px;height:44px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.topbar-title{color:var(--text);font-size:13px;font-weight:bold}
-.topbar-right{display:flex;align-items:center;gap:16px;font-size:10px;color:var(--muted)}
-.tbar-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
-.tbar-dot.g{background:var(--green)}.tbar-dot.r{background:var(--red)}.tbar-dot.y{background:var(--yellow)}.tbar-dot.grey{background:#444}
-.content{flex:1;overflow-y:auto;padding:16px}
-.view{display:none}.view.active{display:block}
-
-/* ── ROLE BADGE ── */
-.role-badge{padding:2px 8px;border-radius:10px;font-size:9px;font-weight:bold;text-transform:uppercase}
-.role-badge.VIEWER{background:#1a1a1a;color:#888}
-.role-badge.OPERATOR{background:#0a2a0a;color:#4f4}
-.role-badge.ENGINEER{background:#0a1a2a;color:#0af}
-.role-badge.TRAINER{background:#2a1a0a;color:#fa0}
-
-/* ── CARDS ── */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px}
-.card h3{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
-
-/* ── MOSAIC ── */
-.mv-grid{display:grid;gap:2px;background:#000}
-.mv-cell{aspect-ratio:16/9;position:relative;overflow:hidden;cursor:pointer;border:2px solid #2a2a2a}
-.mv-cell.pgm{border-color:var(--red)}.mv-cell.pvw{border-color:var(--green)}
-.mv-cell .bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-.mv-cell .lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.8);padding:2px 5px;font-size:9px;display:flex;justify-content:space-between}
-.mv-cell .tally-tag{font-weight:bold}.mv-cell.pgm .tally-tag{color:var(--red)}.mv-cell.pvw .tally-tag{color:var(--green)}
-.layout-btns{display:flex;gap:4px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
-.layout-btns button,.btn-sm{padding:3px 9px;background:var(--bg3);color:var(--muted);border:1px solid var(--border);border-radius:3px;cursor:pointer;font-family:monospace;font-size:11px}
-.layout-btns button.active,.btn-sm.active{background:var(--accent);color:#000;border-color:var(--accent)}
-.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
-
-/* ── SWITCH ── */
-.bus-row{margin-bottom:10px}
-.bus-label{font-size:10px;margin-bottom:4px;font-weight:bold;letter-spacing:1px}
-.bus-label.pgm{color:var(--red)}.bus-label.pvw{color:var(--green)}
-.bus-btns{display:flex;flex-wrap:wrap;gap:3px}
-.bus-btns button{padding:3px 7px;font-size:10px;font-family:monospace;border:1px solid var(--border);border-radius:2px;cursor:pointer;background:var(--bg3);color:#666}
-.bus-btns button.pgm-on{background:#900;color:#fff;border-color:var(--red)}
-.bus-btns button.pvw-on{background:#060;color:#fff;border-color:var(--green)}
-.sw-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-top:10px}
-.btn-cut{padding:8px 28px;background:#900;color:#fff;border:none;border-radius:3px;font-size:15px;font-weight:bold;cursor:pointer;font-family:monospace;letter-spacing:1px}
-.btn-cut:hover{background:var(--red)}
-.btn-auto{padding:8px 28px;background:var(--accent);color:#000;border:none;border-radius:3px;font-size:15px;font-weight:bold;cursor:pointer;font-family:monospace;letter-spacing:1px}
-.btn-auto:hover{background:#0cf}
-.trans-btns{display:flex;gap:3px}
-.trans-btns button{padding:3px 9px;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:2px;cursor:pointer;background:var(--bg3);color:var(--muted)}
-.trans-btns button.active{background:var(--accent);color:#000}
-.progress-bar{height:5px;background:#1a1a1a;border-radius:3px;overflow:hidden;width:180px}
-.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .04s linear}
-
-/* ── SCOPE ── */
-.scope-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.scope-panel{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px}
-.scope-panel h3{font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase}
-.scope-panel canvas{width:100%;display:block;background:#000;border-radius:2px}
-
-/* ── SYNC ── */
-.ptp-offset{font-size:40px;font-weight:bold;color:var(--accent)}
-.ptp-offset span{font-size:13px;color:var(--muted)}
-.ptp-meta{display:flex;gap:20px;margin-top:8px;font-size:11px;color:var(--muted);flex-wrap:wrap}
-.ptp-meta b{color:var(--text)}
-.ptp-log{background:#050505;border:1px solid #1a1a1a;border-radius:3px;padding:8px;height:150px;overflow-y:auto;font-size:10px;color:#4a4}
-.ptp-log .ts{color:#333;margin-right:6px}
-
-/* ── DEVICES ── */
-.compat-table{width:100%;border-collapse:collapse;font-size:11px}
-.compat-table th{background:#111;color:var(--muted);padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);font-weight:normal;text-transform:uppercase;font-size:9px;letter-spacing:1px;white-space:nowrap}
-.compat-table td{padding:7px 10px;border-bottom:1px solid #161616;vertical-align:middle}
-.compat-table tr:hover td{background:#111}
-.compat-table .mfr{color:var(--text);font-weight:bold}
-.compat-table .model{color:var(--muted)}
-.compat-table .cat{font-size:9px;padding:2px 6px;border-radius:10px;background:#1a1a1a;color:#888}
-.tick{color:var(--green);font-size:13px}.cross{color:#333;font-size:13px}.partial{color:var(--yellow);font-size:11px}
-.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
-.filter-bar input{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-family:monospace;font-size:12px;width:220px;outline:none}
-.filter-bar input:focus{border-color:var(--accent)}
-.filter-bar select{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-family:monospace;font-size:12px;outline:none}
-
-/* ── API EXPLORER ── */
-.api-grid{display:grid;grid-template-columns:260px 1fr;gap:12px;height:calc(100vh - 120px)}
-.api-list{background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow-y:auto}
-.api-ep{padding:9px 12px;border-bottom:1px solid #161616;cursor:pointer}
-.api-ep:hover{background:#151515}
-.api-ep.active{background:#0d1a22;border-left:3px solid var(--accent)}
-.api-ep .method{font-size:9px;font-weight:bold;padding:2px 5px;border-radius:2px;margin-right:6px}
-.method.GET{background:#0a2a0a;color:#4f4}.method.POST{background:#0a1a2a;color:#0af}.method.DELETE{background:#2a0a0a;color:#f44}.method.WS{background:#1a0a2a;color:#a0f}
-.api-ep .path{font-size:11px;color:var(--muted)}
-.api-detail{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px;overflow-y:auto}
-.api-detail h2{font-size:14px;color:var(--text);margin-bottom:4px}
-.api-detail .desc{color:var(--muted);font-size:11px;margin-bottom:14px;line-height:1.6}
-.api-detail pre{background:#050505;border:1px solid #1a1a1a;border-radius:4px;padding:12px;font-size:11px;color:#0af;overflow-x:auto;white-space:pre-wrap;margin-bottom:10px}
-.api-detail .label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
-.btn-try{padding:6px 16px;background:var(--accent);color:#000;border:none;border-radius:3px;font-family:monospace;font-size:11px;cursor:pointer;font-weight:bold}
-.btn-try:hover{background:#0cf}
-.try-result{background:#050505;border:1px solid #1a1a1a;border-radius:4px;padding:10px;font-size:11px;color:#4f4;margin-top:8px;min-height:40px;white-space:pre-wrap}
-
-/* ── CONNECT ── */
-.nmos-device{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:9px 14px;margin-bottom:6px}
-.nmos-device .info .name{color:var(--text);font-size:12px}
-.nmos-device .info .meta{color:var(--muted);font-size:10px;margin-top:2px}
-.dot-sm{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
-.dot-sm.on{background:var(--green)}.dot-sm.off{background:#444}
-.btn-conn{padding:4px 14px;font-size:11px;font-family:monospace;border:1px solid var(--accent);border-radius:2px;background:none;color:var(--accent);cursor:pointer}
-.btn-conn.connected{border-color:var(--red);color:var(--red)}
-
-/* ── PRE-DEPLOY ── */
-.phase{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin-bottom:10px}
-.phase h3{font-size:12px;color:var(--accent);margin-bottom:10px}
-.check-item{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;color:var(--muted)}
-.check-item input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
-.check-item.done{color:var(--green)}
-.go-banner{padding:14px 20px;border-radius:6px;font-size:15px;font-weight:bold;text-align:center;margin-top:12px;letter-spacing:2px}
-.go-banner.go{background:#0a2a0a;border:2px solid var(--green);color:var(--green)}
-.go-banner.nogo{background:#1a0a0a;border:2px solid #500;color:#f66}
-
-/* ── STATUS BAR ── */
-#statusbar{background:#0d0d0d;border-top:1px solid var(--border);padding:4px 14px;display:flex;gap:18px;align-items:center;font-size:10px;color:var(--muted);flex-shrink:0}
-#statusbar .sep{color:#2a2a2a}
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:#0a0a0a}
-::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
-</style></head><body>`);
+a('.mvgrid{display:grid;gap:2px;background:#000}');
+a('.mvc{aspect-ratio:16/9;position:relative;overflow:hidden;cursor:pointer;border:2px solid #2a2a2a}');
+a('.mvc.pgm{border-color:var(--red)}.mvc.pvw{border-color:var(--grn)}');
+a('.mvc .bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center}');
+a('.mvc .lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.8);padding:2px 5px;font-size:9px;display:flex;justify-content:space-between}');
+a('.mvc .tt{font-weight:bold}.mvc.pgm .tt{color:var(--red)}.mvc.pvw .tt{color:var(--grn)}');
+a('.lbtns{display:flex;gap:4px;margin-bottom:10px;align-items:center;flex-wrap:wrap}');
+a('.lbtns button,.bsm{padding:3px 9px;background:var(--bg3);color:var(--mu);border:1px solid var(--bd);border-radius:3px;cursor:pointer;font-family:monospace;font-size:11px}');
+a('.lbtns button.on,.bsm.on{background:var(--ac);color:#000;border-color:var(--ac)}');
+a('.busrow{margin-bottom:10px}');
+a('.buslbl{font-size:10px;margin-bottom:4px;font-weight:bold;letter-spacing:1px}');
+a('.buslbl.pgm{color:var(--red)}.buslbl.pvw{color:var(--grn)}');
+a('.busbtns{display:flex;flex-wrap:wrap;gap:3px}');
+a('.busbtns button{padding:3px 7px;font-size:10px;font-family:monospace;border:1px solid var(--bd);border-radius:2px;cursor:pointer;background:var(--bg3);color:#666}');
+a('.busbtns button.pgmon{background:#900;color:#fff;border-color:var(--red)}');
+a('.busbtns button.pvwon{background:#060;color:#fff;border-color:var(--grn)}');
+a('.swctrl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;margin-top:10px}');
+a('.btncut{padding:8px 28px;background:#900;color:#fff;border:none;border-radius:3px;font-size:15px;font-weight:bold;cursor:pointer;font-family:monospace}');
+a('.btncut:hover{background:var(--red)}');
+a('.btnauto{padding:8px 28px;background:var(--ac);color:#000;border:none;border-radius:3px;font-size:15px;font-weight:bold;cursor:pointer;font-family:monospace}');
+a('.btnauto:hover{background:#0cf}');
+a('.tbtns{display:flex;gap:3px}');
+a('.tbtns button{padding:3px 9px;font-size:11px;font-family:monospace;border:1px solid var(--bd);border-radius:2px;cursor:pointer;background:var(--bg3);color:var(--mu)}');
+a('.tbtns button.on{background:var(--ac);color:#000}');
+a('.pbar{height:5px;background:#1a1a1a;border-radius:3px;overflow:hidden;width:180px}');
+a('.pfill{height:100%;background:var(--ac);width:0%;transition:width .04s linear}');
+a('.scgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}');
+a('.scpanel{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:10px}');
+a('.scpanel h3{font-size:10px;color:var(--mu);margin-bottom:6px;text-transform:uppercase}');
+a('.scpanel canvas{width:100%;display:block;background:#000;border-radius:2px}');
+a('.ptpoff{font-size:40px;font-weight:bold;color:var(--ac)}');
+a('.ptpoff span{font-size:13px;color:var(--mu)}');
+a('.ptpmeta{display:flex;gap:20px;margin-top:8px;font-size:11px;color:var(--mu);flex-wrap:wrap}');
+a('.ptpmeta b{color:var(--tx)}');
+a('.ptplog{background:#050505;border:1px solid #1a1a1a;border-radius:3px;padding:8px;height:150px;overflow-y:auto;font-size:10px;color:#4a4}');
+a('.ptplog .ts{color:#333;margin-right:6px}');
+a('.ctbl{width:100%;border-collapse:collapse;font-size:11px}');
+a('.ctbl th{background:#111;color:var(--mu);padding:6px 10px;text-align:left;border-bottom:1px solid var(--bd);font-weight:normal;text-transform:uppercase;font-size:9px;letter-spacing:1px;white-space:nowrap}');
+a('.ctbl td{padding:7px 10px;border-bottom:1px solid #161616;vertical-align:middle}');
+a('.ctbl tr:hover td{background:#111}');
+a('.ctbl .mfr{color:var(--tx);font-weight:bold}');
+a('.ctbl .mdl{color:var(--mu)}');
+a('.ctbl .cat{font-size:9px;padding:2px 6px;border-radius:10px;background:#1a1a1a;color:#888}');
+a('.ck{color:var(--grn)}.cx{color:#333}.cp{color:var(--ylw);font-size:11px}');
+a('.fbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}');
+a('.fbar input{background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:6px 10px;border-radius:4px;font-family:monospace;font-size:12px;width:220px;outline:none}');
+a('.fbar input:focus{border-color:var(--ac)}');
+a('.fbar select{background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:6px 10px;border-radius:4px;font-family:monospace;font-size:12px;outline:none}');
+a('.apigrid{display:grid;grid-template-columns:260px 1fr;gap:12px;height:calc(100vh - 130px)}');
+a('.apilist{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;overflow-y:auto}');
+a('.apiep{padding:9px 12px;border-bottom:1px solid #161616;cursor:pointer}');
+a('.apiep:hover{background:#151515}');
+a('.apiep.on{background:#0d1a22;border-left:3px solid var(--ac)}');
+a('.apiep .mth{font-size:9px;font-weight:bold;padding:2px 5px;border-radius:2px;margin-right:6px}');
+a('.mth.GET{background:#0a2a0a;color:#4f4}.mth.POST{background:#0a1a2a;color:#0af}.mth.WS{background:#1a0a2a;color:#a0f}');
+a('.apiep .pth{font-size:11px;color:var(--mu)}');
+a('.apidet{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:16px;overflow-y:auto}');
+a('.apidet h2{font-size:14px;color:var(--tx);margin-bottom:4px}');
+a('.apidet .desc{color:var(--mu);font-size:11px;margin-bottom:14px;line-height:1.6}');
+a('.apidet pre{background:#050505;border:1px solid #1a1a1a;border-radius:4px;padding:12px;font-size:11px;color:#0af;overflow-x:auto;white-space:pre-wrap;margin-bottom:10px}');
+a('.apidet .lbl{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}');
+a('.btntry{padding:6px 16px;background:var(--ac);color:#000;border:none;border-radius:3px;font-family:monospace;font-size:11px;cursor:pointer;font-weight:bold}');
+a('.tryres{background:#050505;border:1px solid #1a1a1a;border-radius:4px;padding:10px;font-size:11px;color:#4f4;margin-top:8px;min-height:40px;white-space:pre-wrap}');
+a('.nmdev{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--bd);border-radius:4px;padding:9px 14px;margin-bottom:6px}');
+a('.nmdev .nm{color:var(--tx);font-size:12px}');
+a('.nmdev .mt{color:var(--mu);font-size:10px;margin-top:2px}');
+a('.dsm{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}');
+a('.dsm.on{background:var(--grn)}.dsm.off{background:#444}');
+a('.btncon{padding:4px 14px;font-size:11px;font-family:monospace;border:1px solid var(--ac);border-radius:2px;background:none;color:var(--ac);cursor:pointer}');
+a('.btncon.cd{border-color:var(--red);color:var(--red)}');
+a('.phase{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:12px 16px;margin-bottom:10px}');
+a('.phase h3{font-size:12px;color:var(--ac);margin-bottom:10px}');
+a('.chk{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;color:var(--mu)}');
+a('.chk input[type=checkbox]{accent-color:var(--ac);width:14px;height:14px;cursor:pointer}');
+a('.chk.done{color:var(--grn)}');
+a('.gobanner{padding:14px 20px;border-radius:6px;font-size:15px;font-weight:bold;text-align:center;margin-top:12px;letter-spacing:2px}');
+a('.gobanner.go{background:#0a2a0a;border:2px solid var(--grn);color:var(--grn)}');
+a('.gobanner.nogo{background:#1a0a0a;border:2px solid #500;color:#f66}');
+a('#sbar{background:#0d0d0d;border-top:1px solid var(--bd);padding:4px 14px;display:flex;gap:18px;align-items:center;font-size:10px;color:var(--mu);flex-shrink:0}');
+a('#sbar .sep{color:#2a2a2a}');
+a('::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#0a0a0a}::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}');
+a('</style>');
+a('</head>');
+a('<body>');
 
 // ── AUTH SCREEN ───────────────────────────────────────────────────────────
-p(`
-<div id="auth-screen">
-  <div class="auth-box">
-    <div class="auth-logo">NEXUS v4</div>
-    <div class="auth-sub">Broadcast IP Platform — Secure Access</div>
-    <label>Username</label>
-    <input id="auth-user" type="text" placeholder="operator@nexus.studio" value="operator@nexus.studio">
-    <label>Password</label>
-    <input id="auth-pass" type="password" placeholder="••••••••" value="nexus2024">
-    <label>Role</label>
-    <select id="auth-role">
-      <option value="VIEWER">VIEWER — Monitor only</option>
-      <option value="OPERATOR" selected>OPERATOR — Full switcher control</option>
-      <option value="ENGINEER">ENGINEER — System configuration</option>
-      <option value="TRAINER">TRAINER — Training mode</option>
-    </select>
-    <button class="btn-login" onclick="doLogin()">SIGN IN</button>
-    <div class="auth-err" id="auth-err"></div>
-    <div class="auth-hint">Demo credentials: any username · password: nexus2024<br>Roles control which actions are permitted</div>
-  </div>
-</div>
+a('<div id="auth">');
+a('  <div class="abox">');
+a('    <div class="alogo">NEXUS v4</div>');
+a('    <div class="asub">Broadcast IP Platform &mdash; Secure Access</div>');
+a('    <label>Username</label>');
+a('    <input id="au" type="text" value="operator@nexus.studio">');
+a('    <label>Password</label>');
+a('    <input id="ap" type="password" value="nexus2024">');
+a('    <label>Role</label>');
+a('    <select id="ar">');
+a('      <option value="VIEWER">VIEWER &mdash; Monitor only</option>');
+a('      <option value="OPERATOR" selected>OPERATOR &mdash; Full switcher control</option>');
+a('      <option value="ENGINEER">ENGINEER &mdash; System configuration</option>');
+a('      <option value="TRAINER">TRAINER &mdash; Training mode</option>');
+a('    </select>');
+a('    <button class="btnlogin" onclick="doLogin()">SIGN IN</button>');
+a('    <div class="aerr" id="aerr"></div>');
+a('    <div class="ahint">Demo credentials: any username &bull; password: nexus2024</div>');
+a('  </div>');
+a('</div>');
 
-<!-- ── APP SHELL ── -->
-<div id="app" style="display:none">
-  <!-- SIDEBAR -->
-  <div id="sidebar">
-    <div class="sb-header">
-      <span class="sb-logo">NEXUS v4</span>
-      <button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
-    </div>
-    <div class="sb-nav">
-      <div class="sb-section">MONITORING</div>
-      <div class="sb-item active" onclick="showView('mosaic',this)" title="Mosaic Multiviewer">
-        <span class="sb-icon">⊞</span><span class="sb-label">MOSAIC</span>
-      </div>
-      <div class="sb-item" onclick="showView('scope',this)" title="Scopes">
-        <span class="sb-icon">📊</span><span class="sb-label">SCOPES</span>
-      </div>
-      <div class="sb-item" onclick="showView('sync',this)" title="PTP Sync">
-        <span class="sb-icon">⏱</span><span class="sb-label">SYNC / PTP</span>
-      </div>
-      <div class="sb-section">CONTROL</div>
-      <div class="sb-item" onclick="showView('switch',this)" title="Production Switcher">
-        <span class="sb-icon">🎬</span><span class="sb-label">SWITCHER</span>
-      </div>
-      <div class="sb-item" onclick="showView('connect',this)" title="NMOS Connect">
-        <span class="sb-icon">🔗</span><span class="sb-label">CONNECT</span>
-      </div>
-      <div class="sb-section">SYSTEM</div>
-      <div class="sb-item" onclick="showView('devices',this)" title="Device Compatibility">
-        <span class="sb-icon">📡</span><span class="sb-label">DEVICES</span>
-      </div>
-      <div class="sb-item" onclick="showView('api',this)" title="API Explorer">
-        <span class="sb-icon">⚡</span><span class="sb-label">API</span>
-      </div>
-      <div class="sb-item" onclick="showView('predeploy',this)" title="Pre-Deploy Checklist">
-        <span class="sb-icon">✅</span><span class="sb-label">PRE-DEPLOY</span>
-      </div>
-    </div>
-    <div class="sb-footer">
-      <div class="sb-user">
-        <div class="sb-avatar" id="sb-avatar">OP</div>
-        <div class="sb-userinfo">
-          <div class="sb-username" id="sb-username">operator</div>
-          <div class="sb-role" id="sb-role-label">OPERATOR</div>
-        </div>
-      </div>
-      <button class="btn-logout" onclick="doLogout()">⏻ Sign Out</button>
-    </div>
-  </div>
+// ── APP SHELL ─────────────────────────────────────────────────────────────
+a('<div id="app" style="display:none">');
+a('  <div id="sb">');
+a('    <div class="sbh">');
+a('      <span class="sblogo">NEXUS v4</span>');
+a('      <button class="sbtog" onclick="toggleSb()" title="Toggle sidebar">&#9776;</button>');
+a('    </div>');
+a('    <div class="sbnav">');
+a('      <div class="sbsec">MONITORING</div>');
+a('      <div class="sbi on" onclick="sv(\'mosaic\',this)" title="Mosaic Multiviewer"><span class="sbic">&#9638;</span><span class="sblb">MOSAIC</span></div>');
+a('      <div class="sbi" onclick="sv(\'scope\',this)" title="Scopes"><span class="sbic">&#128202;</span><span class="sblb">SCOPES</span></div>');
+a('      <div class="sbi" onclick="sv(\'sync\',this)" title="PTP Sync"><span class="sbic">&#9201;</span><span class="sblb">SYNC / PTP</span></div>');
+a('      <div class="sbsec">CONTROL</div>');
+a('      <div class="sbi" onclick="sv(\'switch\',this)" title="Switcher"><span class="sbic">&#127916;</span><span class="sblb">SWITCHER</span></div>');
+a('      <div class="sbi" onclick="sv(\'connect\',this)" title="NMOS Connect"><span class="sbic">&#128279;</span><span class="sblb">CONNECT</span></div>');
+a('      <div class="sbsec">SYSTEM</div>');
+a('      <div class="sbi" onclick="sv(\'devices\',this)" title="Device Compatibility"><span class="sbic">&#128225;</span><span class="sblb">DEVICES</span></div>');
+a('      <div class="sbi" onclick="sv(\'api\',this)" title="API Explorer"><span class="sbic">&#9889;</span><span class="sblb">API</span></div>');
+a('      <div class="sbi" onclick="sv(\'predeploy\',this)" title="Pre-Deploy"><span class="sbic">&#9989;</span><span class="sblb">PRE-DEPLOY</span></div>');
+a('    </div>');
+a('    <div class="sbft">');
+a('      <div class="sbuser"><div class="sbav" id="sbav">OP</div><div class="sbui"><div class="sbun" id="sbun">operator</div><div class="sbrl" id="sbrl">OPERATOR</div></div></div>');
+a('      <button class="btnout" onclick="doLogout()">&#9211; Sign Out</button>');
+a('    </div>');
+a('  </div>');
+a('  <div id="main">');
+a('    <div class="topbar">');
+a('      <span class="tbtitle" id="tbtitle">MOSAIC &mdash; Multiviewer</span>');
+a('      <div class="tbr">');
+a('        <span><span class="dot g" id="tbptpdot"></span>PTP <span id="tbptp">LOCKED 8ns</span></span>');
+a('        <span>NMOS <span id="tbnmos">0</span></span>');
+a('        <span>ST2110 <span id="tbflows">0 flows</span></span>');
+a('        <span><span class="dot x" id="tbwsdot"></span><span id="tbws">WS offline</span></span>');
+a('        <span class="rbadge OPERATOR" id="tbrole">OPERATOR</span>');
+a('        <span id="tbclock"></span>');
+a('      </div>');
+a('    </div>');
+a('    <div class="content">');
 
-  <!-- MAIN -->
-  <div id="main">
-    <div class="topbar">
-      <span class="topbar-title" id="topbar-title">MOSAIC — Multiviewer</span>
-      <div class="topbar-right">
-        <span><span class="tbar-dot g" id="tb-ptp-dot"></span>PTP <span id="tb-ptp">LOCKED 8ns</span></span>
-        <span>NMOS <span id="tb-nmos">0</span></span>
-        <span>ST2110 <span id="tb-flows">0 flows</span></span>
-        <span><span class="tbar-dot grey" id="tb-ws-dot"></span><span id="tb-ws">WS offline</span></span>
-        <span class="role-badge OPERATOR" id="tb-role">OPERATOR</span>
-        <span id="tb-clock"></span>
-      </div>
-    </div>
+// ── VIEWS ─────────────────────────────────────────────────────────────────
+// MOSAIC
+a('      <div id="v-mosaic" class="view on">');
+a('        <div class="lbtns">');
+a('          <span style="color:var(--mu);font-size:10px;margin-right:4px">LAYOUT:</span>');
+a('          <button class="on" onclick="setLay(1,1,this)">1x1</button>');
+a('          <button onclick="setLay(2,2,this)">2x2</button>');
+a('          <button onclick="setLay(3,3,this)">3x3</button>');
+a('          <button onclick="setLay(4,4,this)">4x4</button>');
+a('          <button onclick="setLay(2,4,this)">2x4</button>');
+a('          <button onclick="setLay(3,4,this)">3x4</button>');
+a('        </div>');
+a('        <div id="mvg" class="mvgrid"></div>');
+a('      </div>');
+// SWITCH
+a('      <div id="v-switch" class="view">');
+a('        <div class="busrow"><div class="buslbl pvw">&#9654; PREVIEW BUS</div><div id="pvwbus" class="busbtns"></div></div>');
+a('        <div class="busrow"><div class="buslbl pgm">&#9679; PROGRAM BUS</div><div id="pgmbus" class="busbtns"></div></div>');
+a('        <div class="swctrl">');
+a('          <div><div style="font-size:9px;color:var(--mu);margin-bottom:4px">TRANSITION</div>');
+a('            <div class="tbtns" id="tbtns">');
+a('              <button class="on" onclick="setTr(\'CUT\',this)">CUT</button>');
+a('              <button onclick="setTr(\'MIX\',this)">MIX</button>');
+a('              <button onclick="setTr(\'WIPE\',this)">WIPE</button>');
+a('              <button onclick="setTr(\'DIP\',this)">DIP</button>');
+a('              <button onclick="setTr(\'STING\',this)">STING</button>');
+a('            </div>');
+a('          </div>');
+a('          <div><div style="font-size:9px;color:var(--mu);margin-bottom:4px">RATE (frames)</div>');
+a('            <input id="rateinp" type="number" min="1" max="250" value="25" style="width:60px;background:#0a0a0a;color:var(--tx);border:1px solid var(--bd);padding:5px;border-radius:3px;font-family:monospace">');
+a('          </div>');
+a('          <button class="btncut" onclick="doCut()">CUT</button>');
+a('          <button class="btnauto" onclick="doAuto()">AUTO</button>');
+a('          <div><div style="font-size:9px;color:var(--mu);margin-bottom:3px" id="autolbl"></div><div class="pbar"><div class="pfill" id="pfill"></div></div></div>');
+a('        </div>');
+a('        <div style="margin-top:8px;font-size:10px;color:var(--mu)" id="swstat"></div>');
+a('      </div>');
+// SCOPE
+a('      <div id="v-scope" class="view">');
+a('        <div class="scgrid">');
+a('          <div class="scpanel"><h3>Waveform Monitor</h3><canvas id="cvw" height="180"></canvas></div>');
+a('          <div class="scpanel"><h3>Vectorscope</h3><canvas id="cvv" height="180"></canvas></div>');
+a('          <div class="scpanel"><h3>RGB Parade</h3><canvas id="cvp" height="180"></canvas></div>');
+a('          <div class="scpanel"><h3>Loudness (LUFS)</h3><canvas id="cvl" height="180"></canvas></div>');
+a('        </div>');
+a('      </div>');
+// SYNC
+a('      <div id="v-sync" class="view">');
+a('        <div class="card">');
+a('          <div style="font-size:9px;color:var(--mu);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">PTP Offset from Master</div>');
+a('          <div class="ptpoff"><span id="ptpval">8</span><span> ns</span></div>');
+a('          <div class="ptpmeta">');
+a('            <div><b id="ptpst">LOCKED</b> Status</div>');
+a('            <div>Grandmaster: <b>NEXUS-GM-01</b></div>');
+a('            <div>Domain: <b>0</b></div>');
+a('            <div>Clock Class: <b>6</b></div>');
+a('            <div>Devices: <b id="ptpdevs">12</b></div>');
+a('            <div>Profile: <b>AES67 / SMPTE ST 2059-2</b></div>');
+a('          </div>');
+a('        </div>');
+a('        <div style="font-size:9px;color:var(--mu);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Live Log</div>');
+a('        <div class="ptplog" id="ptplog"></div>');
+a('      </div>');
+// CONNECT
+a('      <div id="v-connect" class="view">');
+a('        <div style="font-size:9px;color:var(--mu);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">NMOS IS-04 Discovered Devices</div>');
+a('        <div id="nmoslist"></div>');
+a('      </div>');
+// DEVICES
+a('      <div id="v-devices" class="view">');
+a('        <div class="fbar">');
+a('          <input id="dsrch" type="text" placeholder="Search manufacturer or model..." oninput="filterDev()">');
+a('          <select id="dcat" onchange="filterDev()">');
+a('            <option value="">All Categories</option>');
+a('            <option>Camera</option><option>Replay System</option><option>Audio Console</option>');
+a('            <option>Router</option><option>Multiviewer</option><option>Encoder/Decoder</option>');
+a('            <option>Monitor</option><option>Signal Processor</option>');
+a('          </select>');
+a('          <span style="color:var(--mu);font-size:10px" id="dcount"></span>');
+a('        </div>');
+a('        <div style="overflow-x:auto">');
+a('          <table class="ctbl"><thead><tr>');
+a('            <th>Manufacturer</th><th>Model / Series</th><th>Category</th>');
+a('            <th title="SMPTE ST 2110">ST 2110</th><th title="NMOS IS-04/05/07/08">NMOS</th>');
+a('            <th title="AES67 Audio">AES67</th><th title="PTP IEEE 1588">PTP</th>');
+a('            <th title="SMPTE ST 2022-6">ST 2022</th><th title="TLS/Auth">TLS</th>');
+a('            <th title="REST API">REST</th><th>Notes</th>');
+a('          </tr></thead><tbody id="devtbody"></tbody></table>');
+a('        </div>');
+a('      </div>');
+// API
+a('      <div id="v-api" class="view">');
+a('        <div class="apigrid">');
+a('          <div class="apilist" id="apilist"></div>');
+a('          <div class="apidet" id="apidet"><div style="color:var(--mu);font-size:12px;margin-top:40px;text-align:center">Select an endpoint</div></div>');
+a('        </div>');
+a('      </div>');
+// PRE-DEPLOY
+a('      <div id="v-predeploy" class="view">');
+a('        <div id="phasecont"></div>');
+a('        <div class="gobanner nogo" id="gobanner">&#9940; NO-GO &mdash; Complete all checks before deployment</div>');
+a('      </div>');
+a('    </div>');
+// STATUS BAR
+a('    <div id="sbar">');
+a('      <span><span class="dot g" id="sbptpdot"></span>PTP <span id="sbptp">LOCKED 8ns</span></span>');
+a('      <span class="sep">|</span>');
+a('      <span>NMOS <span id="sbnmos">0 devices</span></span>');
+a('      <span class="sep">|</span>');
+a('      <span>ST2110 <span id="sbflows">0 flows</span></span>');
+a('      <span class="sep">|</span>');
+a('      <span><span class="dot x" id="sbwsdot"></span><span id="sbws">WS offline (demo mode)</span></span>');
+a('      <span class="sep">|</span>');
+a('      <span id="sbclock"></span>');
+a('    </div>');
+a('  </div>');
+a('</div>');
 
-    <div class="content">
-`);
+// ── JAVASCRIPT — no backticks, no </tag> inside strings ───────────────────
+a('<script>');
+a('var pgm=1,pvw=2,tr="CUT",mrc=4,mrr=4,ws=null,wsok=false,stimer=null,aep=null;');
+a('var SESS=null;');
+a('var SRCS=[];');
+a('for(var i=1;i<=32;i++){');
+a('  var n=i<=24?"CAM-"+(i<10?"0"+i:i):i<=29?"REPLAY-0"+(i-24):["PGM","PVW","GFX"][i-30]||("SRC-"+i);');
+a('  SRCS.push({id:i,name:n});');
+a('}');
 
-// ── VIEWS HTML ────────────────────────────────────────────────────────────
-p(`
-      <!-- MOSAIC -->
-      <div id="view-mosaic" class="view active">
-        <div class="layout-btns">
-          <span style="color:var(--muted);font-size:10px;margin-right:4px">LAYOUT:</span>
-          <button class="active" onclick="setLayout(1,1,this)">1×1</button>
-          <button onclick="setLayout(2,2,this)">2×2</button>
-          <button onclick="setLayout(3,3,this)">3×3</button>
-          <button onclick="setLayout(4,4,this)">4×4</button>
-          <button onclick="setLayout(2,4,this)">2×4</button>
-          <button onclick="setLayout(3,4,this)">3×4</button>
-        </div>
-        <div id="mv-grid" class="mv-grid"></div>
-      </div>
+a('// Auth');
+a('function doLogin(){');
+a('  var u=document.getElementById("au").value.trim();');
+a('  var p=document.getElementById("ap").value;');
+a('  var r=document.getElementById("ar").value;');
+a('  var e=document.getElementById("aerr");');
+a('  if(!u){e.textContent="Username required";return;}');
+a('  if(p!=="nexus2024"){e.textContent="Invalid password";return;}');
+a('  e.textContent="";');
+a('  SESS={user:u,role:r,token:"demo-"+r+"-"+Date.now()};');
+a('  var ini=u.split("@")[0].slice(0,2).toUpperCase();');
+a('  document.getElementById("sbav").textContent=ini;');
+a('  document.getElementById("sbun").textContent=u.split("@")[0];');
+a('  document.getElementById("sbrl").textContent=r;');
+a('  document.getElementById("tbrole").textContent=r;');
+a('  document.getElementById("tbrole").className="rbadge "+r;');
+a('  document.getElementById("auth").style.display="none";');
+a('  document.getElementById("app").style.display="flex";');
+a('  applyRole();initApp();');
+a('}');
+a('function doLogout(){');
+a('  SESS=null;');
+a('  document.getElementById("app").style.display="none";');
+a('  document.getElementById("auth").style.display="flex";');
+a('  document.getElementById("ap").value="";');
+a('  if(ws){try{ws.close();}catch(x){}}');
+a('  if(stimer){clearInterval(stimer);stimer=null;}');
+a('}');
+a('function applyRole(){');
+a('  var ok=SESS&&SESS.role!=="VIEWER";');
+a('  document.querySelectorAll(".btncut,.btnauto").forEach(function(b){b.disabled=!ok;b.style.opacity=ok?"1":"0.4";});');
+a('}');
 
-      <!-- SWITCH -->
-      <div id="view-switch" class="view">
-        <div class="bus-row">
-          <div class="bus-label pvw">▶ PREVIEW BUS</div>
-          <div id="pvw-bus" class="bus-btns"></div>
-        </div>
-        <div class="bus-row">
-          <div class="bus-label pgm">● PROGRAM BUS</div>
-          <div id="pgm-bus" class="bus-btns"></div>
-        </div>
-        <div class="sw-controls">
-          <div>
-            <div style="font-size:9px;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Transition</div>
-            <div class="trans-btns" id="trans-btns">
-              <button class="active" onclick="setTrans('CUT',this)">CUT</button>
-              <button onclick="setTrans('MIX',this)">MIX</button>
-              <button onclick="setTrans('WIPE',this)">WIPE</button>
-              <button onclick="setTrans('DIP',this)">DIP</button>
-              <button onclick="setTrans('STING',this)">STING</button>
-            </div>
-          </div>
-          <div>
-            <div style="font-size:9px;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Rate (frames)</div>
-            <input id="rate-input" type="number" min="1" max="250" value="25"
-              style="width:60px;background:#0a0a0a;color:var(--text);border:1px solid var(--border);padding:5px;border-radius:3px;font-family:monospace">
-          </div>
-          <button class="btn-cut" onclick="doCut()">CUT</button>
-          <button class="btn-auto" onclick="doAuto()">AUTO</button>
-          <div>
-            <div style="font-size:9px;color:var(--muted);margin-bottom:3px" id="auto-label"></div>
-            <div class="progress-bar"><div class="progress-fill" id="auto-progress"></div></div>
-          </div>
-        </div>
-        <div style="margin-top:8px;font-size:10px;color:var(--muted)" id="sw-status"></div>
-      </div>
+a('// Navigation');
+a('var TITLES={mosaic:"MOSAIC \u2014 Multiviewer",switch:"SWITCHER \u2014 Production Control",scope:"SCOPES \u2014 Signal Analysis",sync:"SYNC \u2014 PTP Clock",connect:"CONNECT \u2014 NMOS Devices",devices:"DEVICES \u2014 Broadcast Compatibility",api:"API \u2014 Explorer",predeploy:"PRE-DEPLOY \u2014 Checklist"};');
+a('function sv(id,el){');
+a('  document.querySelectorAll(".view").forEach(function(v){v.classList.remove("on");});');
+a('  document.querySelectorAll(".sbi").forEach(function(i){i.classList.remove("on");});');
+a('  document.getElementById("v-"+id).classList.add("on");');
+a('  if(el)el.classList.add("on");');
+a('  document.getElementById("tbtitle").textContent=TITLES[id]||id;');
+a('  if(id==="scope")startScopes();');
+a('  if(id==="devices")renderDev();');
+a('  if(id==="api")renderApiList();');
+a('}');
+a('function toggleSb(){document.getElementById("sb").classList.toggle("col");}');
 
-      <!-- SCOPE -->
-      <div id="view-scope" class="view">
-        <div class="scope-grid">
-          <div class="scope-panel"><h3>Waveform Monitor</h3><canvas id="cv-wave" height="180"></canvas></div>
-          <div class="scope-panel"><h3>Vectorscope</h3><canvas id="cv-vec" height="180"></canvas></div>
-          <div class="scope-panel"><h3>RGB Parade</h3><canvas id="cv-parade" height="180"></canvas></div>
-          <div class="scope-panel"><h3>Loudness (LUFS)</h3><canvas id="cv-loud" height="180"></canvas></div>
-        </div>
-      </div>
+a('// Mosaic');
+a('function setLay(r,c,btn){mrr=r;mrc=c;document.querySelectorAll(".lbtns button").forEach(function(b){b.classList.remove("on");});btn.classList.add("on");renderMV();}');
+a('function renderMV(){');
+a('  var g=document.getElementById("mvg");');
+a('  g.style.gridTemplateColumns="repeat("+mrc+",1fr)";');
+a('  g.innerHTML="";');
+a('  for(var i=0;i<mrr*mrc;i++){');
+a('    var s=SRCS[i%SRCS.length];');
+a('    var tl=s.id===pgm?"pgm":s.id===pvw?"pvw":"";');
+a('    var hue=(s.id*37)%360;');
+a('    var c=document.createElement("div");');
+a('    c.className="mvc "+tl;');
+a('    c.innerHTML="<div class=\\"bg\\" style=\\"background:hsl("+hue+",18%,10%)\\"><span style=\\"color:#2a2a2a;font-size:9px\\">VIDEO</span></div>"');
+a('      +"<div class=\\"lbl\\"><span>"+s.name+"</span>"+(tl?"<span class=\\"tt\\">"+tl.toUpperCase()+"</span>":"")+"</div>";');
+a('    c.onclick=(function(sid){return function(){setPvw(sid);};})(s.id);');
+a('    g.appendChild(c);');
+a('  }');
+a('}');
 
-      <!-- SYNC -->
-      <div id="view-sync" class="view">
-        <div class="card">
-          <div style="font-size:9px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">PTP Offset from Master</div>
-          <div class="ptp-offset"><span id="ptp-val">8</span><span> ns</span></div>
-          <div class="ptp-meta">
-            <div><b id="ptp-status">LOCKED</b> Status</div>
-            <div>Grandmaster: <b id="ptp-gm">NEXUS-GM-01</b></div>
-            <div>Domain: <b>0</b></div>
-            <div>Clock Class: <b>6</b></div>
-            <div>Devices: <b id="ptp-devs">12</b></div>
-            <div>Profile: <b>AES67 / SMPTE ST 2059-2</b></div>
-          </div>
-        </div>
-        <div style="font-size:9px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Live Log</div>
-        <div class="ptp-log" id="ptp-log"></div>
-      </div>
+a('// Switcher');
+a('function renderBuses(){');
+a('  var pb=document.getElementById("pvwbus"),gb=document.getElementById("pgmbus");');
+a('  pb.innerHTML="";gb.innerHTML="";');
+a('  SRCS.forEach(function(s){');
+a('    var bp=document.createElement("button");bp.textContent=s.name;bp.className=s.id===pvw?"pvwon":"";');
+a('    bp.onclick=(function(sid){return function(){setPvw(sid);};})(s.id);pb.appendChild(bp);');
+a('    var bg=document.createElement("button");bg.textContent=s.name;bg.className=s.id===pgm?"pgmon":"";');
+a('    bg.disabled=true;bg.style.cursor="default";gb.appendChild(bg);');
+a('  });');
+a('  var st=document.getElementById("swstat");');
+a('  if(st)st.textContent="PGM: "+(SRCS[pgm-1]||{name:"?"}).name+"   |   PVW: "+(SRCS[pvw-1]||{name:"?"}).name;');
+a('  applyRole();');
+a('}');
+a('function setPvw(id){pvw=id;renderBuses();renderMV();wsSend({type:"SWITCHER_PVW",payload:{source:id}});}');
+a('function doCut(){var t=pgm;pgm=pvw;pvw=t;renderBuses();renderMV();wsSend({type:"SWITCHER_CUT",payload:{pvw:pvw,pgm:pgm}});}');
+a('function doAuto(){');
+a('  var rate=parseInt(document.getElementById("rateinp").value)||25;');
+a('  var ms=Math.round(rate/25*1000);');
+a('  var fill=document.getElementById("pfill"),lbl=document.getElementById("autolbl");');
+a('  lbl.textContent=tr+" "+rate+"f";fill.style.width="0%";');
+a('  var start=Date.now();');
+a('  var tmr=setInterval(function(){');
+a('    var pct=Math.min(100,((Date.now()-start)/ms)*100);');
+a('    fill.style.width=pct+"%";');
+a('    if(pct>=100){clearInterval(tmr);lbl.textContent="";var t=pgm;pgm=pvw;pvw=t;renderBuses();renderMV();}');
+a('  },40);');
+a('}');
+a('function setTr(t,btn){tr=t;document.querySelectorAll("#tbtns button").forEach(function(b){b.classList.remove("on");});btn.classList.add("on");}');
 
-      <!-- CONNECT -->
-      <div id="view-connect" class="view">
-        <div style="font-size:9px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">NMOS IS-04 Discovered Devices</div>
-        <div id="nmos-list"></div>
-      </div>
+a('// Scopes');
+a('function startScopes(){if(stimer)return;drawAll();stimer=setInterval(drawAll,80);}');
+a('function drawAll(){dWave();dVec();dParade();dLoud();}');
+a('function rcv(id){var c=document.getElementById(id);var w=c.parentElement.clientWidth-20;if(c.width!==w)c.width=w;return c;}');
+a('function dWave(){var c=rcv("cvw"),x=c.getContext("2d"),W=c.width,H=c.height,t=Date.now()/1000;x.fillStyle="#000";x.fillRect(0,0,W,H);x.strokeStyle="#1a1a1a";x.lineWidth=1;for(var y=0;y<=4;y++){x.beginPath();x.moveTo(0,H*y/4);x.lineTo(W,H*y/4);x.stroke();}x.strokeStyle="#0f0";x.lineWidth=1.5;x.beginPath();for(var i=0;i<W;i++){var v=0.5+0.35*Math.sin(i/W*Math.PI*2+t)+0.05*Math.sin(i/W*Math.PI*8+t*2);i===0?x.moveTo(i,H-v*H):x.lineTo(i,H-v*H);}x.stroke();x.fillStyle="#0f0";x.font="9px monospace";x.fillText("100%",2,10);x.fillText("0%",2,H-2);}');
+a('function dVec(){var c=rcv("cvv"),x=c.getContext("2d"),W=c.width,H=c.height,cx=W/2,cy=H/2,r=Math.min(W,H)*0.44;x.fillStyle="#000";x.fillRect(0,0,W,H);x.strokeStyle="#1a1a1a";x.lineWidth=1;x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.stroke();x.beginPath();x.moveTo(cx-r,cy);x.lineTo(cx+r,cy);x.stroke();x.beginPath();x.moveTo(cx,cy-r);x.lineTo(cx,cy+r);x.stroke();[{a:0,c:"#f44"},{a:60,c:"#ff4"},{a:120,c:"#4f4"},{a:180,c:"#4ff"},{a:240,c:"#44f"},{a:300,c:"#f4f"}].forEach(function(t){var rad=t.a*Math.PI/180,tx=cx+r*0.75*Math.cos(rad),ty=cy-r*0.75*Math.sin(rad);x.fillStyle=t.c;x.beginPath();x.arc(tx,ty,4,0,Math.PI*2);x.fill();});var now=Date.now()/1000;x.fillStyle="rgba(0,220,180,0.55)";for(var i=0;i<90;i++){var ang=(now*0.3+i*0.07)%(Math.PI*2),d=r*0.38*(0.8+0.2*Math.sin(now+i));x.beginPath();x.arc(cx+d*Math.cos(ang)+(Math.random()-0.5)*5,cy+d*Math.sin(ang)+(Math.random()-0.5)*5,1,0,Math.PI*2);x.fill();}}');
+a('function dParade(){var c=rcv("cvp"),x=c.getContext("2d"),W=c.width,H=c.height,t=Date.now()/1000;x.fillStyle="#000";x.fillRect(0,0,W,H);var cw=Math.floor(W/3)-2;[{c:"#f44",o:0},{c:"#4f4",o:1},{c:"#44f",o:2}].forEach(function(ch){var ox=ch.o*(cw+3);x.strokeStyle=ch.c;x.lineWidth=1.5;x.beginPath();for(var i=0;i<cw;i++){var v=0.5+0.3*Math.sin(i/cw*Math.PI*2+t+ch.o)+0.1*Math.sin(i/cw*Math.PI*6+t);i===0?x.moveTo(ox+i,H-v*H):x.lineTo(ox+i,H-v*H);}x.stroke();});x.fillStyle="#555";x.font="9px monospace";x.fillText("R",4,H-4);x.fillText("G",W/3+4,H-4);x.fillText("B",2*W/3+4,H-4);}');
+a('function dLoud(){var c=rcv("cvl"),x=c.getContext("2d"),W=c.width,H=c.height,t=Date.now()/1000;x.fillStyle="#000";x.fillRect(0,0,W,H);var chs=["L","R","C","Ls","Rs","LFE"],bw=Math.floor(W/chs.length)-3;chs.forEach(function(ch,i){var lv=Math.max(0.05,Math.min(0.98,0.55+0.3*Math.sin(t*1.3+i*1.1)+0.1*Math.random()));var ox=i*(bw+3),bh=lv*H,col=lv>0.9?"#f44":lv>0.75?"#fa0":"#0af";x.fillStyle="#111";x.fillRect(ox,0,bw,H);x.fillStyle=col;x.fillRect(ox,H-bh,bw,bh);x.fillStyle="#555";x.font="9px monospace";x.fillText(ch,ox+2,H-2);x.fillStyle="#777";x.fillText(Math.round(-23+lv*20)+"L",ox,10);});}');
 
-      <!-- PRE-DEPLOY -->
-      <div id="view-predeploy" class="view">
-        <div id="phases-container"></div>
-        <div class="go-banner nogo" id="go-banner">⛔ NO-GO — Complete all checks before deployment</div>
-      </div>
-`);
+a('// PTP');
+a('function startPtp(){updPtp();setInterval(updPtp,3000);}');
+a('function updPtp(){var off=Math.floor(4+Math.random()*10);document.getElementById("ptpval").textContent=off;document.getElementById("tbptp").textContent="LOCKED "+off+"ns";document.getElementById("sbptp").textContent="LOCKED "+off+"ns";var log=document.getElementById("ptplog"),ts=new Date().toLocaleTimeString(),e=document.createElement("div");e.innerHTML="<span class=\\"ts\\">"+ts+"</span>offset="+off+"ns  gm=NEXUS-GM-01  domain=0  steps=1";log.insertBefore(e,log.firstChild);if(log.children.length>50)log.removeChild(log.lastChild);}');
 
-// ── DEVICES VIEW ──────────────────────────────────────────────────────────
-p(`
-      <!-- DEVICES -->
-      <div id="view-devices" class="view">
-        <div class="filter-bar">
-          <input id="dev-search" type="text" placeholder="Search manufacturer or model..." oninput="filterDevices()">
-          <select id="dev-cat" onchange="filterDevices()">
-            <option value="">All Categories</option>
-            <option>Camera</option>
-            <option>Replay System</option>
-            <option>Audio Console</option>
-            <option>Router</option>
-            <option>Multiviewer</option>
-            <option>Encoder/Decoder</option>
-            <option>Monitor</option>
-            <option>Frame Sync</option>
-            <option>Signal Processor</option>
-          </select>
-          <span style="color:var(--muted);font-size:10px" id="dev-count"></span>
-        </div>
-        <div style="overflow-x:auto">
-        <table class="compat-table" id="compat-table">
-          <thead><tr>
-            <th>Manufacturer</th><th>Model / Series</th><th>Category</th>
-            <th title="SMPTE ST 2110">ST 2110</th>
-            <th title="NMOS IS-04/05/07/08">NMOS</th>
-            <th title="AES67 Audio">AES67</th>
-            <th title="Precision Time Protocol">PTP</th>
-            <th title="SMPTE ST 2022-6">ST 2022</th>
-            <th title="AMWA BCP-003 Security">TLS/Auth</th>
-            <th title="REST API">REST API</th>
-            <th>Notes</th>
-          </tr></thead>
-          <tbody id="compat-tbody"></tbody>
-        </table>
-        </div>
-      </div>
-`);
+a('// NMOS');
+a('var NDEVS=[{id:1,name:"NEXUS-CAM-01",type:"Node",ip:"10.0.1.11",flows:4,on:true},{id:2,name:"NEXUS-CAM-02",type:"Node",ip:"10.0.1.12",flows:4,on:true},{id:3,name:"NEXUS-CAM-03",type:"Node",ip:"10.0.1.13",flows:4,on:false},{id:4,name:"NEXUS-REPLAY-01",type:"Node",ip:"10.0.1.21",flows:8,on:true},{id:5,name:"NEXUS-ROUTER-01",type:"Device",ip:"10.0.1.31",flows:64,on:true},{id:6,name:"NEXUS-MONITOR-01",type:"Receiver",ip:"10.0.1.41",flows:2,on:false},{id:7,name:"NEXUS-ENCODER-01",type:"Sender",ip:"10.0.1.51",flows:4,on:true},{id:8,name:"NEXUS-DECODER-01",type:"Receiver",ip:"10.0.1.52",flows:4,on:false}];');
+a('function renderNmos(){var list=document.getElementById("nmoslist"),conn=0,flows=0;list.innerHTML="";NDEVS.forEach(function(d){if(d.on){conn++;flows+=d.flows;}var el=document.createElement("div");el.className="nmdev";el.innerHTML="<div><div class=\\"nm\\"><span class=\\"dsm "+(d.on?"on":"off")+"\\">&nbsp;</span>"+d.name+"</div><div class=\\"mt\\">"+d.type+" &middot; "+d.ip+" &middot; "+d.flows+" flows</div></div><button class=\\"btncon "+(d.on?"cd":"")+"\\" data-id=\\""+d.id+"\\">"+(d.on?"DISCONNECT":"CONNECT")+"</button>";list.appendChild(el);});list.querySelectorAll(".btncon").forEach(function(b){b.onclick=function(){var d=NDEVS.find(function(x){return x.id===parseInt(b.dataset.id);});if(d){d.on=!d.on;renderNmos();}};});document.getElementById("tbnmos").textContent=conn;document.getElementById("sbnmos").textContent=conn+" devices";document.getElementById("tbflows").textContent=flows+" flows";document.getElementById("sbflows").textContent=flows+" flows";}');
 
-// ── API EXPLORER VIEW ─────────────────────────────────────────────────────
-p(`
-      <!-- API -->
-      <div id="view-api" class="view">
-        <div class="api-grid">
-          <div class="api-list" id="api-list"></div>
-          <div class="api-detail" id="api-detail">
-            <div style="color:var(--muted);font-size:12px;margin-top:40px;text-align:center">← Select an endpoint</div>
-          </div>
-        </div>
-      </div>
+// Device data — using unicode chars, NO HTML tags inside JS strings in output
+a('// Devices');
+a('var CK="'+TICK+'",CX="'+DASH+'",CP="'+HALF+'";');
+a('var DEVS=[');
+// Cameras
+a('  {mfr:"Sony",mdl:"HDC-5500 / HDC-3500",cat:"Camera",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Full ST 2110 native, NMOS IS-04/05"},');
+a('  {mfr:"Sony",mdl:"HDC-F5500 (4K)",cat:"Camera",s:CK,n:CK,a:CK,p:CK,s2:CP,t:CK,r:CK,note:"4K HDR, ST 2110-22 compressed"},');
+a('  {mfr:"Sony",mdl:"HDC-P50 (POV)",cat:"Camera",s:CK,n:CP,a:CK,p:CK,s2:CK,t:CP,r:CP,note:"Compact, NMOS via CCU"},');
+a('  {mfr:"Grass Valley",mdl:"LDX 150 / LDX 100",cat:"Camera",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"GV AMPP compatible"},');
+a('  {mfr:"Grass Valley",mdl:"LDX 86N Universe",cat:"Camera",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Native IP, 4K/HDR"},');
+a('  {mfr:"Ikegami",mdl:"UHK-X750 (4K)",cat:"Camera",s:CK,n:CK,a:CK,p:CK,s2:CP,t:CP,r:CP,note:"ST 2110-20/30 native"},');
+a('  {mfr:"Hitachi",mdl:"SK-UHD4000",cat:"Camera",s:CK,n:CP,a:CK,p:CK,s2:CK,t:CP,r:CP,note:"4K UHD, ST 2110 option"},');
+a('  {mfr:"Blackmagic Design",mdl:"URSA Broadcast G2",cat:"Camera",s:CX,n:CX,a:CX,p:CX,s2:CX,t:CX,r:CK,note:"SDI/HDMI only; use NEXUS SDI bridge"},');
+// Replay
+a('  {mfr:"EVS",mdl:"XT-VIA",cat:"Replay System",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Full IP native, XSQUARE ecosystem"},');
+a('  {mfr:"EVS",mdl:"XT4K",cat:"Replay System",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"4K HDR, NMOS IS-04/05/07"},');
+a('  {mfr:"EVS",mdl:"XS-VIA",cat:"Replay System",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Scalable IP replay"},');
+a('  {mfr:"Grass Valley",mdl:"K2 Dyno S",cat:"Replay System",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"GV AMPP, full IP"},');
+a('  {mfr:"Vizrt",mdl:"Viz Vectar Plus",cat:"Replay System",s:CP,n:CP,a:CK,p:CK,s2:CK,t:CP,r:CK,note:"NDI native; ST 2110 via gateway"},');
+// Audio
+a('  {mfr:"Lawo",mdl:"mc2 96 Grand Production",cat:"Audio Console",s:CK,n:CK,a:CK,p:CK,s2:CX,t:CK,r:CK,note:"AES67/ST 2110-30 native, RAVENNA"},');
+a('  {mfr:"Lawo",mdl:"mc2 56 MkIII",cat:"Audio Console",s:CK,n:CK,a:CK,p:CK,s2:CX,t:CK,r:CK,note:"Full NMOS IS-04/05/08"},');
+a('  {mfr:"Lawo",mdl:"A__UHD Core",cat:"Audio Console",s:CK,n:CK,a:CK,p:CK,s2:CX,t:CK,r:CK,note:"Software-defined audio"},');
+a('  {mfr:"Calrec",mdl:"Artemis / Apollo",cat:"Audio Console",s:CK,n:CK,a:CK,p:CK,s2:CX,t:CK,r:CK,note:"Hydra2 + AoIP, NMOS"},');
+a('  {mfr:"Calrec",mdl:"Brio 36",cat:"Audio Console",s:CK,n:CK,a:CK,p:CK,s2:CX,t:CK,r:CK,note:"Compact broadcast, full IP"},');
+a('  {mfr:"SSL",mdl:"System T S500",cat:"Audio Console",s:CK,n:CK,a:CK,p:CK,s2:CX,t:CK,r:CK,note:"Tempest engine, NMOS IS-04/05"},');
+a('  {mfr:"SSL",mdl:"System T S300",cat:"Audio Console",s:CK,n:CK,a:CK,p:CK,s2:CX,t:CK,r:CK,note:"Compact, full AoIP"},');
+a('  {mfr:"Yamaha",mdl:"RIVAGE PM10",cat:"Audio Console",s:CP,n:CP,a:CK,p:CK,s2:CX,t:CP,r:CK,note:"Dante/AES67; NMOS via gateway"},');
+a('  {mfr:"DiGiCo",mdl:"Quantum 7 / SD12",cat:"Audio Console",s:CP,n:CP,a:CK,p:CK,s2:CX,t:CP,r:CK,note:"MADI/Dante; AES67 bridge"},');
+a('  {mfr:"Studer",mdl:"Vista 1 / Vista 5",cat:"Audio Console",s:CK,n:CK,a:CK,p:CK,s2:CX,t:CK,r:CK,note:"AES67 native, NMOS support"},');
+// Routers
+a('  {mfr:"Grass Valley",mdl:"GV Orbit / Densit\u00e9",cat:"Router",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Full NMOS IS-04/05/07/08"},');
+a('  {mfr:"Evertz",mdl:"EQX / MAGNUM",cat:"Router",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"SDVN, full IP routing"},');
+a('  {mfr:"Ross Video",mdl:"Ultrix FR12",cat:"Router",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Integrated multiviewer+router"},');
+a('  {mfr:"Imagine Comms",mdl:"Selenio MCP",cat:"Router",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Software-defined routing"},');
+// Multiviewers
+a('  {mfr:"Grass Valley",mdl:"Kaleido-IP X320",cat:"Multiviewer",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Pure IP multiviewer"},');
+a('  {mfr:"Evertz",mdl:"Quartz MV / 7800MV",cat:"Multiviewer",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"ST 2110 native"},');
+a('  {mfr:"Blackmagic Design",mdl:"MultiView 16",cat:"Multiviewer",s:CX,n:CX,a:CX,p:CX,s2:CX,t:CX,r:CK,note:"SDI only; use NEXUS MOSAIC"},');
+a('  {mfr:"Ross Video",mdl:"Ultrix Carbonite",cat:"Multiviewer",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Integrated production"},');
+// Encoders
+a('  {mfr:"Haivision",mdl:"KB Encoder",cat:"Encoder/Decoder",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"SRT, HEVC, ST 2110"},');
+a('  {mfr:"Harmonic",mdl:"VOS360 / Electra X",cat:"Encoder/Decoder",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Cloud-native, full IP"},');
+a('  {mfr:"Ateme",mdl:"TITAN Live",cat:"Encoder/Decoder",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"HEVC/AVC, ST 2110"},');
+// Monitors
+a('  {mfr:"Sony",mdl:"BVM-HX310 (OLED)",cat:"Monitor",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Reference OLED, full IP"},');
+a('  {mfr:"Flanders Scientific",mdl:"XM310K",cat:"Monitor",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"4K HDR reference"},');
+// Signal Processors
+a('  {mfr:"Evertz",mdl:"7800FR / 7700",cat:"Signal Processor",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Full IP processing"},');
+a('  {mfr:"Grass Valley",mdl:"Densit\u00e9 3+ FR4",cat:"Signal Processor",s:CK,n:CK,a:CK,p:CK,s2:CK,t:CK,r:CK,note:"Modular IP processing"},');
+a('];');
 
-    </div><!-- /content -->
+a('function renderDev(){');
+a('  var q=(document.getElementById("dsrch").value||"").toLowerCase();');
+a('  var cat=document.getElementById("dcat").value;');
+a('  var rows=DEVS.filter(function(d){return (d.mfr+" "+d.mdl+" "+d.cat).toLowerCase().includes(q)&&(!cat||d.cat===cat);});');
+a('  document.getElementById("dcount").textContent=rows.length+" devices";');
+a('  var tb=document.getElementById("devtbody");tb.innerHTML="";');
+a('  rows.forEach(function(d){');
+a('    var tr=document.createElement("tr");');
+a('    tr.innerHTML="<td class=\\"mfr\\">"+d.mfr+"</td><td class=\\"mdl\\">"+d.mdl+"</td><td><span class=\\"cat\\">"+d.cat+"</span></td>"');
+a('      +"<td>"+d.s+"</td><td>"+d.n+"</td><td>"+d.a+"</td><td>"+d.p+"</td><td>"+d.s2+"</td><td>"+d.t+"</td><td>"+d.r+"</td>"');
+a('      +"<td style=\\"color:var(--mu);font-size:10px\\">"+d.note+"</td>";');
+a('    tb.appendChild(tr);');
+a('  });');
+a('}');
+a('function filterDev(){renderDev();}');
 
-    <div id="statusbar">
-      <span><span class="tbar-dot g" id="sb-ptp-dot"></span>PTP <span id="sb-ptp">LOCKED 8ns</span></span>
-      <span class="sep">|</span>
-      <span>NMOS <span id="sb-nmos">0 devices</span></span>
-      <span class="sep">|</span>
-      <span>ST2110 <span id="sb-flows">0 flows</span></span>
-      <span class="sep">|</span>
-      <span><span class="tbar-dot grey" id="sb-ws-dot"></span><span id="sb-ws">WS offline (demo mode)</span></span>
-      <span class="sep">|</span>
-      <span id="sb-clock"></span>
-    </div>
-  </div><!-- /main -->
-</div><!-- /app -->
-`);
+a('// API Explorer');
+a('var AEPS=[');
+a('  {m:"WS",p:"/ws/control",t:"WebSocket Control",d:"Real-time bidirectional control. Authenticate with JWT token query param. Messages: SWITCHER_CUT, SWITCHER_AUTO, SWITCHER_PVW, TALLY_UPDATE, MV_UPDATE.",req:null,res:\'{"type":"INIT","role":"OPERATOR","timestamp":1700000000000}\'},');
+a('  {m:"GET",p:"/health/live",t:"Liveness Probe",d:"Kubernetes liveness check.",req:null,res:\'{"status":"alive"}\'},');
+a('  {m:"GET",p:"/health/ready",t:"Readiness Probe",d:"Kubernetes readiness check.",req:null,res:\'{"status":"ready","timestamp":1700000000000}\'},');
+a('  {m:"GET",p:"/api/v1/switcher/state",t:"Switcher State",d:"Current PGM/PVW sources, transition type, rate.",req:null,res:\'{"pgm":1,"pvw":2,"transition":"CUT","rate":25,"inTransition":false}\'},');
+a('  {m:"POST",p:"/api/v1/switcher/cut",t:"Switcher Cut",d:"Execute immediate cut. Broadcasts TALLY_UPDATE to all operators.",req:\'{"pvw":3,"pgm":1}\',res:\'{"success":true,"newPgm":3,"newPvw":1,"latency_ms":4}\'},');
+a('  {m:"GET",p:"/api/v1/ptp/status",t:"PTP Status",d:"Current PTP grandmaster offset, lock status, domain, clock class.",req:null,res:\'{"offset":8,"locked":true,"grandmasterId":"NEXUS-GM-01","domain":0,"clockClass":6}\'},');
+a('  {m:"GET",p:"/api/v1/router/flows",t:"Router Flows",d:"All active ST 2110 flows in the routing matrix.",req:null,res:\'[{"id":"flow-001","src":"CAM-01","dst":"PGM-BUS","type":"ST2110-20","active":true}]\'},');
+a('  {m:"GET",p:"/api/v1/multiviewer/layout",t:"Multiviewer Layout",d:"Current mosaic layout and cell assignments.",req:null,res:\'{"layout":"4x4","cells":[{"index":0,"source":1,"tally":"pgm"}]}\'},');
+a('  {m:"POST",p:"/api/v1/multiviewer/layout",t:"Set MV Layout",d:"Update mosaic layout. Broadcasts MV_UPDATE to all clients.",req:\'{"layout":"2x2","cells":[{"index":0,"source":1}]}\',res:\'{"success":true}\'},');
+a('  {m:"GET",p:"/api/v1/recorder/storage",t:"Recorder Storage",d:"Current storage utilization.",req:null,res:\'{"usage_percent":42,"used_gb":840,"total_gb":2000}\'},');
+a('  {m:"GET",p:"/api/v1/nmos/health",t:"NMOS Health",d:"NMOS IS-04 registry health and device count.",req:null,res:\'{"status":"healthy","devices":8,"registryUrl":"http://nmos-registry:3211"}\'},');
+a('  {m:"GET",p:"/metrics",t:"Prometheus Metrics",d:"Prometheus-format metrics for WebSocket connections and latency.",req:null,res:"nexus_ws_connections_total 4\\nnexus_ws_connections_by_role{role=\\"OPERATOR\\"} 2"},');
+a('];');
+a('function renderApiList(){var list=document.getElementById("apilist");list.innerHTML="";AEPS.forEach(function(ep,i){var el=document.createElement("div");el.className="apiep"+(aep===i?" on":"");el.innerHTML="<span class=\\"mth "+ep.m+"\\">"+ep.m+"</span><span class=\\"pth\\">"+ep.p+"</span>";el.onclick=(function(idx){return function(){showEp(idx);};})(i);list.appendChild(el);});}');
+a('function showEp(i){aep=i;var ep=AEPS[i];document.querySelectorAll(".apiep").forEach(function(e,j){e.classList.toggle("on",j===i);});var d=document.getElementById("apidet");d.innerHTML="<h2><span class=\\"mth "+ep.m+"\\" style=\\"margin-right:8px\\">"+ep.m+"</span>"+ep.p+"</h2><div class=\\"desc\\">"+ep.d+"</div>"+(ep.req?"<div class=\\"lbl\\">Request Body</div><pre>"+ep.req+"</pre>":"")+"<div class=\\"lbl\\">Response</div><pre>"+ep.res+"</pre>"+(ep.m!=="WS"?"<button class=\\"btntry\\" onclick=\\"tryEp("+i+")\\">&gt; Try it</button><div class=\\"tryres\\" id=\\"tryres\\">Ready</div>":"<div style=\\"color:var(--mu);font-size:11px;margin-top:8px\\">Use the live controls above to interact via WebSocket.</div>");}');
+a('function tryEp(i){var ep=AEPS[i],r=document.getElementById("tryres");r.style.color="var(--ylw)";r.textContent="Fetching "+ep.p+"...";setTimeout(function(){r.style.color="var(--grn)";r.textContent="HTTP 200 OK\\n\\n"+ep.res;},400+Math.random()*300);}');
 
-// ── JAVASCRIPT ────────────────────────────────────────────────────────────
-p(`<script>
-// ── Auth ──────────────────────────────────────────────────────────────────
-var SESSION = null;
-var CREDS = {password:'nexus2024'};
+a('// Pre-Deploy');
+a('var PHASES=[');
+a('  {t:"Phase 1 \u2014 Network Infrastructure",items:["10GbE switches configured with VLAN isolation","PTP grandmaster clock installed and locked","Multicast routing enabled on all switches","Network latency < 1ms verified end-to-end","IGMP snooping enabled on all VLANs"]},');
+a('  {t:"Phase 2 \u2014 Hardware Integration",items:["FPGA SDI bridge firmware flashed and tested","ST 2110-20 video flows verified on analyzer","ST 2110-30 audio flows verified","PTP sync < 50ns on all endpoints","NMOS IS-04 discovery confirmed for all devices"]},');
+a('  {t:"Phase 3 \u2014 Software Services",items:["Kubernetes cluster healthy (all nodes Ready)","NMOS IS-04 registry responding","Switcher service latency < 5ms","Router service routing table loaded","Recorder storage mounted and writable"]},');
+a('  {t:"Phase 4 \u2014 Monitoring & Alerting",items:["Prometheus scraping all targets","Grafana dashboards loading correctly","Alert rules tested and firing correctly","On-call rotation confirmed","PagerDuty integration tested"]},');
+a('  {t:"Phase 5 \u2014 Security & Access",items:["JWT secrets rotated for production","TLS certificates valid and installed","Network policies applied in Kubernetes","Operator credentials distributed","Audit logging enabled and shipping to SIEM"]},');
+a('];');
+a('var CS={};');
+a('function renderPhases(){var c=document.getElementById("phasecont");c.innerHTML="";PHASES.forEach(function(ph,pi){var div=document.createElement("div");div.className="phase";var h=document.createElement("h3");h.textContent=ph.t;div.appendChild(h);ph.items.forEach(function(item,ii){var key=pi+"-"+ii,row=document.createElement("div");row.className="chk"+(CS[key]?" done":"");var cb=document.createElement("input");cb.type="checkbox";cb.checked=!!CS[key];cb.dataset.key=key;cb.onchange=function(){CS[this.dataset.key]=this.checked;renderPhases();updBanner();};var lbl=document.createElement("label");lbl.textContent=item;row.appendChild(cb);row.appendChild(lbl);div.appendChild(row);});c.appendChild(div);});}');
+a('function updBanner(){var tot=0,done=0;PHASES.forEach(function(ph,pi){ph.items.forEach(function(_,ii){tot++;if(CS[pi+"-"+ii])done++;});});var b=document.getElementById("gobanner");if(done===tot){b.className="gobanner go";b.textContent="\u2705 GO \u2014 All "+tot+" checks passed. Ready for deployment.";}else{b.className="gobanner nogo";b.textContent="\u26d4 NO-GO \u2014 "+done+"/"+tot+" checks complete";}}');
 
-function doLogin(){
-  var user = document.getElementById('auth-user').value.trim();
-  var pass = document.getElementById('auth-pass').value;
-  var role = document.getElementById('auth-role').value;
-  var err  = document.getElementById('auth-err');
-  if(!user){err.textContent='Username required';return;}
-  if(pass !== CREDS.password){err.textContent='Invalid password';return;}
-  err.textContent='';
-  SESSION = {user:user, role:role, token:'demo-'+role+'-'+Date.now()};
-  var initials = user.split('@')[0].slice(0,2).toUpperCase();
-  document.getElementById('sb-avatar').textContent = initials;
-  document.getElementById('sb-username').textContent = user.split('@')[0];
-  document.getElementById('sb-role-label').textContent = role;
-  document.getElementById('tb-role').textContent = role;
-  document.getElementById('tb-role').className = 'role-badge '+role;
-  document.getElementById('auth-screen').style.display='none';
-  document.getElementById('app').style.display='flex';
-  applyRolePermissions();
-  initApp();
-}
+a('// WebSocket');
+a('function initWs(){try{ws=new WebSocket("ws://localhost:8080/ws/control?token="+(SESS?SESS.token:"demo"));ws.onopen=function(){wsok=true;setWs(true);};ws.onclose=ws.onerror=function(){wsok=false;setWs(false);};ws.onmessage=function(e){try{var m=JSON.parse(e.data);if(m.type==="TALLY_UPDATE"){pgm=m.pgm;pvw=m.pvw;renderBuses();renderMV();}}catch(x){}};} catch(x){setWs(false);}}');
+a('function setWs(ok){var cls="dot "+(ok?"g":"x"),txt=ok?"WS connected":"WS offline (demo mode)";["sbwsdot","tbwsdot"].forEach(function(id){var el=document.getElementById(id);if(el)el.className=cls;});document.getElementById("sbws").textContent=txt;document.getElementById("tbws").textContent=txt;}');
+a('function wsSend(m){if(ws&&wsok)try{ws.send(JSON.stringify(m));}catch(e){}}');
 
-function doLogout(){
-  SESSION=null;
-  document.getElementById('app').style.display='none';
-  document.getElementById('auth-screen').style.display='flex';
-  document.getElementById('auth-pass').value='';
-  if(ws){try{ws.close();}catch(e){}}
-  if(scopeTimer){clearInterval(scopeTimer);scopeTimer=null;}
-}
+a('// Clock');
+a('function tick(){var t=new Date().toLocaleTimeString();["sbclock","tbclock"].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=t;});}');
 
-function applyRolePermissions(){
-  var canOp = SESSION && SESSION.role !== 'VIEWER';
-  document.querySelectorAll('.btn-cut,.btn-auto,.bus-btns button').forEach(function(b){
-    b.disabled = !canOp;
-    b.style.opacity = canOp?'1':'0.4';
-    b.style.cursor = canOp?'pointer':'not-allowed';
-  });
-}
+a('// Init');
+a('function initApp(){renderMV();renderBuses();renderNmos();renderPhases();updBanner();startPtp();initWs();tick();setInterval(tick,1000);renderDev();renderApiList();}');
 
-// ── Navigation ────────────────────────────────────────────────────────────
-var VIEW_TITLES = {
-  mosaic:'MOSAIC — Multiviewer', switch:'SWITCHER — Production Control',
-  scope:'SCOPES — Signal Analysis', sync:'SYNC — PTP Clock',
-  connect:'CONNECT — NMOS Devices', devices:'DEVICES — Broadcast Compatibility',
-  api:'API — Explorer', predeploy:'PRE-DEPLOY — Checklist'
-};
+a('// Enter key on login');
+a('document.getElementById("ap").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});');
+a('document.getElementById("au").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});');
+a('</script>');
+a('</body>');
+a('</html>');
 
-function showView(id, el){
-  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active')});
-  document.querySelectorAll('.sb-item').forEach(function(i){i.classList.remove('active')});
-  document.getElementById('view-'+id).classList.add('active');
-  if(el) el.classList.add('active');
-  document.getElementById('topbar-title').textContent = VIEW_TITLES[id]||id;
-  if(id==='scope') startScopes();
-  if(id==='devices') renderDevices();
-  if(id==='api') renderApiList();
-}
-
-function toggleSidebar(){
-  document.getElementById('sidebar').classList.toggle('collapsed');
-}
-
-// ── State ─────────────────────────────────────────────────────────────────
-var pgm=1, pvw=2, trans='CUT', mvCols=4, mvRows=4;
-var ws=null, wsOk=false;
-
-var SOURCES=[];
-for(var i=1;i<=32;i++){
-  var n=i<=24?'CAM-'+String(i).padStart(2,'0'):i<=29?'REPLAY-0'+(i-24):['PGM','PVW','GFX'][i-30]||('SRC-'+i);
-  SOURCES.push({id:i,name:n});
-}
-
-// ── Mosaic ────────────────────────────────────────────────────────────────
-function setLayout(r,c,btn){
-  mvRows=r;mvCols=c;
-  document.querySelectorAll('.layout-btns button').forEach(function(b){b.classList.remove('active')});
-  btn.classList.add('active');
-  renderMosaic();
-}
-function renderMosaic(){
-  var g=document.getElementById('mv-grid');
-  g.style.gridTemplateColumns='repeat('+mvCols+',1fr)';
-  g.innerHTML='';
-  for(var i=0;i<mvRows*mvCols;i++){
-    var src=SOURCES[i%SOURCES.length];
-    var tally=src.id===pgm?'pgm':src.id===pvw?'pvw':'';
-    var hue=(src.id*37)%360;
-    var cell=document.createElement('div');
-    cell.className='mv-cell '+tally;
-    cell.innerHTML='<div class="bg" style="background:hsl('+hue+',18%,10%)"><span style="color:#2a2a2a;font-size:9px">VIDEO</span></div>'+
-      '<div class="lbl"><span>'+src.name+'</span>'+(tally?'<span class="tally-tag">'+tally.toUpperCase()+'</span>':'')+'</div>';
-    cell.onclick=(function(sid){return function(){setPvw(sid);};})(src.id);
-    g.appendChild(cell);
-  }
-}
-
-// ── Switcher ──────────────────────────────────────────────────────────────
-function renderBuses(){
-  var pb=document.getElementById('pvw-bus'), gb=document.getElementById('pgm-bus');
-  pb.innerHTML='';gb.innerHTML='';
-  SOURCES.forEach(function(src){
-    var bp=document.createElement('button');
-    bp.textContent=src.name;bp.className=src.id===pvw?'pvw-on':'';
-    bp.onclick=(function(sid){return function(){setPvw(sid);};})(src.id);
-    pb.appendChild(bp);
-    var bg=document.createElement('button');
-    bg.textContent=src.name;bg.className=src.id===pgm?'pgm-on':'';
-    bg.style.cursor='default';bg.disabled=true;
-    gb.appendChild(bg);
-  });
-  var s=document.getElementById('sw-status');
-  if(s) s.textContent='PGM: '+(SOURCES[pgm-1]||{name:'?'}).name+'   |   PVW: '+(SOURCES[pvw-1]||{name:'?'}).name;
-  applyRolePermissions();
-}
-function setPvw(id){pvw=id;renderBuses();renderMosaic();wsSend({type:'SWITCHER_PVW',payload:{source:id}});}
-function doCut(){var t=pgm;pgm=pvw;pvw=t;renderBuses();renderMosaic();wsSend({type:'SWITCHER_CUT',payload:{pvw:pvw,pgm:pgm}});}
-function doAuto(){
-  var rate=parseInt(document.getElementById('rate-input').value)||25;
-  var ms=Math.round(rate/25*1000);
-  var fill=document.getElementById('auto-progress');
-  var lbl=document.getElementById('auto-label');
-  lbl.textContent=trans+' '+rate+'f';fill.style.width='0%';
-  var start=Date.now();
-  var timer=setInterval(function(){
-    var pct=Math.min(100,((Date.now()-start)/ms)*100);
-    fill.style.width=pct+'%';
-    if(pct>=100){clearInterval(timer);lbl.textContent='';var t=pgm;pgm=pvw;pvw=t;renderBuses();renderMosaic();}
-  },40);
-}
-function setTrans(t,btn){
-  trans=t;
-  document.querySelectorAll('#trans-btns button').forEach(function(b){b.classList.remove('active')});
-  btn.classList.add('active');
-}
-`);
-
-p(`
-// ── Scopes ────────────────────────────────────────────────────────────────
-var scopeTimer=null;
-function startScopes(){if(scopeTimer)return;drawScopes();scopeTimer=setInterval(drawScopes,80);}
-function drawScopes(){drawWave();drawVec();drawParade();drawLoud();}
-function rcv(id){var c=document.getElementById(id);var w=c.parentElement.clientWidth-20;if(c.width!==w)c.width=w;return c;}
-function drawWave(){
-  var c=rcv('cv-wave'),ctx=c.getContext('2d'),W=c.width,H=c.height,t=Date.now()/1000;
-  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=1;
-  for(var y=0;y<=4;y++){ctx.beginPath();ctx.moveTo(0,H*y/4);ctx.lineTo(W,H*y/4);ctx.stroke();}
-  ctx.strokeStyle='#0f0';ctx.lineWidth=1.5;ctx.beginPath();
-  for(var x=0;x<W;x++){var v=0.5+0.35*Math.sin(x/W*Math.PI*2+t)+0.05*Math.sin(x/W*Math.PI*8+t*2);x===0?ctx.moveTo(x,H-v*H):ctx.lineTo(x,H-v*H);}
-  ctx.stroke();
-  ctx.fillStyle='#0f0';ctx.font='9px monospace';ctx.fillText('100%',2,10);ctx.fillText('0%',2,H-2);
-}
-function drawVec(){
-  var c=rcv('cv-vec'),ctx=c.getContext('2d'),W=c.width,H=c.height,cx=W/2,cy=H/2,r=Math.min(W,H)*0.44;
-  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=1;
-  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx-r,cy);ctx.lineTo(cx+r,cy);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx,cy+r);ctx.stroke();
-  [{a:0,c:'#f44'},{a:60,c:'#ff4'},{a:120,c:'#4f4'},{a:180,c:'#4ff'},{a:240,c:'#44f'},{a:300,c:'#f4f'}].forEach(function(t){
-    var rad=t.a*Math.PI/180,tx=cx+r*0.75*Math.cos(rad),ty=cy-r*0.75*Math.sin(rad);
-    ctx.fillStyle=t.c;ctx.beginPath();ctx.arc(tx,ty,4,0,Math.PI*2);ctx.fill();
-  });
-  var now=Date.now()/1000;ctx.fillStyle='rgba(0,220,180,0.55)';
-  for(var i=0;i<90;i++){var a=(now*0.3+i*0.07)%(Math.PI*2),d=r*0.38*(0.8+0.2*Math.sin(now+i));ctx.beginPath();ctx.arc(cx+d*Math.cos(a)+(Math.random()-0.5)*5,cy+d*Math.sin(a)+(Math.random()-0.5)*5,1,0,Math.PI*2);ctx.fill();}
-}
-function drawParade(){
-  var c=rcv('cv-parade'),ctx=c.getContext('2d'),W=c.width,H=c.height,t=Date.now()/1000;
-  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
-  var cw=Math.floor(W/3)-2;
-  [{c:'#f44',o:0},{c:'#4f4',o:1},{c:'#44f',o:2}].forEach(function(ch){
-    var ox=ch.o*(cw+3);ctx.strokeStyle=ch.c;ctx.lineWidth=1.5;ctx.beginPath();
-    for(var x=0;x<cw;x++){var v=0.5+0.3*Math.sin(x/cw*Math.PI*2+t+ch.o)+0.1*Math.sin(x/cw*Math.PI*6+t);x===0?ctx.moveTo(ox+x,H-v*H):ctx.lineTo(ox+x,H-v*H);}
-    ctx.stroke();
-  });
-  ctx.fillStyle='#555';ctx.font='9px monospace';ctx.fillText('R',4,H-4);ctx.fillText('G',W/3+4,H-4);ctx.fillText('B',2*W/3+4,H-4);
-}
-function drawLoud(){
-  var c=rcv('cv-loud'),ctx=c.getContext('2d'),W=c.width,H=c.height,t=Date.now()/1000;
-  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
-  var chs=['L','R','C','Ls','Rs','LFE'],bw=Math.floor(W/chs.length)-3;
-  chs.forEach(function(ch,i){
-    var lv=Math.max(0.05,Math.min(0.98,0.55+0.3*Math.sin(t*1.3+i*1.1)+0.1*Math.random()));
-    var ox=i*(bw+3),bh=lv*H,col=lv>0.9?'#f44':lv>0.75?'#fa0':'#0af';
-    ctx.fillStyle='#111';ctx.fillRect(ox,0,bw,H);
-    ctx.fillStyle=col;ctx.fillRect(ox,H-bh,bw,bh);
-    ctx.fillStyle='#555';ctx.font='9px monospace';ctx.fillText(ch,ox+2,H-2);
-    ctx.fillStyle='#777';ctx.fillText(Math.round(-23+lv*20)+'L',ox,10);
-  });
-}
-
-// ── PTP ───────────────────────────────────────────────────────────────────
-function startPtp(){updatePtp();setInterval(updatePtp,3000);}
-function updatePtp(){
-  var off=Math.floor(4+Math.random()*10);
-  document.getElementById('ptp-val').textContent=off;
-  document.getElementById('tb-ptp').textContent='LOCKED '+off+'ns';
-  document.getElementById('sb-ptp').textContent='LOCKED '+off+'ns';
-  var log=document.getElementById('ptp-log'),ts=new Date().toLocaleTimeString();
-  var e=document.createElement('div');
-  e.innerHTML='<span class="ts">'+ts+'</span>offset='+off+'ns  gm=NEXUS-GM-01  domain=0  steps=1  profile=ST2059-2';
-  log.insertBefore(e,log.firstChild);
-  if(log.children.length>50)log.removeChild(log.lastChild);
-}
-
-// ── NMOS ──────────────────────────────────────────────────────────────────
-var NMOS_DEVS=[
-  {id:1,name:'NEXUS-CAM-01',type:'Node',ip:'10.0.1.11',flows:4,on:true},
-  {id:2,name:'NEXUS-CAM-02',type:'Node',ip:'10.0.1.12',flows:4,on:true},
-  {id:3,name:'NEXUS-CAM-03',type:'Node',ip:'10.0.1.13',flows:4,on:false},
-  {id:4,name:'NEXUS-REPLAY-01',type:'Node',ip:'10.0.1.21',flows:8,on:true},
-  {id:5,name:'NEXUS-ROUTER-01',type:'Device',ip:'10.0.1.31',flows:64,on:true},
-  {id:6,name:'NEXUS-MONITOR-01',type:'Receiver',ip:'10.0.1.41',flows:2,on:false},
-  {id:7,name:'NEXUS-ENCODER-01',type:'Sender',ip:'10.0.1.51',flows:4,on:true},
-  {id:8,name:'NEXUS-DECODER-01',type:'Receiver',ip:'10.0.1.52',flows:4,on:false},
-];
-function renderNmos(){
-  var list=document.getElementById('nmos-list'),conn=0,flows=0;
-  list.innerHTML='';
-  NMOS_DEVS.forEach(function(d){
-    if(d.on){conn++;flows+=d.flows;}
-    var el=document.createElement('div');el.className='nmos-device';
-    el.innerHTML='<div class="info"><div class="name"><span class="dot-sm '+(d.on?'on':'off')+'"></span>'+d.name+'</div>'+
-      '<div class="meta">'+d.type+' &nbsp;·&nbsp; '+d.ip+' &nbsp;·&nbsp; '+d.flows+' flows</div></div>'+
-      '<button class="btn-conn '+(d.on?'connected':'')+'" data-id="'+d.id+'">'+(d.on?'DISCONNECT':'CONNECT')+'</button>';
-    list.appendChild(el);
-  });
-  list.querySelectorAll('.btn-conn').forEach(function(b){
-    b.onclick=function(){var d=NMOS_DEVS.find(function(x){return x.id===parseInt(this.dataset.id);},this);if(d){d.on=!d.on;renderNmos();}};
-  });
-  document.getElementById('tb-nmos').textContent=conn;
-  document.getElementById('sb-nmos').textContent=conn+' devices';
-  document.getElementById('tb-flows').textContent=flows+' flows';
-  document.getElementById('sb-flows').textContent=flows+' flows';
-}
-`);
-
-p(`
-// ── Broadcast Device Compatibility ────────────────────────────────────────
-var T='<span class="tick">✓</span>', X='<span class="cross">—</span>', P='<span class="partial" title="Partial">◑</span>';
-var DEVICES=[
-  // CAMERAS
-  {mfr:'Sony',model:'HDC-5500 / HDC-3500',cat:'Camera',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Full ST 2110 native, NMOS IS-04/05'},
-  {mfr:'Sony',model:'HDC-F5500 (4K)',cat:'Camera',st2110:T,nmos:T,aes67:T,ptp:T,st2022:P,tls:T,api:T,notes:'4K HDR, ST 2110-22 compressed'},
-  {mfr:'Sony',model:'HDC-P50 (POV)',cat:'Camera',st2110:T,nmos:P,aes67:T,ptp:T,st2022:T,tls:P,api:P,notes:'Compact, NMOS via CCU'},
-  {mfr:'Grass Valley',model:'LDX 150 / LDX 100',cat:'Camera',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'GV AMPP compatible'},
-  {mfr:'Grass Valley',model:'LDX 86N Universe',cat:'Camera',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Native IP, 4K/HDR'},
-  {mfr:'Ikegami',model:'UHK-X750 (4K)',cat:'Camera',st2110:T,nmos:T,aes67:T,ptp:T,st2022:P,tls:P,api:P,notes:'ST 2110-20/30 native'},
-  {mfr:'Ikegami',model:'HDK-99 CMOS',cat:'Camera',st2110:T,nmos:P,aes67:T,ptp:T,st2022:T,tls:P,api:P,notes:'Via IP adapter'},
-  {mfr:'Hitachi',model:'SK-UHD4000',cat:'Camera',st2110:T,nmos:P,aes67:T,ptp:T,st2022:T,tls:P,api:P,notes:'4K UHD, ST 2110 option'},
-  {mfr:'Blackmagic Design',model:'URSA Broadcast G2',cat:'Camera',st2110:X,nmos:X,aes67:X,ptp:X,st2022:X,tls:X,api:T,notes:'SDI/HDMI only; use NEXUS SDI bridge'},
-  {mfr:'Blackmagic Design',model:'Studio Camera 4K Pro',cat:'Camera',st2110:X,nmos:X,aes67:X,ptp:X,st2022:X,tls:X,api:T,notes:'SDI; bridge required'},
-  // REPLAY
-  {mfr:'EVS',model:'XT-VIA',cat:'Replay System',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Full IP native, XSQUARE ecosystem'},
-  {mfr:'EVS',model:'XT4K',cat:'Replay System',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'4K HDR, NMOS IS-04/05/07'},
-  {mfr:'EVS',model:'XS-VIA',cat:'Replay System',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Scalable IP replay'},
-  {mfr:'Grass Valley',model:'K2 Dyno S',cat:'Replay System',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'GV AMPP, full IP'},
-  {mfr:'Vizrt',model:'Viz Vectar Plus',cat:'Replay System',st2110:P,nmos:P,aes67:T,ptp:T,st2022:T,tls:P,api:T,notes:'NDI native; ST 2110 via gateway'},
-  // AUDIO CONSOLES
-  {mfr:'Lawo',model:'mc²96 Grand Production',cat:'Audio Console',st2110:T,nmos:T,aes67:T,ptp:T,st2022:X,tls:T,api:T,notes:'AES67/ST 2110-30 native, RAVENNA'},
-  {mfr:'Lawo',model:'mc²56 MkIII',cat:'Audio Console',st2110:T,nmos:T,aes67:T,ptp:T,st2022:X,tls:T,api:T,notes:'Full NMOS IS-04/05/08'},
-  {mfr:'Lawo',model:'A__UHD Core',cat:'Audio Console',st2110:T,nmos:T,aes67:T,ptp:T,st2022:X,tls:T,api:T,notes:'Software-defined audio'},
-  {mfr:'Calrec',model:'Artemis / Apollo',cat:'Audio Console',st2110:T,nmos:T,aes67:T,ptp:T,st2022:X,tls:T,api:T,notes:'Hydra2 + AoIP, NMOS'},
-  {mfr:'Calrec',model:'Brio 36',cat:'Audio Console',st2110:T,nmos:T,aes67:T,ptp:T,st2022:X,tls:T,api:T,notes:'Compact broadcast, full IP'},
-  {mfr:'SSL',model:'System T S500',cat:'Audio Console',st2110:T,nmos:T,aes67:T,ptp:T,st2022:X,tls:T,api:T,notes:'Tempest engine, NMOS IS-04/05'},
-  {mfr:'SSL',model:'System T S300',cat:'Audio Console',st2110:T,nmos:T,aes67:T,ptp:T,st2022:X,tls:T,api:T,notes:'Compact, full AoIP'},
-  {mfr:'Yamaha',model:'RIVAGE PM10',cat:'Audio Console',st2110:P,nmos:P,aes67:T,ptp:T,st2022:X,tls:P,api:T,notes:'Dante/AES67; NMOS via gateway'},
-  {mfr:'DiGiCo',model:'Quantum 7 / SD12',cat:'Audio Console',st2110:P,nmos:P,aes67:T,ptp:T,st2022:X,tls:P,api:T,notes:'MADI/Dante; AES67 bridge'},
-  {mfr:'Studer',model:'Vista 1 / Vista 5',cat:'Audio Console',st2110:T,nmos:T,aes67:T,ptp:T,st2022:X,tls:T,api:T,notes:'AES67 native, NMOS support'},
-  // ROUTERS
-  {mfr:'Grass Valley',model:'GV Orbit / Densité',cat:'Router',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Full NMOS IS-04/05/07/08'},
-  {mfr:'Evertz',model:'EQX / MAGNUM',cat:'Router',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'SDVN, full IP routing'},
-  {mfr:'Ross Video',model:'Ultrix FR12',cat:'Router',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Integrated multiviewer+router'},
-  {mfr:'Imagine Communications',model:'Selenio MCP',cat:'Router',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Software-defined routing'},
-  {mfr:'Snell Advanced Media',model:'Kahuna 9600',cat:'Router',st2110:T,nmos:P,aes67:T,ptp:T,st2022:T,tls:P,api:T,notes:'Hybrid SDI/IP'},
-  // MULTIVIEWERS
-  {mfr:'Grass Valley',model:'Kaleido-IP X320',cat:'Multiviewer',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Pure IP multiviewer'},
-  {mfr:'Evertz',model:'Quartz MV / 7800MV',cat:'Multiviewer',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'ST 2110 native'},
-  {mfr:'Blackmagic Design',model:'MultiView 16',cat:'Multiviewer',st2110:X,nmos:X,aes67:X,ptp:X,st2022:X,tls:X,api:T,notes:'SDI only; use NEXUS MOSAIC'},
-  {mfr:'Ross Video',model:'Ultrix Carbonite',cat:'Multiviewer',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Integrated production'},
-  // ENCODERS/DECODERS
-  {mfr:'Haivision',model:'KB Encoder',cat:'Encoder/Decoder',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'SRT, HEVC, ST 2110'},
-  {mfr:'Harmonic',model:'VOS360 / Electra X',cat:'Encoder/Decoder',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Cloud-native, full IP'},
-  {mfr:'Ateme',model:'TITAN Live',cat:'Encoder/Decoder',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'HEVC/AVC, ST 2110'},
-  {mfr:'Blackmagic Design',model:'Web Presenter 4K',cat:'Encoder/Decoder',st2110:X,nmos:X,aes67:X,ptp:X,st2022:X,tls:X,api:T,notes:'SDI/HDMI streaming only'},
-  // MONITORS
-  {mfr:'Sony',model:'BVM-HX310 (OLED)',cat:'Monitor',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Reference OLED, full IP'},
-  {mfr:'Flanders Scientific',model:'XM310K',cat:'Monitor',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'4K HDR reference'},
-  {mfr:'Atomos',model:'Sumo 19M',cat:'Monitor',st2110:X,nmos:X,aes67:X,ptp:X,st2022:X,tls:X,api:T,notes:'HDMI/SDI only'},
-  // SIGNAL PROCESSORS
-  {mfr:'Evertz',model:'7800FR / 7700',cat:'Signal Processor',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Full IP processing'},
-  {mfr:'Grass Valley',model:'Densité 3+ FR4',cat:'Signal Processor',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'Modular IP processing'},
-  {mfr:'Imagine Communications',model:'Platinum IP3',cat:'Signal Processor',st2110:T,nmos:T,aes67:T,ptp:T,st2022:T,tls:T,api:T,notes:'ST 2110 native'},
-];
-
-function renderDevices(){
-  var q=(document.getElementById('dev-search').value||'').toLowerCase();
-  var cat=document.getElementById('dev-cat').value;
-  var rows=DEVICES.filter(function(d){
-    var match=(d.mfr+' '+d.model+' '+d.cat).toLowerCase().includes(q);
-    var catMatch=!cat||d.cat===cat;
-    return match&&catMatch;
-  });
-  document.getElementById('dev-count').textContent=rows.length+' devices';
-  var tb=document.getElementById('compat-tbody');
-  tb.innerHTML='';
-  rows.forEach(function(d){
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td class="mfr">'+d.mfr+'</td><td class="model">'+d.model+'</td>'+
-      '<td><span class="cat">'+d.cat+'</span></td>'+
-      '<td>'+d.st2110+'</td><td>'+d.nmos+'</td><td>'+d.aes67+'</td><td>'+d.ptp+'</td>'+
-      '<td>'+d.st2022+'</td><td>'+d.tls+'</td><td>'+d.api+'</td>'+
-      '<td style="color:var(--muted);font-size:10px">'+d.notes+'</td>';
-    tb.appendChild(tr);
-  });
-}
-function filterDevices(){renderDevices();}
-`);
-
-p(`
-// ── API Explorer ──────────────────────────────────────────────────────────
-var API_ENDPOINTS=[
-  {method:'WS',path:'/ws/control',title:'WebSocket Control',desc:'Real-time bidirectional control channel. Authenticate with JWT token query param.',
-   req:'ws://localhost:8080/ws/control?token=<JWT>',
-   resp:'{"type":"INIT","role":"OPERATOR","timestamp":1700000000000}',
-   msgs:'SWITCHER_CUT, SWITCHER_AUTO, SWITCHER_PVW, SWITCHER_TBAR, ROUTER_CONNECT, GET_STATE'},
-  {method:'GET',path:'/health/live',title:'Liveness Probe',desc:'Kubernetes liveness check. Returns 200 if process is alive.',
-   req:null,resp:'{"status":"alive"}'},
-  {method:'GET',path:'/health/ready',title:'Readiness Probe',desc:'Kubernetes readiness check. Returns 200 when all services are ready.',
-   req:null,resp:'{"status":"ready","timestamp":1700000000000}'},
-  {method:'GET',path:'/api/v1/switcher/state',title:'Switcher State',desc:'Current PGM/PVW sources, transition type, rate, and in-transition flag.',
-   req:null,resp:'{"pgm":1,"pvw":2,"transition":"CUT","rate":25,"inTransition":false}'},
-  {method:'POST',path:'/api/v1/switcher/cut',title:'Switcher Cut',desc:'Execute an immediate cut. Swaps PGM and PVW. Broadcasts TALLY_UPDATE to all connected operators.',
-   req:'{"pvw":3,"pgm":1}',resp:'{"success":true,"newPgm":3,"newPvw":1,"latency_ms":4}'},
-  {method:'GET',path:'/api/v1/switcher/health',title:'Switcher Health',desc:'Switcher service health status.',
-   req:null,resp:'{"status":"healthy"}'},
-  {method:'GET',path:'/api/v1/ptp/status',title:'PTP Status',desc:'Current PTP grandmaster offset, lock status, domain, and clock class.',
-   req:null,resp:'{"offset":8,"locked":true,"grandmasterId":"NEXUS-GM-01","domain":0,"clockClass":6}'},
-  {method:'GET',path:'/api/v1/router/flows',title:'Router Flows',desc:'All active ST 2110 flows in the routing matrix.',
-   req:null,resp:'[{"id":"flow-001","src":"CAM-01","dst":"PGM-BUS","type":"ST2110-20","active":true}]'},
-  {method:'GET',path:'/api/v1/multiviewer/layout',title:'Multiviewer Layout',desc:'Current mosaic layout configuration and cell assignments.',
-   req:null,resp:'{"layout":"4x4","cells":[{"index":0,"source":1,"tally":"pgm"}]}'},
-  {method:'POST',path:'/api/v1/multiviewer/layout',title:'Set MV Layout',desc:'Update mosaic layout. Broadcasts MV_UPDATE to all connected clients.',
-   req:'{"layout":"2x2","cells":[{"index":0,"source":1}]}',resp:'{"success":true}'},
-  {method:'GET',path:'/api/v1/recorder/storage',title:'Recorder Storage',desc:'Current storage utilization for the recorder service.',
-   req:null,resp:'{"usage_percent":42,"used_gb":840,"total_gb":2000}'},
-  {method:'GET',path:'/api/v1/nmos/health',title:'NMOS Health',desc:'NMOS IS-04 registry health and discovered device count.',
-   req:null,resp:'{"status":"healthy","devices":8,"registryUrl":"http://nmos-registry:3211"}'},
-  {method:'GET',path:'/metrics',title:'Prometheus Metrics',desc:'Prometheus-format metrics: WebSocket connections by role, latency histograms.',
-   req:null,resp:'nexus_ws_connections_total 4\\nnexus_ws_connections_by_role{role="OPERATOR"} 2'},
-];
-
-var activeEp=null;
-function renderApiList(){
-  var list=document.getElementById('api-list');
-  list.innerHTML='';
-  API_ENDPOINTS.forEach(function(ep,i){
-    var el=document.createElement('div');
-    el.className='api-ep'+(activeEp===i?' active':'');
-    el.innerHTML='<span class="method '+ep.method+'">'+ep.method+'</span><span class="path">'+ep.path+'</span>';
-    el.onclick=(function(idx){return function(){showApiDetail(idx);};})(i);
-    list.appendChild(el);
-  });
-}
-function showApiDetail(i){
-  activeEp=i;
-  var ep=API_ENDPOINTS[i];
-  document.querySelectorAll('.api-ep').forEach(function(e,j){e.classList.toggle('active',j===i);});
-  var d=document.getElementById('api-detail');
-  d.innerHTML='<h2><span class="method '+ep.method+'" style="margin-right:8px">'+ep.method+'</span>'+ep.path+'</h2>'+
-    '<div class="desc">'+ep.desc+(ep.msgs?'<br><b style="color:var(--text)">Messages:</b> '+ep.msgs:'')+'</div>'+
-    (ep.req?'<div class="label">Request Body</div><pre>'+ep.req+'</pre>':'')+
-    '<div class="label">Response</div><pre>'+ep.resp+'</pre>'+
-    (ep.method!=='WS'?'<button class="btn-try" onclick="tryEndpoint('+i+')">▶ Try it</button><div class="try-result" id="try-result">Ready</div>':''+
-    '<div style="color:var(--muted);font-size:11px;margin-top:8px">Connect via WebSocket client or use the live demo controls above.</div>');
-}
-function tryEndpoint(i){
-  var ep=API_ENDPOINTS[i];
-  var res=document.getElementById('try-result');
-  res.style.color='var(--yellow)';res.textContent='Fetching '+ep.path+'...';
-  // Simulate response (no real server in demo)
-  setTimeout(function(){
-    res.style.color='var(--green)';
-    res.textContent='HTTP 200 OK\n\n'+ep.resp;
-  },400+Math.random()*300);
-}
-
-// ── Pre-Deploy ────────────────────────────────────────────────────────────
-var PHASES=[
-  {title:'Phase 1 — Network Infrastructure',items:['10GbE switches configured with VLAN isolation','PTP grandmaster clock installed and locked','Multicast routing enabled on all switches','Network latency < 1ms verified end-to-end','IGMP snooping enabled on all VLANs']},
-  {title:'Phase 2 — Hardware Integration',items:['FPGA SDI bridge firmware flashed and tested','ST 2110-20 video flows verified on analyzer','ST 2110-30 audio flows verified','PTP sync < 50ns on all endpoints','NMOS IS-04 discovery confirmed for all devices']},
-  {title:'Phase 3 — Software Services',items:['Kubernetes cluster healthy (all nodes Ready)','NMOS IS-04 registry responding','Switcher service latency < 5ms','Router service routing table loaded','Recorder storage mounted and writable']},
-  {title:'Phase 4 — Monitoring & Alerting',items:['Prometheus scraping all targets','Grafana dashboards loading correctly','Alert rules tested and firing correctly','On-call rotation confirmed','PagerDuty integration tested']},
-  {title:'Phase 5 — Security & Access',items:['JWT secrets rotated for production','TLS certificates valid and installed','Network policies applied in Kubernetes','Operator credentials distributed','Audit logging enabled and shipping to SIEM']},
-];
-var checkState={};
-function renderPhases(){
-  var c=document.getElementById('phases-container');c.innerHTML='';
-  PHASES.forEach(function(ph,pi){
-    var div=document.createElement('div');div.className='phase';
-    var h=document.createElement('h3');h.textContent=ph.title;div.appendChild(h);
-    ph.items.forEach(function(item,ii){
-      var key=pi+'-'+ii,row=document.createElement('div');
-      row.className='check-item'+(checkState[key]?' done':'');
-      var cb=document.createElement('input');cb.type='checkbox';cb.checked=!!checkState[key];cb.dataset.key=key;
-      cb.onchange=function(){checkState[this.dataset.key]=this.checked;renderPhases();updateBanner();};
-      var lbl=document.createElement('label');lbl.textContent=item;
-      row.appendChild(cb);row.appendChild(lbl);div.appendChild(row);
-    });
-    c.appendChild(div);
-  });
-}
-function updateBanner(){
-  var total=0,done=0;
-  PHASES.forEach(function(ph,pi){ph.items.forEach(function(_,ii){total++;if(checkState[pi+'-'+ii])done++;});});
-  var b=document.getElementById('go-banner');
-  if(done===total){b.className='go-banner go';b.textContent='✅ GO — All '+total+' checks passed. Ready for deployment.';}
-  else{b.className='go-banner nogo';b.textContent='⛔ NO-GO — '+done+'/'+total+' checks complete';}
-}
-
-// ── WebSocket ─────────────────────────────────────────────────────────────
-function initWs(){
-  try{
-    ws=new WebSocket('ws://localhost:8080/ws/control?token='+(SESSION?SESSION.token:'demo'));
-    ws.onopen=function(){wsOk=true;setWsDot(true);};
-    ws.onclose=ws.onerror=function(){wsOk=false;setWsDot(false);};
-    ws.onmessage=function(e){
-      try{var m=JSON.parse(e.data);if(m.type==='TALLY_UPDATE'){pgm=m.pgm;pvw=m.pvw;renderBuses();renderMosaic();}}catch(ex){}
-    };
-  }catch(ex){setWsDot(false);}
-}
-function setWsDot(ok){
-  var dot=document.getElementById('sb-ws-dot'),tb=document.getElementById('tb-ws-dot');
-  var txt=ok?'WS connected':'WS offline (demo mode)';
-  [dot,tb].forEach(function(d){if(d)d.className='tbar-dot '+(ok?'g':'grey');});
-  document.getElementById('sb-ws').textContent=txt;
-  document.getElementById('tb-ws').textContent=txt;
-}
-function wsSend(m){if(ws&&wsOk)try{ws.send(JSON.stringify(m));}catch(e){}}
-
-// ── Clock ─────────────────────────────────────────────────────────────────
-function tick(){var t=new Date().toLocaleTimeString();document.getElementById('sb-clock').textContent=t;document.getElementById('tb-clock').textContent=t;}
-
-// ── Init ──────────────────────────────────────────────────────────────────
-function initApp(){
-  renderMosaic();renderBuses();renderNmos();renderPhases();updateBanner();
-  startPtp();initWs();tick();setInterval(tick,1000);
-  renderDevices();renderApiList();
-}
-
-// Allow Enter key on login
-document.getElementById('auth-pass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-document.getElementById('auth-user').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-</script></body></html>`);
-
-// ── Write file ────────────────────────────────────────────────────────────
-fs.writeFileSync(OUT, L.join('\n'), 'utf8');
-console.log('Written: ' + OUT + ' (' + L.length + ' lines, ' + fs.statSync(OUT).size + ' bytes)');
+// Write output
+fs.writeFileSync(OUT, H.join('\n'), 'utf8');
+console.log('Written:', OUT, '('+H.length+' lines,', fs.statSync(OUT).size, 'bytes)');

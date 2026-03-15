@@ -1,0 +1,41 @@
+# 1. Create the repository on GitHub
+gh repo create nexus-broadcast/nexus-v4-deployment \
+  --description "Production deployment infrastructure for NEXUS v4 broadcast platform" \
+  --public \
+  --add-readme
+
+# 2. Clone and add all files
+git clone https://github.com/nexus-broadcast/nexus-v4-deployment.git
+cd nexus-v4-deployment
+
+# 3. Create the full structure
+mkdir -p .github/workflows infrastructure/{terraform/{modules,environments,global},kubernetes/{base,overlays},ansible/{inventory,playbooks,roles},packer} backend/{api,services/{switcher,router,nmos,ptp,recorder},shared/{proto,lib}} frontend/{web,control-panel} hardware/{fpga/{sdi_bridge,ptp_core,network},ptp/{linuxptp-config,grandmaster},sdi/{gs2971-receiver,gs2972-transmitter}} monitoring/{prometheus,grafana,loki,jaeger,alerts} scripts docs/{architecture,deployment,operations,development,api} tests/{integration,e2e,performance,security}
+
+# 4. Add all the files above, then commit and push
+git add .
+git commit -m "feat: initial production deployment infrastructure
+
+- Container orchestration with Docker Compose and Kubernetes
+- CI/CD pipelines with GitHub Actions
+- Terraform infrastructure for AWS
+- Backend microservices (Node.js, Go, Rust, Python)
+- Monitoring stack (Prometheus, Grafana, Loki, Jaeger)
+- Operational scripts and documentation"
+git push origin main
+
+# 5. Enable branch protection
+gh api repos/nexus-broadcast/nexus-v4-deployment/branches/main/protection \
+  --method PUT \
+  --input - <<< '{
+    "required_status_checks": {
+      "strict": true,
+      "contexts": ["ci/tests", "ci/lint", "security-scan"]
+    },
+    "enforce_admins": true,
+    "required_pull_request_reviews": {
+      "required_approving_review_count": 2,
+      "dismiss_stale_reviews": true,
+      "require_code_owner_reviews": true
+    },
+    "restrictions": null
+  }'

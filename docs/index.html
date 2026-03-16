@@ -268,12 +268,12 @@ button,select,input{font-family:var(--font)}
   <div class="lg-wrap">
     <div class="lg-logo">
       <div class="lg-nx">NEXUS</div>
-      <div class="lg-sub">Broadcast Orchestration Platform &nbsp;Â·&nbsp; v5</div>
+      <div class="lg-sub">Broadcast Orchestration Platform &nbsp;&middot;&nbsp; v5</div>
     </div>
     <div class="lg-box">
       <div class="lg-err" id="lg-err">&#9888; AUTHENTICATION FAILED</div>
       <label class="lg-lbl">Access Code</label>
-      <input class="lg-inp" type="password" id="lg-pw" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" onkeydown="if(event.key==='Enter')doLogin()">
+      <input class="lg-inp" type="password" id="lg-pw" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" onkeydown="if(event.key==='Enter')doLogin()">
       <label class="lg-lbl">Operator Role</label>
       <select class="lg-sel" id="lg-role"><option value="ENGINEER">ENGINEER — Full System Access</option><option value="OPERATOR">OPERATOR — Production Control</option><option value="TRAINER">TRAINER — Training &amp; Guided Mode</option><option value="VIEWER">VIEWER — Monitor Only</option></select>
       <button class="lg-btn" onclick="doLogin()">AUTHENTICATE</button>
@@ -298,7 +298,7 @@ button,select,input{font-family:var(--font)}
     <div class="si"><span class="si-lbl">TC</span><span class="si-tc" id="sb-tc">10:00:00:00</span></div>
     <div class="si"><span class="si-lbl">PGM</span><span class="si-pgm" id="sb-pgm">CAM-01</span></div>
     <div class="si"><span class="si-lbl">PVW</span><span class="si-pvw" id="sb-pvw">CAM-02</span></div>
-    <div class="si"><span class="si-ptp" id="sb-ptp">PTP Â±1ns</span></div>
+    <div class="si"><span class="si-ptp" id="sb-ptp">PTP &plusmn;1ns</span></div>
     <div class="si"><span class="dot dot-off" id="ws-dot"></span><span class="si-lbl" id="ws-lbl">LOCAL</span></div>
     <div class="si" id="sb-alm" style="display:none"><span id="sb-alm-txt" style="color:var(--warn);font-size:9px"></span></div>
     <div class="si-sp"></div>
@@ -324,6 +324,7 @@ button,select,input{font-family:var(--font)}
     <div class="view" id="view-playout"></div>
     <div class="view" id="view-orchestrator"></div><div class="view" id="view-training"></div>
     <div class="view" id="view-compat"></div>
+    <div class="view" id="view-network"></div>
   </div>
 </div>
 
@@ -339,7 +340,7 @@ var VIEWS = [
   ['rundown','RUNDOWN'],['playout','PLAYOUT'],['orchestrator','ORCHESTRATE'],
   ['cloudmcr','CLOUD MCR'],['srt','SRT/CLOUD'],['scopes','SCOPES'],
   ['ptp','SYNC'],['nmos','CONNECT'],['devices','DEVICES'],['api','API'],['preflight','PRE-FLIGHT'],
-  ['training','TRAINING'],['compat','COMPATIBILITY']
+  ['training','TRAINING'],['compat','COMPATIBILITY'],['network','NETWORK']
 ];
 
 // â”€â”€â”€ SOURCES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -444,10 +445,10 @@ function canOperator(){ return ROLE==='ENGINEER'||ROLE==='OPERATOR'; }
 
 // Role-based nav visibility
 var ROLE_NAV = {
-  ENGINEER: ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','api','preflight','training','compat'],
-  OPERATOR: ['live','mosaic','switcher','router','rundown','playout','cloudmcr','srt','scopes','ptp','nmos','preflight','training','compat'],
-  TRAINER:  ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','preflight','training','compat'],
-  VIEWER:   ['live','mosaic','scopes','ptp','training','compat']
+  ENGINEER: ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','api','preflight','training','compat','network'],
+  OPERATOR: ['live','mosaic','switcher','router','rundown','playout','cloudmcr','srt','scopes','ptp','nmos','preflight','training','compat','network'],
+  TRAINER:  ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','preflight','training','compat','network'],
+  VIEWER:   ['live','mosaic','scopes','ptp','training','compat','network']
 };
 
 function showView(id) {
@@ -504,9 +505,11 @@ function _initAll() {
   _initOrchestrator();
   _initTraining();
   _initCompat();
+  _initNetwork();
   addAlarm('ok','NEXUS v5 initialized â€” all systems nominal');
   addAlarm('info','PTP locked Â±1.2ns â€” SMPTE ST 2059-2');
   addAlarm('warn','Viz Engine 2: CPU 88% â€” monitor');
+  _wsHookSwitcher();
   _wsConnect();
 }
 
@@ -679,22 +682,25 @@ function _wsSend(msg) {
 }
 
 // Override local cut/pvw/auto to also send to backend
-var _origMeCut = meCut;
-meCut = function(mi) {
-  _origMeCut(mi);
-  _wsSend({type:'SWITCHER_CUT', payload:{me:mi, pvw:SW.me[mi]?SOURCES.findIndex(function(s){return s.id===SW.me[mi].pvw;})+1:0}});
-};
-var _origMePvw = mePvw;
-mePvw = function(mi, sid) {
-  _origMePvw(mi, sid);
-  var srcIdx = SOURCES.findIndex(function(s){return s.id===sid;});
-  _wsSend({type:'SWITCHER_PVW', payload:{me:mi, source:srcIdx+1}});
-};
-var _origMeAuto = meAuto;
-meAuto = function(mi) {
-  _origMeAuto(mi);
-  _wsSend({type:'SWITCHER_AUTO', payload:{me:mi}});
-};
+// Called from _initAll() after all functions are defined
+function _wsHookSwitcher() {
+  var _origMeCut = meCut;
+  meCut = function(mi) {
+    _origMeCut(mi);
+    _wsSend({type:'SWITCHER_CUT', payload:{me:mi, pvw:SW.me[mi]?SOURCES.findIndex(function(s){return s.id===SW.me[mi].pvw;})+1:0}});
+  };
+  var _origMePvw = mePvw;
+  mePvw = function(mi, sid) {
+    _origMePvw(mi, sid);
+    var srcIdx = SOURCES.findIndex(function(s){return s.id===sid;});
+    _wsSend({type:'SWITCHER_PVW', payload:{me:mi, source:srcIdx+1}});
+  };
+  var _origMeAuto = meAuto;
+  meAuto = function(mi) {
+    _origMeAuto(mi);
+    _wsSend({type:'SWITCHER_AUTO', payload:{me:mi}});
+  };
+}
 </script>
 <script>
 // â”€â”€â”€ LIVE VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1669,7 +1675,7 @@ function _initPreflight(){
       '</div></div>'+
     '</div>';
 }
-
+</script>
 <script>
 // ─── RUNDOWN VIEW (AMPP Event Producer equivalent) ────────────────────────────
 var _RD = {
@@ -2002,16 +2008,21 @@ function orchDeploy(){
 // ─── TRAINING VIEW ────────────────────────────────────────────────────────────
 var _TR = {
   step: 0,
+  activeModule: 0,
   modules: [
     {
-      id:'intro', title:'Welcome to NEXUS v5',
+      id:'live', title:'Welcome to NEXUS v5',
       icon:'&#9654;',
       desc:'Overview of the NEXUS broadcast orchestration platform — architecture, key concepts, and navigation.',
       steps:[
-        {t:'Platform Overview', b:'NEXUS v5 is a software-defined broadcast platform. All signal routing, switching, and monitoring runs as microservices over IP (SMPTE ST 2110).'},
-        {t:'Navigation', b:'Use the top navigation bar to switch between views. Your role determines which views are accessible. ENGINEER has full access; OPERATOR has production controls; VIEWER is read-only.'},
-        {t:'Status Bar', b:'The status bar shows live timecode, PGM/PVW sources, PTP sync offset, and connection status. A pulsing red dot means you are ON AIR.'},
-        {t:'Role Privileges', b:'ENGINEER: full system access including API, devices, and orchestration. OPERATOR: production controls (switcher, router, rundown, playout). VIEWER: monitoring only. TRAINER: guided mode + all production views.'}
+        {t:'Platform Overview',
+         b:'NEXUS v5 is a software-defined broadcast platform. All signal routing, switching, and monitoring runs as microservices over IP using SMPTE ST 2110. There is no dedicated SDI hardware — every signal path is a network flow.\n\nKey components: Virtual Switcher (ME banks), IP Router (256×256 crosspoint), Multiviewer, SRT gateway, NMOS registry, PTP grandmaster, and cloud playout channels.'},
+        {t:'Navigation Bar',
+         b:'The top navigation bar shows only the views your role is permitted to access.\n\n• ENGINEER — all views including API, Devices, Orchestrator\n• OPERATOR — production views: Switcher, Router, Rundown, Playout, SRT, Scopes\n• TRAINER — all production views plus Training and Compatibility\n• VIEWER — read-only: Live, Mosaic, Scopes, Sync, Training, Compatibility, Network\n\nUse SWITCH USER (top-right) to change role at any time. Demo code: nexus2024'},
+        {t:'Status Bar',
+         b:'The status bar at the top of every view shows:\n\n• TC — live timecode running at 25fps (or synced from backend)\n• PGM / PVW — current Program and Preview sources on ME1\n• PTP offset — live nanosecond offset from grandmaster. Green = locked (<2ns), Yellow = warning (2–5ns), Red = out of spec\n• LOCAL / LIVE — WebSocket connection status. LIVE means the backend state engine is connected\n• ON AIR — pulsing red dot indicates the system is in live transmission'},
+        {t:'Role Privileges & Access Control',
+         b:'Every interactive action in NEXUS is guarded by role checks:\n\n• canOp() — required for switcher cuts, router crosspoints, rundown control, playout spin-up\n• canEngineer() — required for network config, API access, orchestrator deploy, device management\n\nIf you attempt a restricted action, a red ACCESS DENIED toast appears at the bottom-right with the required role. Switch roles using the SWITCH USER button in the top-right corner.'}
       ]
     },
     {
@@ -2019,10 +2030,14 @@ var _TR = {
       icon:'&#9670;',
       desc:'Learn to operate the ME banks, execute cuts and auto-transitions, and manage preview/program.',
       steps:[
-        {t:'ME Banks', b:'Each Mix/Effects (ME) bank has a PROGRAM bus (on-air) and PREVIEW bus. Click a source on PREVIEW to select it, then CUT or AUTO TRANS to take it to air.'},
-        {t:'CUT vs AUTO', b:'CUT is an instant switch. AUTO TRANS performs a timed mix/wipe/dip at the rate set in the dropdown (10f, 25f, 50f, 100f). The transition bar shows progress.'},
-        {t:'Tally System', b:'The TALLY tab shows all sources with their on-air status. Red = PGM (on air), Green = PVW (preview), Grey = idle. Click a tally cell to set that source to preview.'},
-        {t:'Macros', b:'The MACROS tab contains pre-built production sequences: OPEN SHOW, COMMERCIAL BREAK, REPLAY, REMOTE GUEST, CLOSE SHOW, EMERGENCY CUT. Click EXECUTE to run.'}
+        {t:'ME Banks — Program & Preview',
+         b:'NEXUS has 3 Mix/Effects (ME) banks. Each bank has:\n\n• PROGRAM bus — the source currently on-air (red)\n• PREVIEW bus — the source queued for next take (green)\n\nTo select a preview source: click any source button in the PREVIEW row. The source turns green. To take it to air: press CUT (instant) or AUTO TRANS (timed).\n\nNote: clicking a source in the PROGRAM row has no effect — you cannot accidentally change the on-air source.'},
+        {t:'CUT vs AUTO TRANS',
+         b:'CUT — instant frame-accurate switch. Program and Preview swap immediately. Use for hard cuts between cameras.\n\nAUTO TRANS — timed transition at the selected rate:\n• 10f = fast mix (~0.4s at 25fps)\n• 25f = 1 second mix\n• 50f = 2 second mix\n• 100f = 4 second mix\n\nTransition type (MIX / CUT / WIPE / DIP) is set per ME bank. The progress bar shows transition progress. The AUTO button shows RUNNING… during the transition.'},
+        {t:'Tally System',
+         b:'The TALLY tab shows all 24 sources with their live status:\n\n• Red (PGM) — source is on-air on ME1\n• Green (PVW) — source is in preview on ME1\n• Grey (IDLE) — source is not selected\n\nClick any tally cell to set that source to preview on ME1. This is a quick way to queue sources without going to the ME bank row.\n\nTally data is also sent to physical tally lights via the WebSocket backend when connected.'},
+        {t:'Macros',
+         b:'The MACROS tab contains pre-built production sequences. Each macro executes a series of switcher, router, and alarm actions:\n\n• OPEN SHOW — takes CAM-01 to PGM, GFX-01 to PVW, fires opening alarm\n• COMMERCIAL BREAK — routes to break slate, mutes audio\n• REPLAY — takes VTR-01 to PGM via auto-trans\n• REMOTE GUEST — routes REM-01 to PVW, fires SRT check\n• CLOSE SHOW — end card sequence\n• EMERGENCY CUT — instant cut to black (TST-02)\n\nMacros require OPERATOR role or higher.'}
       ]
     },
     {
@@ -2030,10 +2045,14 @@ var _TR = {
       icon:'&#9654;&#9654;',
       desc:'Understand the 256×256 IP router, crosspoint management, and multi-level routing.',
       steps:[
-        {t:'Crosspoint Matrix', b:'The router view shows a destination × source matrix. A filled circle (●) indicates the active crosspoint. Click any cell to route that source to that destination.'},
-        {t:'Multi-Level Routing', b:'Use the level buttons (VIDEO, AUDIO L/R, ANC, METADATA) to switch between signal levels. Each level can have independent routing.'},
-        {t:'Salvo Execution', b:'A salvo is a batch of crosspoint changes executed simultaneously. Build your routes then click EXECUTE SALVO to apply all at once — critical for live production.'},
-        {t:'Lock Destination', b:'LOCK DEST prevents accidental re-routing of a destination. Use this to protect critical outputs like PGM-A during live transmission.'}
+        {t:'Crosspoint Matrix',
+         b:'The ROUTER view shows a destination × source matrix. Each row is a destination (PGM-A, MON-1, REC-1, etc.), each column is a source (CAM-01, GFX-01, etc.).\n\nA filled circle (●) in a cell means that source is currently routed to that destination. Click any empty cell to route that source to that destination — the crosspoint updates instantly and an alarm is logged.\n\nThe router operates at the IP level — each crosspoint change is an IGMP join/leave on the destination interface.'},
+        {t:'Multi-Level Routing',
+         b:'Use the level selector tabs (VIDEO / AUDIO L / AUDIO R / ANC / METADATA) to switch between signal levels. Each level has its own independent crosspoint matrix.\n\nThis allows, for example:\n• Video from CAM-01 routed to MON-1\n• Audio from a different source routed to the same MON-1\n• ANC (ancillary data, e.g. closed captions) from yet another source\n\nThis is standard practice in IP broadcast — video and audio are decoupled flows.'},
+        {t:'Salvo Execution',
+         b:'A salvo is a batch of crosspoint changes executed simultaneously in a single atomic operation. This is critical for live production — you never want partial routing states.\n\nTo use salvos:\n1. Select multiple crosspoints (they highlight in preview state)\n2. Click EXECUTE SALVO to apply all changes at once\n\nSalvos are used for show transitions, commercial breaks, and emergency reroutes where multiple destinations must change at the same frame.'},
+        {t:'Lock & Protect Destinations',
+         b:'LOCK DEST prevents accidental re-routing of a critical destination. When locked:\n• The destination row is highlighted\n• Click attempts show a warning\n• Only ENGINEER role can unlock\n\nAlways lock PGM-A and PGM-B during live transmission. Lock REC-1 and REC-2 during recording to prevent accidental source changes that would corrupt the recording.'}
       ]
     },
     {
@@ -2041,10 +2060,14 @@ var _TR = {
       icon:'&#9776;',
       desc:'Manage production cue lists, show timing, and live execution with the Rundown view.',
       steps:[
-        {t:'Cue List', b:'The rundown shows all production cues in order. The current cue is highlighted red (on-air), the next cue is highlighted green. Click any cue to jump to it.'},
-        {t:'GO / HOLD / SKIP', b:'GO starts the rundown clock. HOLD pauses auto-advance. SKIP moves to the next cue immediately. TAKE executes a switcher cut to the current cue\'s source.'},
-        {t:'Show Clock', b:'The show clock tracks total elapsed time. Each cue has an elapsed and remaining timer. When remaining hits 0, the rundown auto-advances to the next cue.'},
-        {t:'Adding Cues', b:'Use the ADD CUE form to insert new cues: select type (LIVE/PKG/GFX/BREAK), enter a label, choose a source, and set duration in seconds.'}
+        {t:'Cue List Structure',
+         b:'The rundown is an ordered list of production cues. Each cue has:\n\n• ID — sequential number\n• Type — LIVE (camera), PKG (pre-recorded package), GFX (graphics), BREAK\n• Label — descriptive name\n• Source — the signal source to take to air\n• Duration — planned duration in seconds\n• Status — done / live / ready\n\nThe current on-air cue is highlighted red. The next cue is highlighted green. Click any cue to jump to it (requires OPERATOR role).'},
+        {t:'GO / HOLD / SKIP / TAKE',
+         b:'• GO — starts the rundown clock and enables auto-advance. The show clock begins counting.\n• HOLD — pauses auto-advance. The current cue stays on-air indefinitely until you press GO again. Use this when a segment runs long.\n• SKIP — immediately advances to the next cue without waiting for the timer. Use when a segment ends early.\n• TAKE — executes a switcher CUT on ME1 to the current cue\'s source. This is the manual "go to air" button.\n\nAll actions require OPERATOR role or higher.'},
+        {t:'Show Clock & Timers',
+         b:'Three timers run simultaneously:\n\n• SHOW CLOCK (top-right) — total elapsed time since GO was pressed. Counts up continuously.\n• ELAPSED — time elapsed in the current cue. Counts up from 0.\n• REMAINING — time left in the current cue. Counts down to 0, then auto-advances.\n\nWhen REMAINING hits 0 and the rundown is in GO state, it automatically advances to the next cue and fires a TAKE. If you want to prevent this, press HOLD before the timer expires.'},
+        {t:'Adding & Managing Cues',
+         b:'Use the ADD CUE form at the bottom to insert new cues:\n\n1. Select type: LIVE / PKG / GFX / BREAK\n2. Enter a label (e.g. "INTERVIEW — GUEST 2")\n3. Choose a source from the dropdown\n4. Set duration in seconds\n5. Click + ADD\n\nNew cues are appended to the end of the list. Click any cue row to jump to it. The rundown is live-editable — you can add cues mid-show without interrupting the current on-air cue.'}
       ]
     },
     {
@@ -2052,10 +2075,44 @@ var _TR = {
       icon:'&#9201;',
       desc:'Understand SMPTE ST 2059-2 PTP synchronisation, the clock hierarchy, and monitoring.',
       steps:[
-        {t:'Why PTP?', b:'All IP media (ST 2110) requires sub-microsecond synchronisation. PTP (IEEE 1588) provides this. NEXUS uses SMPTE ST 2059-2 profile on domain 127.'},
-        {t:'Clock Hierarchy', b:'A GPS-locked GrandMaster distributes time to all devices. The SYNC view shows the hierarchy and each device\'s lock status and offset.'},
-        {t:'Offset Monitoring', b:'The status bar shows live PTP offset in nanoseconds. Green = locked (< 2ns). Yellow = warning (2–5ns). Red = out of spec (> 5ns).'},
-        {t:'Troubleshooting', b:'If PTP unlocks: check network switch PTP support (boundary clock mode), verify domain numbers match, and ensure no firewall blocks UDP 319/320.'}
+        {t:'Why PTP is Critical',
+         b:'All IP media flows in SMPTE ST 2110 carry RTP timestamps. For seamless switching and mixing, every device must share the same clock reference — otherwise frames arrive at different times and you get glitches, tears, or audio/video sync errors.\n\nPTP (IEEE 1588 Precision Time Protocol) distributes a common clock across the network with sub-microsecond accuracy. NEXUS uses the SMPTE ST 2059-2 profile, which maps PTP to broadcast frame rates (25fps, 29.97fps, etc.).'},
+        {t:'Clock Hierarchy',
+         b:'The PTP hierarchy in NEXUS:\n\n1. GPS-GNSS GrandMaster (Stratum 1) — locked to GPS, provides UTC reference\n2. Boundary Clocks — network switches running PTP boundary clock mode (required — transparent clock mode is not sufficient for ST 2110)\n3. Slave Clocks — all devices (NEXUS Core, SDI bridges, EVS, Viz, etc.) sync to the boundary clocks\n\nDomain: 127 (SMPTE standard). All devices must be on the same domain or they will not sync.'},
+        {t:'Reading the PTP Status',
+         b:'The SYNC view shows:\n\n• Lock status — LOCKED (green) or UNLOCKED (red)\n• Offset — nanoseconds from grandmaster. Target: <100ns. Warning: >2000ns. Critical: >5000ns\n• Path Delay — one-way network delay to grandmaster. Should be stable and low (<1ms)\n• Frequency Adjustment (ppb) — how much the local oscillator is being corrected. Large values indicate clock instability\n• Lock Duration — how long the device has been continuously locked\n\nThe status bar shows live offset. Green = good, Yellow = marginal, Red = out of spec.'},
+        {t:'Troubleshooting PTP',
+         b:'Common PTP issues and fixes:\n\n• PTP not locking — verify network switches are in boundary clock mode (not transparent). Check domain number matches on all devices (must be 127).\n• Large offset — check for asymmetric network paths. Ensure PTP traffic is on a dedicated VLAN with QoS priority.\n• Firewall blocking — PTP uses UDP ports 319 (event) and 320 (general). Both must be open on all VLANs.\n• Multiple grandmasters — only one device should be grandmaster. Check BMCA (Best Master Clock Algorithm) priority settings.\n• After fixing: allow 30–60 seconds for all devices to re-lock.'}
+      ]
+    },
+    {
+      id:'network', title:'Networking & Protocols',
+      icon:'&#9741;',
+      desc:'UDP, TCP, multicast, unicast, DHCP, static IP — how NEXUS connects everything together.',
+      steps:[
+        {t:'UDP vs TCP in Broadcast',
+         b:'NEXUS uses both transport protocols for different purposes:\n\nUDP (User Datagram Protocol) — used for all media flows:\n• ST 2110-20 video: RTP/UDP multicast, ~1.5 Gbps per 1080i50 stream\n• ST 2110-30 audio: RTP/UDP multicast, ~10 Mbps per 8-channel stream\n• ST 2110-40 ancillary: RTP/UDP multicast\n• PTP sync: UDP ports 319 and 320\n• SRT: UDP with ARQ retransmission (reliable UDP)\n\nUDP has no retransmission — lost packets mean dropped frames. This is acceptable for live media where latency matters more than reliability.'},
+        {t:'TCP for Control Plane',
+         b:'TCP (Transmission Control Protocol) — used for all control and management:\n\n• REST API: HTTP/TCP port 8080\n• WebSocket: WS/TCP port 8080 (same server, upgraded connection)\n• NMOS IS-04 registry: HTTP/TCP\n• NMOS IS-05 connection management: HTTP/TCP\n• Ember+ control: TCP port 9000\n• TLS 1.3 is used on all external-facing TCP connections\n\nTCP guarantees delivery and ordering — essential for control commands where a lost packet could leave the system in an inconsistent state.'},
+        {t:'Multicast vs Unicast',
+         b:'Multicast — one sender, many receivers. Used for all ST 2110 media:\n• Each source has a multicast group address (e.g. 239.0.0.1 for CAM-01)\n• Receivers join the group via IGMP (Internet Group Management Protocol)\n• IGMP v3 with source-specific multicast (SSM) is recommended — receivers specify both the group AND the source IP, preventing multicast flooding\n• Requires PIM-SM or PIM-SSM on routers, and IGMP snooping on switches\n\nUnicast — one sender, one receiver. Used for SRT streams, control connections, and point-to-point monitoring feeds.'},
+        {t:'Static IP vs DHCP',
+         b:'Media interfaces (eth0, eth1) — ALWAYS use static IP:\n• Multicast routing depends on stable source IPs\n• PTP path delay calculations assume stable addresses\n• IGMP group memberships are tied to interface IPs\n• Recommended: 192.168.10.x/24 for Media A, 192.168.11.x/24 for Media B\n\nControl interface (eth2) — DHCP is acceptable:\n• NMOS, REST API, WebSocket, Ember+ all use DNS/mDNS for discovery\n• DHCP lease should be long (24h+) to avoid disruption\n\nWAN/SRT interface (eth3) — static IP required for inbound SRT connections (remote encoders need a fixed target address).'}
+      ]
+    },
+    {
+      id:'compat', title:'Equipment Compatibility',
+      icon:'&#9654;&#9646;',
+      desc:'How NEXUS integrates with Sony, GV, EVS, Riedel, Lawo, Calrec, Blackmagic, and more.',
+      steps:[
+        {t:'Native ST 2110 Devices',
+         b:'These devices connect directly to NEXUS with no gateway required:\n\n• Sony XVS-9000 / PWS-4500 — full ST 2110, NMOS IS-04/05/07/08, PTP\n• GV Korona / Karrera X — ST 2110, NMOS, Ember+ control\n• Lawo mc² / VSM — ST 2110-30/31 audio, full NMOS, Ember+\n• EVS XT-VIA — ST 2110 I/O, SRT ingest, Ember+ control\n• Vizrt Viz Engine — ST 2110 output, NMOS, Ember+\n• Ross Video Carbonite / Ultrix — ST 2110, NMOS, Ember+\n• Evertz MAGNUM — full IP routing, NMOS, Ember+\n\nFor these devices: connect to the media VLAN, configure PTP domain 127, register with NMOS IS-04 registry at the NEXUS IP.'},
+        {t:'Gateway-Required Devices',
+         b:'These devices need a bridge or adapter:\n\n• Blackmagic ATEM — use the NEXUS ATEM microservice (Go service). Bridges ATEM protocol to NEXUS WebSocket/REST. SDI I/O via ATEM, IP control via NEXUS.\n• Dante (Yamaha, Behringer, Audinate) — requires Dante-to-AES67 bridge. AES67 is then bridged to ST 2110-30. Use Audinate AVIO or Focusrite RedNet for the conversion.\n• Legacy SDI cameras — use the FPGA SDI bridge (sdi_to_st2110.vhd). Converts 3G/HD/SD-SDI to ST 2110-20 RTP streams.\n\nGateway devices appear as normal NEXUS sources once bridged.'},
+        {t:'Riedel & Intercom Integration',
+         b:'Riedel MediorNet — ST 2110 native transport. Connect to media VLAN, configure NMOS IS-04 registration. MediorNet nodes appear as senders/receivers in the NMOS registry.\n\nRiedel Artist / Bolero — intercom control via Ember+. The NEXUS Ember+ gateway service connects to Artist on TCP port 9000. Tally and UMD (under-monitor display) data flows from NEXUS switcher state to Artist panels via Ember+ parameter tree.\n\nCalrec Artemis / Brio — ST 2110-30 audio native, NMOS IS-08 audio channel mapping. Connect audio outputs as ST 2110-30 senders, use IS-08 to map channels to NEXUS audio router destinations.'},
+        {t:'Multiviewer Integration',
+         b:'Any ST 2110-capable multiviewer (Imagine Communications, Axon, TSL, Evertz) connects directly:\n\n1. Configure multiviewer inputs as NMOS IS-05 receivers\n2. NEXUS NMOS registry auto-discovers the multiviewer\n3. Use IS-05 connection management to route sources to multiviewer inputs\n4. Tally data flows via NMOS IS-07 events — multiviewer borders change colour based on PGM/PVW state\n\nFor non-NMOS multiviewers: use the IP router to route ST 2110 sources to dedicated multiviewer input addresses. Configure static crosspoints for monitoring feeds.'}
       ]
     }
   ]
@@ -2065,24 +2122,23 @@ function _initTraining(){
   var v=document.getElementById('view-training');
   v.innerHTML=
     '<div style="display:flex;gap:0;height:100%;overflow:hidden">'+
-      // Sidebar
-      '<div style="width:240px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto">'+
-        '<div style="padding:14px 16px;border-bottom:1px solid var(--b1)">'+
-          '<div style="font-size:9px;letter-spacing:2px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">Training Mode</div>'+
-          '<div style="font-size:14px;font-weight:700;color:var(--acc)">NEXUS Academy</div>'+
+      '<div style="width:260px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto">'+
+        '<div style="padding:16px 18px;border-bottom:1px solid var(--b1);flex-shrink:0">'+
+          '<div style="font-size:8px;letter-spacing:2.5px;color:var(--t3);text-transform:uppercase;margin-bottom:5px">Training Mode</div>'+
+          '<div style="font-size:16px;font-weight:700;color:var(--acc);letter-spacing:2px">NEXUS ACADEMY</div>'+
+          '<div style="font-size:9px;color:var(--t3);margin-top:3px">'+_TR.modules.length+' modules &middot; step-by-step</div>'+
         '</div>'+
-        '<div id="tr-module-list" style="padding:8px"></div>'+
-        '<div style="margin-top:auto;padding:12px;border-top:1px solid var(--b1)">'+
-          '<div style="font-size:8px;color:var(--t3);margin-bottom:6px;letter-spacing:1px">PROGRESS</div>'+
-          '<div style="height:4px;background:var(--b1);border-radius:2px;overflow:hidden">'+
-            '<div id="tr-progress-bar" style="height:100%;background:var(--acc);border-radius:2px;width:0%;transition:width .3s"></div>'+
+        '<div id="tr-module-list" style="padding:8px;flex:1"></div>'+
+        '<div style="padding:14px;border-top:1px solid var(--b1);flex-shrink:0">'+
+          '<div style="font-size:8px;color:var(--t3);margin-bottom:7px;letter-spacing:1px;text-transform:uppercase">Progress</div>'+
+          '<div style="height:5px;background:var(--b1);border-radius:3px;overflow:hidden;margin-bottom:6px">'+
+            '<div id="tr-progress-bar" style="height:100%;background:var(--acc);border-radius:3px;width:0%;transition:width .4s"></div>'+
           '</div>'+
-          '<div id="tr-progress-txt" style="font-size:9px;color:var(--t2);margin-top:5px">0 / '+_TR.modules.length+' modules</div>'+
+          '<div id="tr-progress-txt" style="font-size:10px;color:var(--t2)">0 / '+_TR.modules.length+' modules complete</div>'+
         '</div>'+
       '</div>'+
-      // Main content
-      '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">'+
-        '<div id="tr-content" style="flex:1;overflow-y:auto;padding:24px"></div>'+
+      '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)">'+
+        '<div id="tr-content" style="flex:1;overflow-y:auto;padding:28px 32px"></div>'+
       '</div>'+
     '</div>';
   _trRenderModuleList();
@@ -2093,15 +2149,17 @@ function _trRenderModuleList(){
   var el=document.getElementById('tr-module-list'); if(!el) return;
   el.innerHTML=_TR.modules.map(function(m,i){
     var active=i===_TR.activeModule;
-    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:4px;cursor:pointer;margin-bottom:2px;'+
+    var done=_trDone[i];
+    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 11px;border-radius:5px;cursor:pointer;margin-bottom:3px;'+
       'background:'+(active?'rgba(0,212,255,.1)':'transparent')+';'+
-      'border:1px solid '+(active?'var(--acc)':'transparent')+';" '+
+      'border:1px solid '+(active?'rgba(0,212,255,.3)':'transparent')+';" '+
       'onclick="_trShowModule('+i+')" id="tr-mod-'+i+'">'+
-      '<span style="font-size:14px">'+m.icon+'</span>'+
+      '<span style="font-size:18px;flex-shrink:0;margin-top:1px">'+m.icon+'</span>'+
       '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:10px;font-weight:700;color:'+(active?'var(--acc)':'var(--t1)')+'">'+m.title+'</div>'+
+        '<div style="font-size:11px;font-weight:700;color:'+(active?'var(--acc)':done?'var(--ok)':'var(--t1)')+'">'+m.title+'</div>'+
+        '<div style="font-size:9px;color:var(--t3);margin-top:2px;line-height:1.4">'+m.steps.length+' steps</div>'+
       '</div>'+
-      '<span id="tr-mod-done-'+i+'" style="font-size:10px;color:var(--ok);display:none">&#10003;</span>'+
+      '<span id="tr-mod-done-'+i+'" style="font-size:14px;color:var(--ok);flex-shrink:0;'+(done?'':'display:none')+'">&#10003;</span>'+
     '</div>';
   }).join('');
 }
@@ -2120,53 +2178,95 @@ function _trRenderStep(){
   var isLast=_TR.step>=m.steps.length-1;
   var el=document.getElementById('tr-content'); if(!el) return;
 
+  // Convert newlines in body text to HTML paragraphs
+  function _fmt(txt){
+    return txt.split('\n\n').map(function(para){
+      // Convert bullet lines (starting with •) into styled list items
+      var lines=para.split('\n');
+      var hasBullets=lines.some(function(l){return l.trim().charAt(0)==='•';});
+      if(hasBullets){
+        return '<div style="margin-bottom:10px">'+lines.map(function(l){
+          if(l.trim().charAt(0)==='•'){
+            return '<div style="display:flex;gap:8px;margin-bottom:5px">'+
+              '<span style="color:var(--acc);flex-shrink:0;margin-top:1px">•</span>'+
+              '<span>'+l.trim().substring(1).trim()+'</span>'+
+            '</div>';
+          }
+          return '<div style="margin-bottom:4px">'+l+'</div>';
+        }).join('')+'</div>';
+      }
+      return '<p style="margin:0 0 12px 0">'+para+'</p>';
+    }).join('');
+  }
+
   // Role-specific notice
   var roleNotice='';
   if(ROLE==='VIEWER'){
-    roleNotice='<div style="padding:10px 14px;background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.2);border-radius:4px;margin-bottom:16px;font-size:10px;color:var(--warn)">'+
-      '&#9888; You are logged in as VIEWER. Training content is available but interactive controls require OPERATOR or ENGINEER access. Use SWITCH USER to change role.</div>';
+    roleNotice='<div style="padding:12px 16px;background:rgba(255,170,0,.07);border:1px solid rgba(255,170,0,.25);border-left:3px solid var(--warn);border-radius:4px;margin-bottom:20px;font-size:11px;color:var(--warn)">'+
+      '<strong>&#9888; VIEWER MODE</strong> — Training content is fully accessible. Interactive controls (switcher, router, rundown) require OPERATOR or ENGINEER role. Use SWITCH USER to change role.</div>';
   }
 
+  // View link — map module id to actual view id
+  var viewMap={live:'live',switcher:'switcher',router:'router',rundown:'rundown',ptp:'ptp',network:'network',compat:'compat'};
+  var targetView=viewMap[m.id]||m.id;
+  var allowed=ROLE_NAV[ROLE]||ROLE_NAV.VIEWER;
+  var canAccess=allowed.indexOf(targetView)>=0;
+
   el.innerHTML=
-    '<div style="max-width:720px">'+
+    '<div style="max-width:760px">'+
       // Module header
-      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">'+
-        '<div style="font-size:32px">'+m.icon+'</div>'+
+      '<div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--b1)">'+
+        '<div style="font-size:36px;flex-shrink:0;line-height:1">'+m.icon+'</div>'+
         '<div>'+
-          '<div style="font-size:20px;font-weight:700;color:var(--acc)">'+m.title+'</div>'+
-          '<div style="font-size:10px;color:var(--t3);margin-top:3px">'+m.desc+'</div>'+
+          '<div style="font-size:22px;font-weight:700;color:var(--acc);letter-spacing:1px">'+m.title+'</div>'+
+          '<div style="font-size:12px;color:var(--t3);margin-top:5px;line-height:1.5">'+m.desc+'</div>'+
+        '</div>'+
+        '<div style="margin-left:auto;flex-shrink:0;text-align:right">'+
+          '<div style="font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Module</div>'+
+          '<div style="font-size:11px;color:var(--t2)">'+(_TR.activeModule+1)+' / '+_TR.modules.length+'</div>'+
         '</div>'+
       '</div>'+
       roleNotice+
-      // Step progress dots
-      '<div style="display:flex;gap:6px;margin-bottom:20px">'+
-        m.steps.map(function(_,i){
+      // Step progress
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">'+
+        m.steps.map(function(s,i){
           var done=i<_TR.step, cur=i===_TR.step;
-          return '<div style="width:8px;height:8px;border-radius:50%;background:'+(done?'var(--ok)':cur?'var(--acc)':'var(--b2)')+';transition:background .2s"></div>';
+          return '<div style="display:flex;align-items:center;gap:6px;cursor:pointer" onclick="_trJump('+i+')">'+
+            '<div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:all .2s;'+
+              'background:'+(done?'var(--ok)':cur?'var(--acc)':'var(--b2)')+';'+
+              (cur?'box-shadow:0 0 8px var(--acc)':'')+
+            '"></div>'+
+            (i<m.steps.length-1?'<div style="width:20px;height:1px;background:'+(done?'var(--ok)':'var(--b2)')+'"></div>':'')+
+          '</div>';
         }).join('')+
+        '<span style="font-size:9px;color:var(--t3);margin-left:8px;letter-spacing:1px">STEP '+(_TR.step+1)+' OF '+m.steps.length+'</span>'+
       '</div>'+
       // Step card
-      '<div style="background:var(--bg3);border:1px solid var(--b1);border-top:2px solid var(--acc);border-radius:6px;padding:24px;margin-bottom:16px">'+
-        '<div style="font-size:8px;letter-spacing:2px;color:var(--t3);text-transform:uppercase;margin-bottom:8px">Step '+((_TR.step+1))+' of '+m.steps.length+'</div>'+
-        '<div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:12px">'+step.t+'</div>'+
-        '<div style="font-size:13px;color:var(--t2);line-height:1.7">'+step.b+'</div>'+
+      '<div style="background:var(--bg3);border:1px solid var(--b1);border-top:3px solid var(--acc);border-radius:6px;padding:28px;margin-bottom:20px">'+
+        '<div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:16px;letter-spacing:.5px">'+step.t+'</div>'+
+        '<div style="font-size:13px;color:var(--t2);line-height:1.8">'+_fmt(step.b)+'</div>'+
       '</div>'+
       // Navigation
-      '<div style="display:flex;gap:8px;align-items:center">'+
-        (_TR.step>0?'<button class="btn" onclick="_trPrev()">&#8592; PREV</button>':'')+
-        '<div style="flex:1"></div>'+
+      '<div style="display:flex;gap:10px;align-items:center;margin-bottom:20px">'+
+        (_TR.step>0?'<button class="btn btn-lg" onclick="_trPrev()">&#8592; PREV</button>':
+          '<button class="btn btn-lg" style="opacity:.3;cursor:default">&#8592; PREV</button>')+
+        '<div style="flex:1;text-align:center;font-size:9px;color:var(--t3);letter-spacing:1px">'+
+          (_trDone[_TR.activeModule]?'<span style="color:var(--ok)">&#10003; MODULE COMPLETE</span>':'CLICK STEPS TO NAVIGATE')+
+        '</div>'+
         (!isLast?
           '<button class="btn btn-acc btn-lg" onclick="_trNext()">NEXT &#8594;</button>':
           '<button class="btn btn-pvw btn-lg" onclick="_trComplete()">&#10003; COMPLETE MODULE</button>'
         )+
       '</div>'+
-      // Quick-link to relevant view
-      '<div style="margin-top:20px;padding:12px;background:var(--bg2);border:1px solid var(--b1);border-radius:4px;display:flex;align-items:center;gap:10px">'+
-        '<span style="font-size:9px;color:var(--t3);letter-spacing:1px">PRACTICE IN:</span>'+
-        '<button class="btn btn-sm btn-acc" onclick="showView(\''+m.id+'\')" style="'+(ROLE_NAV[ROLE]&&ROLE_NAV[ROLE].indexOf(m.id)<0?'opacity:.4;cursor:not-allowed':'')+'">'+
-          'OPEN '+m.title.toUpperCase()+' VIEW</button>'+
-        (ROLE_NAV[ROLE]&&ROLE_NAV[ROLE].indexOf(m.id)<0?
-          '<span style="font-size:9px;color:var(--warn)">&#9888; Not available for your role</span>':'')+ 
+      // Practice link
+      '<div style="padding:14px 16px;background:var(--bg2);border:1px solid var(--b1);border-radius:5px;display:flex;align-items:center;gap:12px">'+
+        '<div style="flex:1">'+
+          '<div style="font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Practice in the live view</div>'+
+          '<div style="font-size:11px;color:var(--t2)">Open the '+m.title+' view to try what you just learned</div>'+
+        '</div>'+
+        '<button class="btn btn-acc" onclick="showView(\''+targetView+'\')" '+(canAccess?'':'style="opacity:.4;cursor:not-allowed" disabled')+'>'+
+          'OPEN VIEW &#8594;</button>'+
+        (!canAccess?'<span style="font-size:9px;color:var(--warn)">&#9888; Requires higher role</span>':'')+
       '</div>'+
     '</div>';
 }
@@ -2178,18 +2278,20 @@ function _trNext(){
 function _trPrev(){
   if(_TR.step>0){ _TR.step--; _trRenderStep(); }
 }
+function _trJump(i){
+  _TR.step=i; _trRenderStep();
+}
 function _trComplete(){
   _trDone[_TR.activeModule]=true;
-  var el=document.getElementById('tr-mod-done-'+_TR.activeModule);
-  if(el) el.style.display='inline';
   var done=Object.keys(_trDone).length;
   var bar=document.getElementById('tr-progress-bar');
   var txt=document.getElementById('tr-progress-txt');
   if(bar) bar.style.width=Math.round(done/_TR.modules.length*100)+'%';
-  if(txt) txt.textContent=done+' / '+_TR.modules.length+' modules';
+  if(txt) txt.textContent=done+' / '+_TR.modules.length+' modules complete';
   addAlarm('ok','Training module complete: '+_TR.modules[_TR.activeModule].title);
-  // Auto-advance to next module
+  _trRenderModuleList();
   if(_TR.activeModule<_TR.modules.length-1) _trShowModule(_TR.activeModule+1);
+  else _trRenderStep(); // re-render to show complete state on last module
 }
 </script>
 <script>
@@ -2321,6 +2423,257 @@ function _compatCard(title,status,desc,sev){
 }
 </script>
 <script>
+// ─── NETWORK VIEW ─────────────────────────────────────────────────────────────
+// Covers: UDP/TCP/Multicast/Unicast, Dynamic (DHCP/IGMP) and Manual config,
+// interface status, VLAN, bandwidth, and connectivity diagnostics.
+function _initNetwork(){
+  var v=document.getElementById('view-network'); if(!v) return;
+
+  var INTERFACES=[
+    {name:'eth0',label:'Media A',ip:'192.168.10.10',mask:'255.255.255.0',gw:'192.168.10.1',
+     vlan:110,speed:'10 Gbps',mode:'STATIC',mcast:'IGMP v3',status:'ok',rx:'4.2 Gbps',tx:'1.8 Gbps'},
+    {name:'eth1',label:'Media B',ip:'192.168.11.10',mask:'255.255.255.0',gw:'192.168.11.1',
+     vlan:111,speed:'10 Gbps',mode:'STATIC',mcast:'IGMP v3',status:'ok',rx:'3.1 Gbps',tx:'1.2 Gbps'},
+    {name:'eth2',label:'Control',ip:'10.0.0.10',mask:'255.255.0.0',gw:'10.0.0.1',
+     vlan:100,speed:'1 Gbps',mode:'DHCP',mcast:'IGMP v2',status:'ok',rx:'120 Mbps',tx:'45 Mbps'},
+    {name:'eth3',label:'SRT/WAN',ip:'203.0.113.10',mask:'255.255.255.248',gw:'203.0.113.1',
+     vlan:200,speed:'1 Gbps',mode:'STATIC',mcast:'UNICAST',status:'warn',rx:'42 Mbps',tx:'65 Mbps'}
+  ];
+
+  var MCAST_GROUPS=[
+    {group:'239.0.0.1',port:'5004',proto:'UDP',type:'ST 2110-20',src:'CAM-01',iface:'eth0',status:'ok'},
+    {group:'239.0.0.2',port:'5004',proto:'UDP',type:'ST 2110-20',src:'CAM-02',iface:'eth0',status:'ok'},
+    {group:'239.0.0.3',port:'5004',proto:'UDP',type:'ST 2110-20',src:'CAM-03',iface:'eth0',status:'ok'},
+    {group:'239.0.1.1',port:'5014',proto:'UDP',type:'ST 2110-30',src:'AUDIO-A',iface:'eth0',status:'ok'},
+    {group:'239.0.1.2',port:'5014',proto:'UDP',type:'ST 2110-30',src:'AUDIO-B',iface:'eth1',status:'ok'},
+    {group:'239.0.2.1',port:'5020',proto:'UDP',type:'ST 2110-40',src:'ANC-01',iface:'eth0',status:'ok'},
+    {group:'239.255.0.1',port:'319',proto:'UDP',type:'PTP Event',src:'PTP-GM',iface:'eth0',status:'ok'},
+    {group:'239.255.0.2',port:'320',proto:'UDP',type:'PTP General',src:'PTP-GM',iface:'eth0',status:'ok'}
+  ];
+
+  var UNICAST_CONNS=[
+    {name:'NMOS Registry',proto:'TCP',local:'10.0.0.10:8080',remote:'10.0.0.1:80',status:'ok'},
+    {name:'WebSocket API',proto:'TCP',local:'10.0.0.10:8080',remote:'*:*',status:'ok'},
+    {name:'SRT Ingest A',proto:'UDP/SRT',local:'0.0.0.0:9000',remote:'203.0.113.20:9000',status:'ok'},
+    {name:'SRT Ingest B',proto:'UDP/SRT',local:'0.0.0.0:9001',remote:'203.0.113.21:9001',status:'warn'},
+    {name:'SRT Output CDN',proto:'UDP/SRT',local:'203.0.113.10:9100',remote:'cdn.example.com:9100',status:'ok'},
+    {name:'Ember+ Control',proto:'TCP',local:'10.0.0.10:9000',remote:'10.0.0.50:9000',status:'ok'}
+  ];
+
+  var ifaceHTML=INTERFACES.map(function(ifc){
+    var sc=ifc.status==='ok'?'var(--ok)':'var(--warn)';
+    var modeColor=ifc.mode==='DHCP'?'var(--warn)':'var(--acc)';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:4px;border:1px solid var(--b1);margin-bottom:4px;background:var(--bg2)">'+
+      '<span class="dot" style="background:'+sc+'"></span>'+
+      '<span style="font-size:10px;font-weight:700;width:70px;color:var(--acc)">'+ifc.label+'</span>'+
+      '<span style="font-size:9px;color:var(--t3);width:50px;font-family:monospace">'+ifc.name+'</span>'+
+      '<span style="font-size:9px;font-family:monospace;flex:1">'+ifc.ip+' / '+ifc.mask+'</span>'+
+      '<span class="tag" style="color:'+modeColor+';border-color:'+modeColor+'">'+ifc.mode+'</span>'+
+      '<span style="font-size:8px;color:var(--t3);width:55px">VLAN '+ifc.vlan+'</span>'+
+      '<span style="font-size:8px;color:var(--pvw);width:55px">&#8595; '+ifc.rx+'</span>'+
+      '<span style="font-size:8px;color:var(--acc);width:55px">&#8593; '+ifc.tx+'</span>'+
+      '<span style="font-size:8px;color:var(--t3);width:55px">'+ifc.speed+'</span>'+
+      '<span style="font-size:8px;color:var(--t2)">'+ifc.mcast+'</span>'+
+      (canEngineer()?'<button class="btn btn-sm" onclick="netEditIface(\''+ifc.name+'\')">EDIT</button>':'')+
+    '</div>';
+  }).join('');
+
+  var mcastHTML=MCAST_GROUPS.map(function(g){
+    var sc=g.status==='ok'?'var(--ok)':'var(--warn)';
+    return '<tr>'+
+      '<td style="font-family:monospace;font-size:9px;color:var(--acc)">'+g.group+'</td>'+
+      '<td style="font-family:monospace;font-size:9px">'+g.port+'</td>'+
+      '<td><span class="tag">'+g.proto+'</span></td>'+
+      '<td style="font-size:9px;color:var(--t2)">'+g.type+'</td>'+
+      '<td style="font-size:9px;font-weight:600">'+g.src+'</td>'+
+      '<td style="font-size:9px;color:var(--t3)">'+g.iface+'</td>'+
+      '<td><span class="dot" style="background:'+sc+'"></span></td>'+
+    '</tr>';
+  }).join('');
+
+  var uniHTML=UNICAST_CONNS.map(function(c){
+    var sc=c.status==='ok'?'var(--ok)':'var(--warn)';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:3px;border:1px solid var(--b1);margin-bottom:3px;background:var(--bg2)">'+
+      '<span class="dot" style="background:'+sc+'"></span>'+
+      '<span style="font-size:10px;font-weight:700;flex:1">'+c.name+'</span>'+
+      '<span class="tag">'+c.proto+'</span>'+
+      '<span style="font-size:9px;font-family:monospace;color:var(--t2);width:160px">'+c.local+'</span>'+
+      '<span style="font-size:9px;color:var(--t3)">&#8594;</span>'+
+      '<span style="font-size:9px;font-family:monospace;color:var(--t2);width:180px">'+c.remote+'</span>'+
+    '</div>';
+  }).join('');
+
+  v.innerHTML=
+    '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">'+
+      // Toolbar
+      '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg2);border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap">'+
+        '<span class="lbl">CONNECTIVITY MODE</span>'+
+        '<button class="btn btn-sm btn-acc" id="net-mode-mcast" onclick="netSetMode(\'MULTICAST\')">MULTICAST</button>'+
+        '<button class="btn btn-sm" id="net-mode-uni" onclick="netSetMode(\'UNICAST\')">UNICAST</button>'+
+        '<button class="btn btn-sm" id="net-mode-hybrid" onclick="netSetMode(\'HYBRID\')">HYBRID</button>'+
+        '<div class="sep-v" style="height:20px"></div>'+
+        '<span class="lbl">TRANSPORT</span>'+
+        '<button class="btn btn-sm btn-acc" id="net-tp-udp" onclick="netSetTransport(\'UDP\')">UDP</button>'+
+        '<button class="btn btn-sm" id="net-tp-tcp" onclick="netSetTransport(\'TCP\')">TCP</button>'+
+        '<div class="sep-v" style="height:20px"></div>'+
+        '<span class="lbl">IP CONFIG</span>'+
+        '<button class="btn btn-sm" onclick="netRunDHCP()">DHCP RENEW</button>'+
+        '<button class="btn btn-sm btn-warn" onclick="netPingAll()">PING ALL</button>'+
+        '<div style="margin-left:auto;display:flex;align-items:center;gap:6px">'+
+          '<span class="bx bx-ok" id="net-status-badge">NOMINAL</span>'+
+        '</div>'+
+      '</div>'+
+      // Content
+      '<div style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px">'+
+        // Interfaces
+        '<div class="pnl">'+
+          '<div class="pnl-h"><span class="pnl-t">NETWORK INTERFACES</span><span class="bx bx-ok">'+INTERFACES.length+' ACTIVE</span></div>'+
+          '<div style="padding:8px">'+ifaceHTML+'</div>'+
+        '</div>'+
+        // Two-column: multicast + unicast
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          // Multicast groups
+          '<div class="pnl">'+
+            '<div class="pnl-h">'+
+              '<span class="pnl-t">MULTICAST GROUPS (IGMP)</span>'+
+              '<span class="bx bx-ok">'+MCAST_GROUPS.length+' JOINED</span>'+
+            '</div>'+
+            '<div style="overflow:auto;padding:6px">'+
+              '<table class="rt-table" style="width:100%">'+
+                '<tr><th>Group</th><th>Port</th><th>Proto</th><th>Type</th><th>Source</th><th>Iface</th><th>&#9679;</th></tr>'+
+                mcastHTML+
+              '</table>'+
+            '</div>'+
+          '</div>'+
+          // Unicast connections
+          '<div class="pnl">'+
+            '<div class="pnl-h">'+
+              '<span class="pnl-t">UNICAST CONNECTIONS</span>'+
+              '<span class="bx bx-ok">'+UNICAST_CONNS.length+' OPEN</span>'+
+            '</div>'+
+            '<div style="padding:8px">'+uniHTML+'</div>'+
+          '</div>'+
+        '</div>'+
+        // Protocol info cards
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+
+          _netProtoCard('UDP Multicast','ST 2110 media flows use RTP/UDP multicast. IGMP v3 source-specific multicast (SSM) for precise group management. Each source has a dedicated multicast group (239.0.x.x). Switches must have IGMP snooping enabled.','ok')+
+          _netProtoCard('UDP Unicast','SRT uses UDP with ARQ retransmission for reliable low-latency contribution. PTP sync uses UDP 319 (event) and 320 (general). NMOS mDNS discovery uses UDP 5353.','ok')+
+          _netProtoCard('TCP Control Plane','REST API (port 8080), WebSocket (port 8080 upgraded), NMOS IS-04/05 registry, and Ember+ control (port 9000) all use TCP. TLS 1.3 on all external connections.','ok')+
+          _netProtoCard('DHCP vs Static','Media interfaces (eth0/eth1) must use static IPs — multicast routing and PTP path delay depend on stable addresses. Control interface (eth2) may use DHCP. WAN/SRT (eth3) must be static for inbound SRT.','warn')+
+        '</div>'+
+        // Protocol reference table
+        '<div class="pnl">'+
+          '<div class="pnl-h"><span class="pnl-t">PROTOCOL REFERENCE</span><span class="bx bx-acc">ALL SUPPORTED PROTOCOLS</span></div>'+
+          '<div style="overflow:auto;padding:6px">'+
+            '<table class="rt-table" style="width:100%">'+
+              '<tr><th style="text-align:left;min-width:140px">Protocol</th><th style="text-align:left;min-width:80px">Transport</th><th style="text-align:left;min-width:100px">Port(s)</th><th style="text-align:left;min-width:120px">Direction</th><th style="text-align:left;min-width:300px">Notes</th></tr>'+
+              [
+                ['SMPTE ST 2110-20','UDP Multicast','5004','Sender → Receivers','Video essence. RTP payload. ~1.5 Gbps per 1080i50 uncompressed stream. IGMP v3 SSM join required on each receiver interface.'],
+                ['SMPTE ST 2110-30','UDP Multicast','5014','Sender → Receivers','Audio essence. PCM 24-bit, up to 64 channels per stream. ~10 Mbps per 8-channel stream. AES67 compatible.'],
+                ['SMPTE ST 2110-40','UDP Multicast','5020','Sender → Receivers','Ancillary data (closed captions, AFD, SCTE-104). Carried alongside video in separate RTP stream.'],
+                ['PTP (IEEE 1588)','UDP','319, 320','Multicast (224.0.1.129)','Port 319 = event messages (Sync, Delay_Req). Port 320 = general messages (Announce, Follow_Up). Domain 127 (SMPTE ST 2059-2).'],
+                ['NMOS IS-04','HTTP/TCP','80 / 8080','REST (registry pull/push)','Node registration and discovery. Devices POST to /x-nmos/registration/v1.3/resource. Query API at /x-nmos/query/v1.3/.'],
+                ['NMOS IS-05','HTTP/TCP','80 / 8080','REST (connection mgmt)','Connection management. PATCH to /x-nmos/connection/v1.1/single/senders/{id}/staged to connect a sender to a receiver.'],
+                ['NMOS IS-07','HTTP + WebSocket','80 / 8080','Events push','Event & tally. Devices subscribe to event sources via WebSocket. Used for tally lights and UMD updates.'],
+                ['NMOS IS-08','HTTP/TCP','80 / 8080','REST (audio mapping)','Audio channel mapping. Maps logical audio channels to physical ST 2110-30 stream channels.'],
+                ['SRT','UDP (ARQ)','9000–9099','Bidirectional','Secure Reliable Transport. Caller/Listener mode. Latency configurable (80–500ms). AES-128/256 encryption. Used for contribution and distribution over WAN.'],
+                ['Ember+','TCP','9000','Bidirectional','Control surface protocol. Used by Lawo, GV, Riedel, EVS, Vizrt. NEXUS Ember+ gateway exposes switcher and router state as Ember+ parameter tree.'],
+                ['REST API','HTTP/TCP','8080','Client → Server','NEXUS control API. All switcher, router, mosaic, and system operations available. JSON request/response. JWT Bearer auth.'],
+                ['WebSocket','WS/TCP','8080','Bidirectional','Real-time state sync. Connect to ws://host:8080/ws/control?token=JWT. Receives FULL_STATE on connect, then incremental updates (SWITCHER_CUT, TALLY_UPDATE, etc.).'],
+                ['RTMP / HLS','TCP','1935 / 80','Outbound','Distribution to CDN and streaming platforms. RTMP for ingest, HLS for delivery. Handled by cloud encoder services.'],
+                ['SNMP','UDP','161, 162','Bidirectional','Device monitoring. NEXUS exposes MIB for CPU, memory, network stats. Traps sent on alarm conditions.']
+              ].map(function(r){
+                return '<tr>'+
+                  '<td style="font-weight:700;font-size:10px;color:var(--acc)">'+r[0]+'</td>'+
+                  '<td><span class="tag">'+r[1]+'</span></td>'+
+                  '<td style="font-family:monospace;font-size:9px;color:var(--pvw)">'+r[2]+'</td>'+
+                  '<td style="font-size:9px;color:var(--t2)">'+r[3]+'</td>'+
+                  '<td style="font-size:9px;color:var(--t3);line-height:1.5">'+r[4]+'</td>'+
+                '</tr>';
+              }).join('')+
+            '</table>'+
+          '</div>'+
+        '</div>'+
+        // Manual IP config form
+        '<div class="pnl">'+
+          '<div class="pnl-h"><span class="pnl-t">MANUAL IP CONFIGURATION</span><span class="bx bx-acc">ENGINEER ONLY</span></div>'+
+          '<div style="padding:10px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'+
+            '<div><div class="lbl" style="margin-bottom:4px">Interface</div>'+
+              '<select class="sel" id="net-cfg-iface" style="width:90px">'+
+                INTERFACES.map(function(i){return '<option value="'+i.name+'">'+i.label+'</option>';}).join('')+
+              '</select></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">IP Address</div>'+
+              '<input class="inp" id="net-cfg-ip" placeholder="192.168.10.x" style="width:130px"></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">Subnet Mask</div>'+
+              '<input class="inp" id="net-cfg-mask" placeholder="255.255.255.0" style="width:130px"></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">Gateway</div>'+
+              '<input class="inp" id="net-cfg-gw" placeholder="192.168.10.1" style="width:130px"></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">VLAN ID</div>'+
+              '<input class="inp" id="net-cfg-vlan" placeholder="110" type="number" style="width:70px"></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">Mode</div>'+
+              '<select class="sel" id="net-cfg-mode" style="width:80px"><option>STATIC</option><option>DHCP</option></select></div>'+
+            '<button class="btn btn-acc" onclick="netApplyConfig()" style="align-self:flex-end">APPLY</button>'+
+            '<button class="btn" onclick="netResetConfig()" style="align-self:flex-end">RESET</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+}
+
+function _netProtoCard(title,desc,sev){
+  var bx=sev==='ok'?'bx-ok':'bx-warn';
+  return '<div class="pnl"><div class="pnl-h"><span class="pnl-t">'+title+'</span><span class="bx '+bx+'">'+sev.toUpperCase()+'</span></div>'+
+    '<div style="padding:10px;font-size:9px;color:var(--t2);line-height:1.6">'+desc+'</div></div>';
+}
+
+function netSetMode(mode){
+  ['mcast','uni','hybrid'].forEach(function(m){
+    var b=document.getElementById('net-mode-'+m);
+    if(b) b.className='btn btn-sm'+(mode.toLowerCase().indexOf(m.substring(0,3))>=0?' btn-acc':'');
+  });
+  addAlarm('info','Network mode: '+mode);
+}
+function netSetTransport(tp){
+  ['udp','tcp'].forEach(function(t){
+    var b=document.getElementById('net-tp-'+t);
+    if(b) b.className='btn btn-sm'+(tp.toLowerCase()===t?' btn-acc':'');
+  });
+  addAlarm('info','Transport: '+tp);
+}
+function netRunDHCP(){
+  if(!canEngineer()) return;
+  addAlarm('info','DHCP renew requested on control interface...');
+  setTimeout(function(){ addAlarm('ok','DHCP renewed: 10.0.0.10 / 255.255.0.0'); },1200);
+}
+function netPingAll(){
+  if(!canOp()) return;
+  addAlarm('info','Pinging all registered endpoints...');
+  setTimeout(function(){ addAlarm('ok','Ping sweep complete: 12/12 hosts reachable'); },1800);
+}
+function netEditIface(name){
+  if(!canEngineer()) return;
+  addAlarm('info','Edit interface: '+name+' — use Manual IP Config panel below');
+}
+function netApplyConfig(){
+  if(!canEngineer()) return;
+  var iface=document.getElementById('net-cfg-iface').value;
+  var ip=document.getElementById('net-cfg-ip').value;
+  var mask=document.getElementById('net-cfg-mask').value;
+  var gw=document.getElementById('net-cfg-gw').value;
+  var vlan=document.getElementById('net-cfg-vlan').value;
+  var mode=document.getElementById('net-cfg-mode').value;
+  if(!ip){ addAlarm('warn','IP address required'); return; }
+  addAlarm('ok','Interface '+iface+' configured: '+ip+' / '+mask+' ('+mode+') VLAN '+vlan);
+}
+function netResetConfig(){
+  if(!canEngineer()) return;
+  ['net-cfg-ip','net-cfg-mask','net-cfg-gw','net-cfg-vlan'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  addAlarm('info','IP config form cleared');
+}
+</script>
+<script>
 function switchUser(){
   // Build a modal overlay
   var existing=document.getElementById('switch-modal');
@@ -2334,7 +2687,7 @@ function switchUser(){
       '<div style="font-size:18px;font-weight:700;color:var(--acc);margin-bottom:20px">Change Role / Operator</div>'+
       '<div class="lg-err" id="sw-err" style="display:none">&#9888; INCORRECT ACCESS CODE</div>'+
       '<label class="lg-lbl">Access Code</label>'+
-      '<input class="lg-inp" type="password" id="sw-pw" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')_doSwitch()">'+
+      '<input class="lg-inp" type="password" id="sw-pw" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" onkeydown="if(event.key===\'Enter\')_doSwitch()">'+
       '<label class="lg-lbl">New Role</label>'+
       '<select class="lg-sel" id="sw-role">'+
         '<option value="ENGINEER">ENGINEER — Full System Access</option>'+

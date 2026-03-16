@@ -4,7 +4,7 @@ const fs   = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-const HTML = path.join(__dirname, 'nexus-demo.html');
+const HTML = path.join(__dirname, '..', '..', 'nexus-v5.html');
 const PORT = 8080;
 
 const server = http.createServer(function(req, res) {

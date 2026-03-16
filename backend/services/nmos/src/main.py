@@ -111,6 +111,12 @@ async def _cleanup_loop():
 app = FastAPI(title="NEXUS NMOS Registry", version="1.3.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+# Mount IS-07 and IS-08
+from .is07 import router as is07_router, emit_tally
+from .is08 import router as is08_router
+app.include_router(is07_router)
+app.include_router(is08_router)
+
 # ── IS-04 Node Registry ───────────────────────────────────────────────────────
 
 @app.get("/x-nmos/node/v1.3/self")

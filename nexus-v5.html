@@ -275,11 +275,7 @@ button,select,input{font-family:var(--font)}
       <label class="lg-lbl">Access Code</label>
       <input class="lg-inp" type="password" id="lg-pw" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" onkeydown="if(event.key==='Enter')doLogin()">
       <label class="lg-lbl">Operator Role</label>
-      <select class="lg-sel" id="lg-role">
-        <option value="ENGINEER">ENGINEER â€” Full System Access</option>
-        <option value="OPERATOR">OPERATOR â€” Production Control</option>
-        <option value="VIEWER">VIEWER â€” Monitor Only</option>
-      </select>
+      <select class="lg-sel" id="lg-role"><option value="ENGINEER">ENGINEER — Full System Access</option><option value="OPERATOR">OPERATOR — Production Control</option><option value="TRAINER">TRAINER — Training &amp; Guided Mode</option><option value="VIEWER">VIEWER — Monitor Only</option></select>
       <button class="lg-btn" onclick="doLogin()">AUTHENTICATE</button>
       <div class="lg-hint">Demo access code: nexus2024</div>
     </div>
@@ -297,13 +293,7 @@ button,select,input{font-family:var(--font)}
       </div>
     </div>
     <div class="tb-nav" id="tb-nav"></div>
-    <div class="tb-right">
-      <span class="tb-role" id="tb-role"></span>
-      <span class="dot dot-ok dot-pulse"></span>
-    </div>
-  </div>
-
-  <!-- STATUS BAR -->
+    <div class="tb-right"><button class="nb" style="font-size:8px;letter-spacing:1px;padding:0 10px;border:1px solid var(--b2);border-radius:3px;height:26px;margin-right:4px" onclick="switchUser()">&#8635; SWITCH USER</button><span class="tb-role" id="tb-role"></span><span class="dot dot-ok dot-pulse"></span></div></div><!-- STATUS BAR -->
   <div id="sbar">
     <div class="si"><span class="si-lbl">TC</span><span class="si-tc" id="sb-tc">10:00:00:00</span></div>
     <div class="si"><span class="si-lbl">PGM</span><span class="si-pgm" id="sb-pgm">CAM-01</span></div>
@@ -332,7 +322,7 @@ button,select,input{font-family:var(--font)}
     <div class="view" id="view-preflight"></div>
     <div class="view" id="view-rundown"></div>
     <div class="view" id="view-playout"></div>
-    <div class="view" id="view-orchestrator"></div>
+    <div class="view" id="view-orchestrator"></div><div class="view" id="view-training"></div>
   </div>
 </div>
 
@@ -347,7 +337,7 @@ var VIEWS = [
   ['live','LIVE'],['mosaic','MOSAIC'],['switcher','SWITCH'],['router','ROUTER'],
   ['rundown','RUNDOWN'],['playout','PLAYOUT'],['orchestrator','ORCHESTRATE'],
   ['cloudmcr','CLOUD MCR'],['srt','SRT/CLOUD'],['scopes','SCOPES'],
-  ['ptp','SYNC'],['nmos','CONNECT'],['devices','DEVICES'],['api','API'],['preflight','PRE-FLIGHT']
+  ['ptp','SYNC'],['nmos','CONNECT'],['devices','DEVICES'],['api','API'],['preflight','PRE-FLIGHT'],['training','TRAINING']
 ];
 
 // â”€â”€â”€ SOURCES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -446,7 +436,17 @@ function _startTC() {
 }
 
 // â”€â”€â”€ CORE NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function canOp(){ return ROLE !== 'VIEWER'; }
+function canOp(){ return ROLE==='ENGINEER'||ROLE==='OPERATOR'||ROLE==='TRAINER'; }
+function canEngineer(){ return ROLE==='ENGINEER'; }
+function canOperator(){ return ROLE==='ENGINEER'||ROLE==='OPERATOR'; }
+
+// Role-based nav visibility
+var ROLE_NAV = {
+  ENGINEER: ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','api','preflight','training'],
+  OPERATOR: ['live','mosaic','switcher','router','rundown','playout','cloudmcr','srt','scopes','ptp','nmos','preflight','training'],
+  TRAINER:  ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','preflight','training'],
+  VIEWER:   ['live','mosaic','scopes','ptp','training']
+};
 
 function showView(id) {
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('on'); });
@@ -459,7 +459,8 @@ function showView(id) {
 
 function _buildNav() {
   var nav = document.getElementById('tb-nav');
-  nav.innerHTML = VIEWS.map(function(x){
+  var allowed = ROLE_NAV[ROLE] || ROLE_NAV.VIEWER;
+  nav.innerHTML = VIEWS.filter(function(x){ return allowed.indexOf(x[0]) !== -1; }).map(function(x){
     return '<button class="nb" id="nb-'+x[0]+'" onclick="showView(\''+x[0]+'\')">'+
       x[1]+'<span class="bdg"></span></button>';
   }).join('');
@@ -499,6 +500,7 @@ function _initAll() {
   _initRundown();
   _initPlayout();
   _initOrchestrator();
+  _initTraining();
   addAlarm('ok','NEXUS v5 initialized â€” all systems nominal');
   addAlarm('info','PTP locked Â±1.2ns â€” SMPTE ST 2059-2');
   addAlarm('warn','Viz Engine 2: CPU 88% â€” monitor');
@@ -1993,8 +1995,302 @@ function orchDeploy(){
   document.getElementById('orch-name').value='';
 }
 </script>
+<script>
+// ─── TRAINING VIEW ────────────────────────────────────────────────────────────
+var _TR = {
+  step: 0,
+  modules: [
+    {
+      id:'intro', title:'Welcome to NEXUS v5',
+      icon:'&#9654;',
+      desc:'Overview of the NEXUS broadcast orchestration platform — architecture, key concepts, and navigation.',
+      steps:[
+        {t:'Platform Overview', b:'NEXUS v5 is a software-defined broadcast platform. All signal routing, switching, and monitoring runs as microservices over IP (SMPTE ST 2110).'},
+        {t:'Navigation', b:'Use the top navigation bar to switch between views. Your role determines which views are accessible. ENGINEER has full access; OPERATOR has production controls; VIEWER is read-only.'},
+        {t:'Status Bar', b:'The status bar shows live timecode, PGM/PVW sources, PTP sync offset, and connection status. A pulsing red dot means you are ON AIR.'},
+        {t:'Role Privileges', b:'ENGINEER: full system access including API, devices, and orchestration. OPERATOR: production controls (switcher, router, rundown, playout). VIEWER: monitoring only. TRAINER: guided mode + all production views.'}
+      ]
+    },
+    {
+      id:'switcher', title:'Switcher Operation',
+      icon:'&#9670;',
+      desc:'Learn to operate the ME banks, execute cuts and auto-transitions, and manage preview/program.',
+      steps:[
+        {t:'ME Banks', b:'Each Mix/Effects (ME) bank has a PROGRAM bus (on-air) and PREVIEW bus. Click a source on PREVIEW to select it, then CUT or AUTO TRANS to take it to air.'},
+        {t:'CUT vs AUTO', b:'CUT is an instant switch. AUTO TRANS performs a timed mix/wipe/dip at the rate set in the dropdown (10f, 25f, 50f, 100f). The transition bar shows progress.'},
+        {t:'Tally System', b:'The TALLY tab shows all sources with their on-air status. Red = PGM (on air), Green = PVW (preview), Grey = idle. Click a tally cell to set that source to preview.'},
+        {t:'Macros', b:'The MACROS tab contains pre-built production sequences: OPEN SHOW, COMMERCIAL BREAK, REPLAY, REMOTE GUEST, CLOSE SHOW, EMERGENCY CUT. Click EXECUTE to run.'}
+      ]
+    },
+    {
+      id:'router', title:'IP Router & Signal Flow',
+      icon:'&#9654;&#9654;',
+      desc:'Understand the 256×256 IP router, crosspoint management, and multi-level routing.',
+      steps:[
+        {t:'Crosspoint Matrix', b:'The router view shows a destination × source matrix. A filled circle (●) indicates the active crosspoint. Click any cell to route that source to that destination.'},
+        {t:'Multi-Level Routing', b:'Use the level buttons (VIDEO, AUDIO L/R, ANC, METADATA) to switch between signal levels. Each level can have independent routing.'},
+        {t:'Salvo Execution', b:'A salvo is a batch of crosspoint changes executed simultaneously. Build your routes then click EXECUTE SALVO to apply all at once — critical for live production.'},
+        {t:'Lock Destination', b:'LOCK DEST prevents accidental re-routing of a destination. Use this to protect critical outputs like PGM-A during live transmission.'}
+      ]
+    },
+    {
+      id:'rundown', title:'Rundown & Production Control',
+      icon:'&#9776;',
+      desc:'Manage production cue lists, show timing, and live execution with the Rundown view.',
+      steps:[
+        {t:'Cue List', b:'The rundown shows all production cues in order. The current cue is highlighted red (on-air), the next cue is highlighted green. Click any cue to jump to it.'},
+        {t:'GO / HOLD / SKIP', b:'GO starts the rundown clock. HOLD pauses auto-advance. SKIP moves to the next cue immediately. TAKE executes a switcher cut to the current cue\'s source.'},
+        {t:'Show Clock', b:'The show clock tracks total elapsed time. Each cue has an elapsed and remaining timer. When remaining hits 0, the rundown auto-advances to the next cue.'},
+        {t:'Adding Cues', b:'Use the ADD CUE form to insert new cues: select type (LIVE/PKG/GFX/BREAK), enter a label, choose a source, and set duration in seconds.'}
+      ]
+    },
+    {
+      id:'ptp', title:'PTP Sync & Timing',
+      icon:'&#9201;',
+      desc:'Understand SMPTE ST 2059-2 PTP synchronisation, the clock hierarchy, and monitoring.',
+      steps:[
+        {t:'Why PTP?', b:'All IP media (ST 2110) requires sub-microsecond synchronisation. PTP (IEEE 1588) provides this. NEXUS uses SMPTE ST 2059-2 profile on domain 127.'},
+        {t:'Clock Hierarchy', b:'A GPS-locked GrandMaster distributes time to all devices. The SYNC view shows the hierarchy and each device\'s lock status and offset.'},
+        {t:'Offset Monitoring', b:'The status bar shows live PTP offset in nanoseconds. Green = locked (< 2ns). Yellow = warning (2–5ns). Red = out of spec (> 5ns).'},
+        {t:'Troubleshooting', b:'If PTP unlocks: check network switch PTP support (boundary clock mode), verify domain numbers match, and ensure no firewall blocks UDP 319/320.'}
+      ]
+    }
+  ]
+};
+
+function _initTraining(){
+  var v=document.getElementById('view-training');
+  v.innerHTML=
+    '<div style="display:flex;gap:0;height:100%;overflow:hidden">'+
+      // Sidebar
+      '<div style="width:240px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto">'+
+        '<div style="padding:14px 16px;border-bottom:1px solid var(--b1)">'+
+          '<div style="font-size:9px;letter-spacing:2px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">Training Mode</div>'+
+          '<div style="font-size:14px;font-weight:700;color:var(--acc)">NEXUS Academy</div>'+
+        '</div>'+
+        '<div id="tr-module-list" style="padding:8px"></div>'+
+        '<div style="margin-top:auto;padding:12px;border-top:1px solid var(--b1)">'+
+          '<div style="font-size:8px;color:var(--t3);margin-bottom:6px;letter-spacing:1px">PROGRESS</div>'+
+          '<div style="height:4px;background:var(--b1);border-radius:2px;overflow:hidden">'+
+            '<div id="tr-progress-bar" style="height:100%;background:var(--acc);border-radius:2px;width:0%;transition:width .3s"></div>'+
+          '</div>'+
+          '<div id="tr-progress-txt" style="font-size:9px;color:var(--t2);margin-top:5px">0 / '+_TR.modules.length+' modules</div>'+
+        '</div>'+
+      '</div>'+
+      // Main content
+      '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">'+
+        '<div id="tr-content" style="flex:1;overflow-y:auto;padding:24px"></div>'+
+      '</div>'+
+    '</div>';
+  _trRenderModuleList();
+  _trShowModule(0);
+}
+
+function _trRenderModuleList(){
+  var el=document.getElementById('tr-module-list'); if(!el) return;
+  el.innerHTML=_TR.modules.map(function(m,i){
+    var active=i===_TR.activeModule;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:4px;cursor:pointer;margin-bottom:2px;'+
+      'background:'+(active?'rgba(0,212,255,.1)':'transparent')+';'+
+      'border:1px solid '+(active?'var(--acc)':'transparent')+';" '+
+      'onclick="_trShowModule('+i+')" id="tr-mod-'+i+'">'+
+      '<span style="font-size:14px">'+m.icon+'</span>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:10px;font-weight:700;color:'+(active?'var(--acc)':'var(--t1)')+'">'+m.title+'</div>'+
+      '</div>'+
+      '<span id="tr-mod-done-'+i+'" style="font-size:10px;color:var(--ok);display:none">&#10003;</span>'+
+    '</div>';
+  }).join('');
+}
+
+var _trDone={};
+function _trShowModule(idx){
+  _TR.activeModule=idx;
+  _TR.step=0;
+  _trRenderModuleList();
+  _trRenderStep();
+}
+
+function _trRenderStep(){
+  var m=_TR.modules[_TR.activeModule]; if(!m) return;
+  var step=m.steps[_TR.step]||m.steps[0];
+  var isLast=_TR.step>=m.steps.length-1;
+  var el=document.getElementById('tr-content'); if(!el) return;
+
+  // Role-specific notice
+  var roleNotice='';
+  if(ROLE==='VIEWER'){
+    roleNotice='<div style="padding:10px 14px;background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.2);border-radius:4px;margin-bottom:16px;font-size:10px;color:var(--warn)">'+
+      '&#9888; You are logged in as VIEWER. Training content is available but interactive controls require OPERATOR or ENGINEER access. Use SWITCH USER to change role.</div>';
+  }
+
+  el.innerHTML=
+    '<div style="max-width:720px">'+
+      // Module header
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">'+
+        '<div style="font-size:32px">'+m.icon+'</div>'+
+        '<div>'+
+          '<div style="font-size:20px;font-weight:700;color:var(--acc)">'+m.title+'</div>'+
+          '<div style="font-size:10px;color:var(--t3);margin-top:3px">'+m.desc+'</div>'+
+        '</div>'+
+      '</div>'+
+      roleNotice+
+      // Step progress dots
+      '<div style="display:flex;gap:6px;margin-bottom:20px">'+
+        m.steps.map(function(_,i){
+          var done=i<_TR.step, cur=i===_TR.step;
+          return '<div style="width:8px;height:8px;border-radius:50%;background:'+(done?'var(--ok)':cur?'var(--acc)':'var(--b2)')+';transition:background .2s"></div>';
+        }).join('')+
+      '</div>'+
+      // Step card
+      '<div style="background:var(--bg3);border:1px solid var(--b1);border-top:2px solid var(--acc);border-radius:6px;padding:24px;margin-bottom:16px">'+
+        '<div style="font-size:8px;letter-spacing:2px;color:var(--t3);text-transform:uppercase;margin-bottom:8px">Step '+((_TR.step+1))+' of '+m.steps.length+'</div>'+
+        '<div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:12px">'+step.t+'</div>'+
+        '<div style="font-size:13px;color:var(--t2);line-height:1.7">'+step.b+'</div>'+
+      '</div>'+
+      // Navigation
+      '<div style="display:flex;gap:8px;align-items:center">'+
+        (_TR.step>0?'<button class="btn" onclick="_trPrev()">&#8592; PREV</button>':'')+
+        '<div style="flex:1"></div>'+
+        (!isLast?
+          '<button class="btn btn-acc btn-lg" onclick="_trNext()">NEXT &#8594;</button>':
+          '<button class="btn btn-pvw btn-lg" onclick="_trComplete()">&#10003; COMPLETE MODULE</button>'
+        )+
+      '</div>'+
+      // Quick-link to relevant view
+      '<div style="margin-top:20px;padding:12px;background:var(--bg2);border:1px solid var(--b1);border-radius:4px;display:flex;align-items:center;gap:10px">'+
+        '<span style="font-size:9px;color:var(--t3);letter-spacing:1px">PRACTICE IN:</span>'+
+        '<button class="btn btn-sm btn-acc" onclick="showView(\''+m.id+'\')" style="'+(ROLE_NAV[ROLE]&&ROLE_NAV[ROLE].indexOf(m.id)<0?'opacity:.4;cursor:not-allowed':'')+'">'+
+          'OPEN '+m.title.toUpperCase()+' VIEW</button>'+
+        (ROLE_NAV[ROLE]&&ROLE_NAV[ROLE].indexOf(m.id)<0?
+          '<span style="font-size:9px;color:var(--warn)">&#9888; Not available for your role</span>':'')+ 
+      '</div>'+
+    '</div>';
+}
+
+function _trNext(){
+  var m=_TR.modules[_TR.activeModule]; if(!m) return;
+  if(_TR.step<m.steps.length-1){ _TR.step++; _trRenderStep(); }
+}
+function _trPrev(){
+  if(_TR.step>0){ _TR.step--; _trRenderStep(); }
+}
+function _trComplete(){
+  _trDone[_TR.activeModule]=true;
+  var el=document.getElementById('tr-mod-done-'+_TR.activeModule);
+  if(el) el.style.display='inline';
+  var done=Object.keys(_trDone).length;
+  var bar=document.getElementById('tr-progress-bar');
+  var txt=document.getElementById('tr-progress-txt');
+  if(bar) bar.style.width=Math.round(done/_TR.modules.length*100)+'%';
+  if(txt) txt.textContent=done+' / '+_TR.modules.length+' modules';
+  addAlarm('ok','Training module complete: '+_TR.modules[_TR.activeModule].title);
+  // Auto-advance to next module
+  if(_TR.activeModule<_TR.modules.length-1) _trShowModule(_TR.activeModule+1);
+}
+</script>
+<script>
+// ─── SWITCH USER ──────────────────────────────────────────────────────────────
+function switchUser(){
+  // Build a modal overlay
+  var existing=document.getElementById('switch-modal');
+  if(existing){ existing.remove(); return; }
+  var modal=document.createElement('div');
+  modal.id='switch-modal';
+  modal.style.cssText='position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;background:rgba(3,3,10,.85);backdrop-filter:blur(8px)';
+  modal.innerHTML=
+    '<div style="width:380px;background:var(--bg3);border:1px solid var(--b1);border-top:2px solid var(--acc);border-radius:8px;padding:28px;box-shadow:0 40px 100px rgba(0,0,0,.8)">'+
+      '<div style="font-size:9px;letter-spacing:3px;color:var(--t3);text-transform:uppercase;margin-bottom:6px">Switch User</div>'+
+      '<div style="font-size:18px;font-weight:700;color:var(--acc);margin-bottom:20px">Change Role / Operator</div>'+
+      '<div class="lg-err" id="sw-err" style="display:none">&#9888; INCORRECT ACCESS CODE</div>'+
+      '<label class="lg-lbl">Access Code</label>'+
+      '<input class="lg-inp" type="password" id="sw-pw" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')_doSwitch()">'+
+      '<label class="lg-lbl">New Role</label>'+
+      '<select class="lg-sel" id="sw-role">'+
+        '<option value="ENGINEER">ENGINEER — Full System Access</option>'+
+        '<option value="OPERATOR">OPERATOR — Production Control</option>'+
+        '<option value="TRAINER">TRAINER — Training &amp; Guided Mode</option>'+
+        '<option value="VIEWER">VIEWER — Monitor Only</option>'+
+      '</select>'+
+      '<div style="display:flex;gap:8px;margin-top:4px">'+
+        '<button class="btn" style="flex:1" onclick="document.getElementById(\'switch-modal\').remove()">CANCEL</button>'+
+        '<button class="btn btn-acc" style="flex:2" onclick="_doSwitch()">SWITCH ROLE</button>'+
+      '</div>'+
+      '<div style="font-size:9px;color:var(--t3);text-align:center;margin-top:10px;letter-spacing:1px">Demo code: nexus2024</div>'+
+    '</div>';
+  document.body.appendChild(modal);
+  setTimeout(function(){ document.getElementById('sw-pw').focus(); },50);
+  // Close on backdrop click
+  modal.addEventListener('click',function(e){ if(e.target===modal) modal.remove(); });
+}
+
+function _doSwitch(){
+  var pw=document.getElementById('sw-pw').value;
+  var err=document.getElementById('sw-err');
+  if(pw!==PW){ err.style.display='block'; return; }
+  var newRole=document.getElementById('sw-role').value;
+  ROLE=newRole;
+  document.getElementById('switch-modal').remove();
+  document.getElementById('tb-role').textContent=ROLE;
+  document.getElementById('sb-role').textContent=ROLE;
+  _buildNav();
+  // Navigate to first allowed view for new role
+  var allowed=ROLE_NAV[ROLE]||ROLE_NAV.VIEWER;
+  showView(allowed[0]);
+  addAlarm('info','Role switched to '+ROLE);
+  // Show access-denied toast if current view not allowed
+  _enforceRoleAccess();
+}
+
+function _enforceRoleAccess(){
+  // Called after role switch — ensures current view is allowed
+  var allowed=ROLE_NAV[ROLE]||ROLE_NAV.VIEWER;
+  var activeView=null;
+  document.querySelectorAll('.view.on').forEach(function(v){
+    activeView=v.id.replace('view-','');
+  });
+  if(activeView && allowed.indexOf(activeView)<0){
+    showView(allowed[0]);
+  }
+}
+
+// ─── OPERATOR PRIVILEGE GUARD ─────────────────────────────────────────────────
+// Wrap interactive actions with role checks and show a toast for denied access
+var _toastTimer=null;
+function _showAccessDenied(requiredRole){
+  var existing=document.getElementById('access-toast');
+  if(existing) existing.remove();
+  if(_toastTimer) clearTimeout(_toastTimer);
+  var toast=document.createElement('div');
+  toast.id='access-toast';
+  toast.style.cssText='position:fixed;bottom:24px;right:24px;z-index:9999;'+
+    'background:var(--bg3);border:1px solid var(--pgm);border-left:3px solid var(--pgm);'+
+    'padding:12px 16px;border-radius:5px;font-size:11px;color:var(--pgm);'+
+    'box-shadow:0 8px 32px rgba(0,0,0,.6);animation:fadeUp .15s ease-out;max-width:280px';
+  toast.innerHTML='<div style="font-weight:700;margin-bottom:3px">&#9888; ACCESS DENIED</div>'+
+    '<div style="font-size:9px;color:var(--t2)">Requires '+requiredRole+' or higher. Use SWITCH USER to change role.</div>';
+  document.body.appendChild(toast);
+  _toastTimer=setTimeout(function(){ if(toast.parentNode) toast.remove(); },3500);
+}
+
+// Patch canOp to show toast on denial
+var _origCanOp=canOp;
+canOp=function(){
+  var ok=_origCanOp();
+  if(!ok) _showAccessDenied('OPERATOR');
+  return ok;
+};
+var _origCanEngineer=canEngineer;
+canEngineer=function(){
+  var ok=_origCanEngineer();
+  if(!ok) _showAccessDenied('ENGINEER');
+  return ok;
+};
+</script>
 </body>
 </html>
+
+
 
 
 

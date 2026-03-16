@@ -268,12 +268,12 @@ button,select,input{font-family:var(--font)}
   <div class="lg-wrap">
     <div class="lg-logo">
       <div class="lg-nx">NEXUS</div>
-      <div class="lg-sub">Broadcast Orchestration Platform &nbsp;Â·&nbsp; v5</div>
+      <div class="lg-sub">Broadcast Orchestration Platform &nbsp;&middot;&nbsp; v5</div>
     </div>
     <div class="lg-box">
       <div class="lg-err" id="lg-err">&#9888; AUTHENTICATION FAILED</div>
       <label class="lg-lbl">Access Code</label>
-      <input class="lg-inp" type="password" id="lg-pw" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" onkeydown="if(event.key==='Enter')doLogin()">
+      <input class="lg-inp" type="password" id="lg-pw" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" onkeydown="if(event.key==='Enter')doLogin()">
       <label class="lg-lbl">Operator Role</label>
       <select class="lg-sel" id="lg-role"><option value="ENGINEER">ENGINEER — Full System Access</option><option value="OPERATOR">OPERATOR — Production Control</option><option value="TRAINER">TRAINER — Training &amp; Guided Mode</option><option value="VIEWER">VIEWER — Monitor Only</option></select>
       <button class="lg-btn" onclick="doLogin()">AUTHENTICATE</button>
@@ -298,7 +298,7 @@ button,select,input{font-family:var(--font)}
     <div class="si"><span class="si-lbl">TC</span><span class="si-tc" id="sb-tc">10:00:00:00</span></div>
     <div class="si"><span class="si-lbl">PGM</span><span class="si-pgm" id="sb-pgm">CAM-01</span></div>
     <div class="si"><span class="si-lbl">PVW</span><span class="si-pvw" id="sb-pvw">CAM-02</span></div>
-    <div class="si"><span class="si-ptp" id="sb-ptp">PTP Â±1ns</span></div>
+    <div class="si"><span class="si-ptp" id="sb-ptp">PTP &plusmn;1ns</span></div>
     <div class="si"><span class="dot dot-off" id="ws-dot"></span><span class="si-lbl" id="ws-lbl">LOCAL</span></div>
     <div class="si" id="sb-alm" style="display:none"><span id="sb-alm-txt" style="color:var(--warn);font-size:9px"></span></div>
     <div class="si-sp"></div>
@@ -324,6 +324,7 @@ button,select,input{font-family:var(--font)}
     <div class="view" id="view-playout"></div>
     <div class="view" id="view-orchestrator"></div><div class="view" id="view-training"></div>
     <div class="view" id="view-compat"></div>
+    <div class="view" id="view-network"></div>
   </div>
 </div>
 
@@ -339,7 +340,7 @@ var VIEWS = [
   ['rundown','RUNDOWN'],['playout','PLAYOUT'],['orchestrator','ORCHESTRATE'],
   ['cloudmcr','CLOUD MCR'],['srt','SRT/CLOUD'],['scopes','SCOPES'],
   ['ptp','SYNC'],['nmos','CONNECT'],['devices','DEVICES'],['api','API'],['preflight','PRE-FLIGHT'],
-  ['training','TRAINING'],['compat','COMPATIBILITY']
+  ['training','TRAINING'],['compat','COMPATIBILITY'],['network','NETWORK']
 ];
 
 // â”€â”€â”€ SOURCES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -444,10 +445,10 @@ function canOperator(){ return ROLE==='ENGINEER'||ROLE==='OPERATOR'; }
 
 // Role-based nav visibility
 var ROLE_NAV = {
-  ENGINEER: ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','api','preflight','training','compat'],
-  OPERATOR: ['live','mosaic','switcher','router','rundown','playout','cloudmcr','srt','scopes','ptp','nmos','preflight','training','compat'],
-  TRAINER:  ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','preflight','training','compat'],
-  VIEWER:   ['live','mosaic','scopes','ptp','training','compat']
+  ENGINEER: ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','api','preflight','training','compat','network'],
+  OPERATOR: ['live','mosaic','switcher','router','rundown','playout','cloudmcr','srt','scopes','ptp','nmos','preflight','training','compat','network'],
+  TRAINER:  ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','preflight','training','compat','network'],
+  VIEWER:   ['live','mosaic','scopes','ptp','training','compat','network']
 };
 
 function showView(id) {
@@ -504,9 +505,11 @@ function _initAll() {
   _initOrchestrator();
   _initTraining();
   _initCompat();
+  _initNetwork();
   addAlarm('ok','NEXUS v5 initialized â€” all systems nominal');
   addAlarm('info','PTP locked Â±1.2ns â€” SMPTE ST 2059-2');
   addAlarm('warn','Viz Engine 2: CPU 88% â€” monitor');
+  _wsHookSwitcher();
   _wsConnect();
 }
 
@@ -679,22 +682,25 @@ function _wsSend(msg) {
 }
 
 // Override local cut/pvw/auto to also send to backend
-var _origMeCut = meCut;
-meCut = function(mi) {
-  _origMeCut(mi);
-  _wsSend({type:'SWITCHER_CUT', payload:{me:mi, pvw:SW.me[mi]?SOURCES.findIndex(function(s){return s.id===SW.me[mi].pvw;})+1:0}});
-};
-var _origMePvw = mePvw;
-mePvw = function(mi, sid) {
-  _origMePvw(mi, sid);
-  var srcIdx = SOURCES.findIndex(function(s){return s.id===sid;});
-  _wsSend({type:'SWITCHER_PVW', payload:{me:mi, source:srcIdx+1}});
-};
-var _origMeAuto = meAuto;
-meAuto = function(mi) {
-  _origMeAuto(mi);
-  _wsSend({type:'SWITCHER_AUTO', payload:{me:mi}});
-};
+// Called from _initAll() after all functions are defined
+function _wsHookSwitcher() {
+  var _origMeCut = meCut;
+  meCut = function(mi) {
+    _origMeCut(mi);
+    _wsSend({type:'SWITCHER_CUT', payload:{me:mi, pvw:SW.me[mi]?SOURCES.findIndex(function(s){return s.id===SW.me[mi].pvw;})+1:0}});
+  };
+  var _origMePvw = mePvw;
+  mePvw = function(mi, sid) {
+    _origMePvw(mi, sid);
+    var srcIdx = SOURCES.findIndex(function(s){return s.id===sid;});
+    _wsSend({type:'SWITCHER_PVW', payload:{me:mi, source:srcIdx+1}});
+  };
+  var _origMeAuto = meAuto;
+  meAuto = function(mi) {
+    _origMeAuto(mi);
+    _wsSend({type:'SWITCHER_AUTO', payload:{me:mi}});
+  };
+}
 </script>
 <script>
 // â”€â”€â”€ LIVE VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2002,6 +2008,7 @@ function orchDeploy(){
 // ─── TRAINING VIEW ────────────────────────────────────────────────────────────
 var _TR = {
   step: 0,
+  activeModule: 0,
   modules: [
     {
       id:'intro', title:'Welcome to NEXUS v5',
@@ -2321,6 +2328,224 @@ function _compatCard(title,status,desc,sev){
 }
 </script>
 <script>
+// ─── NETWORK VIEW ─────────────────────────────────────────────────────────────
+// Covers: UDP/TCP/Multicast/Unicast, Dynamic (DHCP/IGMP) and Manual config,
+// interface status, VLAN, bandwidth, and connectivity diagnostics.
+function _initNetwork(){
+  var v=document.getElementById('view-network'); if(!v) return;
+
+  var INTERFACES=[
+    {name:'eth0',label:'Media A',ip:'192.168.10.10',mask:'255.255.255.0',gw:'192.168.10.1',
+     vlan:110,speed:'10 Gbps',mode:'STATIC',mcast:'IGMP v3',status:'ok',rx:'4.2 Gbps',tx:'1.8 Gbps'},
+    {name:'eth1',label:'Media B',ip:'192.168.11.10',mask:'255.255.255.0',gw:'192.168.11.1',
+     vlan:111,speed:'10 Gbps',mode:'STATIC',mcast:'IGMP v3',status:'ok',rx:'3.1 Gbps',tx:'1.2 Gbps'},
+    {name:'eth2',label:'Control',ip:'10.0.0.10',mask:'255.255.0.0',gw:'10.0.0.1',
+     vlan:100,speed:'1 Gbps',mode:'DHCP',mcast:'IGMP v2',status:'ok',rx:'120 Mbps',tx:'45 Mbps'},
+    {name:'eth3',label:'SRT/WAN',ip:'203.0.113.10',mask:'255.255.255.248',gw:'203.0.113.1',
+     vlan:200,speed:'1 Gbps',mode:'STATIC',mcast:'UNICAST',status:'warn',rx:'42 Mbps',tx:'65 Mbps'}
+  ];
+
+  var MCAST_GROUPS=[
+    {group:'239.0.0.1',port:'5004',proto:'UDP',type:'ST 2110-20',src:'CAM-01',iface:'eth0',status:'ok'},
+    {group:'239.0.0.2',port:'5004',proto:'UDP',type:'ST 2110-20',src:'CAM-02',iface:'eth0',status:'ok'},
+    {group:'239.0.0.3',port:'5004',proto:'UDP',type:'ST 2110-20',src:'CAM-03',iface:'eth0',status:'ok'},
+    {group:'239.0.1.1',port:'5014',proto:'UDP',type:'ST 2110-30',src:'AUDIO-A',iface:'eth0',status:'ok'},
+    {group:'239.0.1.2',port:'5014',proto:'UDP',type:'ST 2110-30',src:'AUDIO-B',iface:'eth1',status:'ok'},
+    {group:'239.0.2.1',port:'5020',proto:'UDP',type:'ST 2110-40',src:'ANC-01',iface:'eth0',status:'ok'},
+    {group:'239.255.0.1',port:'319',proto:'UDP',type:'PTP Event',src:'PTP-GM',iface:'eth0',status:'ok'},
+    {group:'239.255.0.2',port:'320',proto:'UDP',type:'PTP General',src:'PTP-GM',iface:'eth0',status:'ok'}
+  ];
+
+  var UNICAST_CONNS=[
+    {name:'NMOS Registry',proto:'TCP',local:'10.0.0.10:8080',remote:'10.0.0.1:80',status:'ok'},
+    {name:'WebSocket API',proto:'TCP',local:'10.0.0.10:8080',remote:'*:*',status:'ok'},
+    {name:'SRT Ingest A',proto:'UDP/SRT',local:'0.0.0.0:9000',remote:'203.0.113.20:9000',status:'ok'},
+    {name:'SRT Ingest B',proto:'UDP/SRT',local:'0.0.0.0:9001',remote:'203.0.113.21:9001',status:'warn'},
+    {name:'SRT Output CDN',proto:'UDP/SRT',local:'203.0.113.10:9100',remote:'cdn.example.com:9100',status:'ok'},
+    {name:'Ember+ Control',proto:'TCP',local:'10.0.0.10:9000',remote:'10.0.0.50:9000',status:'ok'}
+  ];
+
+  var ifaceHTML=INTERFACES.map(function(ifc){
+    var sc=ifc.status==='ok'?'var(--ok)':'var(--warn)';
+    var modeColor=ifc.mode==='DHCP'?'var(--warn)':'var(--acc)';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:4px;border:1px solid var(--b1);margin-bottom:4px;background:var(--bg2)">'+
+      '<span class="dot" style="background:'+sc+'"></span>'+
+      '<span style="font-size:10px;font-weight:700;width:70px;color:var(--acc)">'+ifc.label+'</span>'+
+      '<span style="font-size:9px;color:var(--t3);width:50px;font-family:monospace">'+ifc.name+'</span>'+
+      '<span style="font-size:9px;font-family:monospace;flex:1">'+ifc.ip+' / '+ifc.mask+'</span>'+
+      '<span class="tag" style="color:'+modeColor+';border-color:'+modeColor+'">'+ifc.mode+'</span>'+
+      '<span style="font-size:8px;color:var(--t3);width:55px">VLAN '+ifc.vlan+'</span>'+
+      '<span style="font-size:8px;color:var(--pvw);width:55px">&#8595; '+ifc.rx+'</span>'+
+      '<span style="font-size:8px;color:var(--acc);width:55px">&#8593; '+ifc.tx+'</span>'+
+      '<span style="font-size:8px;color:var(--t3);width:55px">'+ifc.speed+'</span>'+
+      '<span style="font-size:8px;color:var(--t2)">'+ifc.mcast+'</span>'+
+      (canEngineer()?'<button class="btn btn-sm" onclick="netEditIface(\''+ifc.name+'\')">EDIT</button>':'')+
+    '</div>';
+  }).join('');
+
+  var mcastHTML=MCAST_GROUPS.map(function(g){
+    var sc=g.status==='ok'?'var(--ok)':'var(--warn)';
+    return '<tr>'+
+      '<td style="font-family:monospace;font-size:9px;color:var(--acc)">'+g.group+'</td>'+
+      '<td style="font-family:monospace;font-size:9px">'+g.port+'</td>'+
+      '<td><span class="tag">'+g.proto+'</span></td>'+
+      '<td style="font-size:9px;color:var(--t2)">'+g.type+'</td>'+
+      '<td style="font-size:9px;font-weight:600">'+g.src+'</td>'+
+      '<td style="font-size:9px;color:var(--t3)">'+g.iface+'</td>'+
+      '<td><span class="dot" style="background:'+sc+'"></span></td>'+
+    '</tr>';
+  }).join('');
+
+  var uniHTML=UNICAST_CONNS.map(function(c){
+    var sc=c.status==='ok'?'var(--ok)':'var(--warn)';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:3px;border:1px solid var(--b1);margin-bottom:3px;background:var(--bg2)">'+
+      '<span class="dot" style="background:'+sc+'"></span>'+
+      '<span style="font-size:10px;font-weight:700;flex:1">'+c.name+'</span>'+
+      '<span class="tag">'+c.proto+'</span>'+
+      '<span style="font-size:9px;font-family:monospace;color:var(--t2);width:160px">'+c.local+'</span>'+
+      '<span style="font-size:9px;color:var(--t3)">&#8594;</span>'+
+      '<span style="font-size:9px;font-family:monospace;color:var(--t2);width:180px">'+c.remote+'</span>'+
+    '</div>';
+  }).join('');
+
+  v.innerHTML=
+    '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">'+
+      // Toolbar
+      '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg2);border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap">'+
+        '<span class="lbl">CONNECTIVITY MODE</span>'+
+        '<button class="btn btn-sm btn-acc" id="net-mode-mcast" onclick="netSetMode(\'MULTICAST\')">MULTICAST</button>'+
+        '<button class="btn btn-sm" id="net-mode-uni" onclick="netSetMode(\'UNICAST\')">UNICAST</button>'+
+        '<button class="btn btn-sm" id="net-mode-hybrid" onclick="netSetMode(\'HYBRID\')">HYBRID</button>'+
+        '<div class="sep-v" style="height:20px"></div>'+
+        '<span class="lbl">TRANSPORT</span>'+
+        '<button class="btn btn-sm btn-acc" id="net-tp-udp" onclick="netSetTransport(\'UDP\')">UDP</button>'+
+        '<button class="btn btn-sm" id="net-tp-tcp" onclick="netSetTransport(\'TCP\')">TCP</button>'+
+        '<div class="sep-v" style="height:20px"></div>'+
+        '<span class="lbl">IP CONFIG</span>'+
+        '<button class="btn btn-sm" onclick="netRunDHCP()">DHCP RENEW</button>'+
+        '<button class="btn btn-sm btn-warn" onclick="netPingAll()">PING ALL</button>'+
+        '<div style="margin-left:auto;display:flex;align-items:center;gap:6px">'+
+          '<span class="bx bx-ok" id="net-status-badge">NOMINAL</span>'+
+        '</div>'+
+      '</div>'+
+      // Content
+      '<div style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px">'+
+        // Interfaces
+        '<div class="pnl">'+
+          '<div class="pnl-h"><span class="pnl-t">NETWORK INTERFACES</span><span class="bx bx-ok">'+INTERFACES.length+' ACTIVE</span></div>'+
+          '<div style="padding:8px">'+ifaceHTML+'</div>'+
+        '</div>'+
+        // Two-column: multicast + unicast
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          // Multicast groups
+          '<div class="pnl">'+
+            '<div class="pnl-h">'+
+              '<span class="pnl-t">MULTICAST GROUPS (IGMP)</span>'+
+              '<span class="bx bx-ok">'+MCAST_GROUPS.length+' JOINED</span>'+
+            '</div>'+
+            '<div style="overflow:auto;padding:6px">'+
+              '<table class="rt-table" style="width:100%">'+
+                '<tr><th>Group</th><th>Port</th><th>Proto</th><th>Type</th><th>Source</th><th>Iface</th><th>&#9679;</th></tr>'+
+                mcastHTML+
+              '</table>'+
+            '</div>'+
+          '</div>'+
+          // Unicast connections
+          '<div class="pnl">'+
+            '<div class="pnl-h">'+
+              '<span class="pnl-t">UNICAST CONNECTIONS</span>'+
+              '<span class="bx bx-ok">'+UNICAST_CONNS.length+' OPEN</span>'+
+            '</div>'+
+            '<div style="padding:8px">'+uniHTML+'</div>'+
+          '</div>'+
+        '</div>'+
+        // Protocol info cards
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+
+          _netProtoCard('UDP Multicast','ST 2110 media flows use RTP/UDP multicast. IGMP v3 source-specific multicast (SSM) for precise group management.','ok')+
+          _netProtoCard('UDP Unicast','SRT uses UDP with ARQ retransmission. PTP uses UDP 319/320. NMOS discovery uses mDNS/DNS-SD over UDP.','ok')+
+          _netProtoCard('TCP','REST API, WebSocket, Ember+, and NMOS IS-04/05 registry use TCP. TLS 1.3 on all control-plane connections.','ok')+
+          _netProtoCard('Dynamic (DHCP)','Control interfaces can use DHCP. Media interfaces should use static IPs for deterministic multicast routing and PTP stability.','warn')+
+        '</div>'+
+        // Manual IP config form
+        '<div class="pnl">'+
+          '<div class="pnl-h"><span class="pnl-t">MANUAL IP CONFIGURATION</span><span class="bx bx-acc">ENGINEER ONLY</span></div>'+
+          '<div style="padding:10px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'+
+            '<div><div class="lbl" style="margin-bottom:4px">Interface</div>'+
+              '<select class="sel" id="net-cfg-iface" style="width:90px">'+
+                INTERFACES.map(function(i){return '<option value="'+i.name+'">'+i.label+'</option>';}).join('')+
+              '</select></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">IP Address</div>'+
+              '<input class="inp" id="net-cfg-ip" placeholder="192.168.10.x" style="width:130px"></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">Subnet Mask</div>'+
+              '<input class="inp" id="net-cfg-mask" placeholder="255.255.255.0" style="width:130px"></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">Gateway</div>'+
+              '<input class="inp" id="net-cfg-gw" placeholder="192.168.10.1" style="width:130px"></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">VLAN ID</div>'+
+              '<input class="inp" id="net-cfg-vlan" placeholder="110" type="number" style="width:70px"></div>'+
+            '<div><div class="lbl" style="margin-bottom:4px">Mode</div>'+
+              '<select class="sel" id="net-cfg-mode" style="width:80px"><option>STATIC</option><option>DHCP</option></select></div>'+
+            '<button class="btn btn-acc" onclick="netApplyConfig()" style="align-self:flex-end">APPLY</button>'+
+            '<button class="btn" onclick="netResetConfig()" style="align-self:flex-end">RESET</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+}
+
+function _netProtoCard(title,desc,sev){
+  var bx=sev==='ok'?'bx-ok':'bx-warn';
+  return '<div class="pnl"><div class="pnl-h"><span class="pnl-t">'+title+'</span><span class="bx '+bx+'">'+sev.toUpperCase()+'</span></div>'+
+    '<div style="padding:10px;font-size:9px;color:var(--t2);line-height:1.6">'+desc+'</div></div>';
+}
+
+function netSetMode(mode){
+  ['mcast','uni','hybrid'].forEach(function(m){
+    var b=document.getElementById('net-mode-'+m);
+    if(b) b.className='btn btn-sm'+(mode.toLowerCase().indexOf(m.substring(0,3))>=0?' btn-acc':'');
+  });
+  addAlarm('info','Network mode: '+mode);
+}
+function netSetTransport(tp){
+  ['udp','tcp'].forEach(function(t){
+    var b=document.getElementById('net-tp-'+t);
+    if(b) b.className='btn btn-sm'+(tp.toLowerCase()===t?' btn-acc':'');
+  });
+  addAlarm('info','Transport: '+tp);
+}
+function netRunDHCP(){
+  if(!canEngineer()) return;
+  addAlarm('info','DHCP renew requested on control interface...');
+  setTimeout(function(){ addAlarm('ok','DHCP renewed: 10.0.0.10 / 255.255.0.0'); },1200);
+}
+function netPingAll(){
+  if(!canOp()) return;
+  addAlarm('info','Pinging all registered endpoints...');
+  setTimeout(function(){ addAlarm('ok','Ping sweep complete: 12/12 hosts reachable'); },1800);
+}
+function netEditIface(name){
+  if(!canEngineer()) return;
+  addAlarm('info','Edit interface: '+name+' — use Manual IP Config panel below');
+}
+function netApplyConfig(){
+  if(!canEngineer()) return;
+  var iface=document.getElementById('net-cfg-iface').value;
+  var ip=document.getElementById('net-cfg-ip').value;
+  var mask=document.getElementById('net-cfg-mask').value;
+  var gw=document.getElementById('net-cfg-gw').value;
+  var vlan=document.getElementById('net-cfg-vlan').value;
+  var mode=document.getElementById('net-cfg-mode').value;
+  if(!ip){ addAlarm('warn','IP address required'); return; }
+  addAlarm('ok','Interface '+iface+' configured: '+ip+' / '+mask+' ('+mode+') VLAN '+vlan);
+}
+function netResetConfig(){
+  if(!canEngineer()) return;
+  ['net-cfg-ip','net-cfg-mask','net-cfg-gw','net-cfg-vlan'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  addAlarm('info','IP config form cleared');
+}
+</script>
+<script>
 function switchUser(){
   // Build a modal overlay
   var existing=document.getElementById('switch-modal');
@@ -2334,7 +2559,7 @@ function switchUser(){
       '<div style="font-size:18px;font-weight:700;color:var(--acc);margin-bottom:20px">Change Role / Operator</div>'+
       '<div class="lg-err" id="sw-err" style="display:none">&#9888; INCORRECT ACCESS CODE</div>'+
       '<label class="lg-lbl">Access Code</label>'+
-      '<input class="lg-inp" type="password" id="sw-pw" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')_doSwitch()">'+
+      '<input class="lg-inp" type="password" id="sw-pw" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" onkeydown="if(event.key===\'Enter\')_doSwitch()">'+
       '<label class="lg-lbl">New Role</label>'+
       '<select class="lg-sel" id="sw-role">'+
         '<option value="ENGINEER">ENGINEER — Full System Access</option>'+

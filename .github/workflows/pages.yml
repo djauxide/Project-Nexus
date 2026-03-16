@@ -1,11 +1,10 @@
-name: Deploy Demo to GitHub Pages
+name: Deploy NEXUS v5 to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, v5-clean]
     paths:
-      - 'docs/index.html'
-      - 'backend/api/nexus-demo.html'
+      - 'nexus-v5.html'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -30,8 +29,7 @@ jobs:
       - name: Prepare site
         run: |
           mkdir -p _site
-          # Use docs/index.html as the demo (kept in sync with nexus-demo.html)
-          cp docs/index.html _site/index.html
+          cp nexus-v5.html _site/index.html
 
       - uses: actions/configure-pages@v4
 

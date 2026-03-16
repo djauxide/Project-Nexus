@@ -4,8 +4,8 @@ const fs   = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-const HTML = path.join(__dirname, 'nexus-demo.html');
-const PORT = 8080;
+const HTML = path.join(__dirname, '..', '..', 'nexus-v5.html');
+const PORT = 3000;
 
 const server = http.createServer(function(req, res) {
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

@@ -4,6 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyJwt from '@fastify/jwt';
 import fastifyHelmet from '@fastify/helmet';
 import { WebSocketManager } from './websocket/manager';
+import { StateEngine } from './state/engine';
 import { Role, JwtPayload, WsMessage } from './types';
 import { v4 as uuid } from 'uuid';
 
@@ -26,6 +27,7 @@ const fastify = Fastify({
 });
 
 const wsManager = new WebSocketManager();
+const stateEngine = new StateEngine(wsManager);
 
 async function bootstrap() {
   await fastify.register(fastifyHelmet, { contentSecurityPolicy: false });
@@ -62,6 +64,8 @@ async function bootstrap() {
     wsManager.register(connection.socket, { id: clientId, role: decoded.role, userId: decoded.userId });
 
     connection.socket.send(JSON.stringify({ type: 'INIT', role: decoded.role, timestamp: Date.now() }));
+    // Send full state on connect
+    stateEngine.broadcastFullState();
 
     connection.socket.on('message', async (raw: Buffer) => {
       try {
@@ -90,17 +94,25 @@ async function bootstrap() {
 
   // Switcher REST
   fastify.post('/api/v1/switcher/cut', async (req, reply) => {
-    const { pvw, pgm } = req.body as { pvw: number; pgm: number };
-    wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER', 'TRAINER'], {
-      type: 'TALLY_UPDATE', pgm: pvw, pvw: pgm, timestamp: Date.now(),
-    });
+    const { me = 0, pvw, pgm } = req.body as { me?: number; pvw: number; pgm: number };
+    stateEngine.cut(me, pvw);
     return { success: true, newPgm: pvw, newPvw: pgm, latency_ms: 4 };
   });
 
+  fastify.post('/api/v1/switcher/pvw', async (req) => {
+    const { me = 0, source } = req.body as { me?: number; source: number };
+    stateEngine.setPvw(me, source);
+    return { success: true };
+  });
+
+  fastify.post('/api/v1/switcher/auto', async (req) => {
+    const { me = 0 } = req.body as { me?: number };
+    stateEngine.autoTransition(me); // fire and forget
+    return { success: true };
+  });
+
   fastify.get('/api/v1/switcher/health', async () => ({ status: 'healthy' }));
-  fastify.get('/api/v1/switcher/state', async () => ({
-    pgm: 1, pvw: 2, transition: 'CUT', rate: 25, inTransition: false,
-  }));
+  fastify.get('/api/v1/switcher/state', async () => stateEngine.getState().me);
 
   // PTP REST
   fastify.get('/api/v1/ptp/status', async () => ({
@@ -108,7 +120,17 @@ async function bootstrap() {
   }));
 
   // Router REST
-  fastify.get('/api/v1/router/flows', async () => []);
+  fastify.get('/api/v1/router/flows', async () => stateEngine.getState().router);
+  fastify.post('/api/v1/router/route', async (req) => {
+    const { level, dst, src } = req.body as { level: string; dst: string; src: string };
+    stateEngine.route(level, dst, src);
+    return { success: true };
+  });
+  fastify.post('/api/v1/router/lock', async (req) => {
+    const { level, dst, locked } = req.body as { level: string; dst: string; locked: boolean };
+    stateEngine.lockRoute(level, dst, locked);
+    return { success: true };
+  });
 
   // Multiviewer REST
   fastify.get('/api/v1/multiviewer/layout', async () => ({ layout: '4x4', cells: [] }));
@@ -184,11 +206,31 @@ async function bootstrap() {
     },
   }));
 
-  // Alarms
-  fastify.get('/api/v1/cerebrum/alarms', async () => ({ alarms: [] }));
-  fastify.post('/api/v1/cerebrum/alarms/acknowledge', async (req) => {
-    const { id } = req.body as { id: string };
-    return { success: true, id };
+  // Sources & state
+  fastify.get('/api/v1/sources', async () => stateEngine.getSources());
+  fastify.get('/api/v1/state', async () => stateEngine.getState());
+  fastify.get('/api/v1/alarms', async () => stateEngine.getAlarms());
+  fastify.post('/api/v1/alarms/:id/acknowledge', async (req) => {
+    const { id } = req.params as { id: string };
+    stateEngine.acknowledgeAlarm(id);
+    return { success: true };
+  });
+
+  // Hardware sync endpoints (called by ATEM/Ember+ services)
+  fastify.post('/api/v1/sync/atem', async (req) => {
+    const { me, pgm, pvw } = req.body as { me: number; pgm: number; pvw: number };
+    stateEngine.syncFromATEM(me, pgm, pvw);
+    return { success: true };
+  });
+  fastify.post('/api/v1/sync/ember', async (req) => {
+    const { path, value } = req.body as { path: string; value: unknown };
+    stateEngine.syncFromEmber(path, value);
+    return { success: true };
+  });
+  fastify.post('/api/v1/sync/nmos', async (req) => {
+    const { event, data } = req.body as { event: string; data: unknown };
+    stateEngine.syncFromNMOS(event, data);
+    return { success: true };
   });
 
   // ── Virtual Rack / Cloud MCR ──────────────────────────────────────────────
@@ -228,6 +270,7 @@ async function bootstrap() {
   }));
 
   wsManager.startHeartbeat();
+  stateEngine.start();
 
   await fastify.listen({ port: parseInt(process.env.API_PORT ?? '8080'), host: '0.0.0.0' });
 }
@@ -241,30 +284,40 @@ async function handleMessage(msg: WsMessage, clientId: string, role: Role) {
 
   switch (msg.type) {
     case 'SWITCHER_CUT': {
-      const { pvw, pgm } = msg.payload as { pvw: number; pgm: number };
-      wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER', 'TRAINER'], {
-        type: 'TALLY_UPDATE', pgm: pvw, pvw: pgm, source: clientId, timestamp: Date.now(),
-      });
+      const { me = 0, pvw } = msg.payload as { me?: number; pvw: number };
+      stateEngine.cut(me, pvw);
       break;
     }
-    case 'SWITCHER_PVW':
-      wsManager.broadcast({ type: 'PVW_UPDATE', ...msg.payload, timestamp: Date.now() });
+    case 'SWITCHER_PVW': {
+      const { me = 0, source } = msg.payload as { me?: number; source: number };
+      stateEngine.setPvw(me, source);
       break;
-    case 'ROUTER_CONNECT':
-      wsManager.broadcast({ type: 'ROUTER_UPDATE', ...msg.payload, active: true });
+    }
+    case 'SWITCHER_AUTO': {
+      const { me = 0 } = msg.payload as { me?: number };
+      stateEngine.autoTransition(me);
       break;
+    }
+    case 'ROUTER_CONNECT': {
+      const { level, dst, src } = msg.payload as { level: string; dst: string; src: string };
+      stateEngine.route(level, dst, src);
+      break;
+    }
     case 'GET_STATE':
-      wsManager.send(clientId, { type: 'STATE', pgm: 1, pvw: 2, timestamp: Date.now() });
+      wsManager.send(clientId, { type: 'FULL_STATE', state: stateEngine.getState(), timestamp: Date.now() });
       break;
-    case 'CEREBRUM_ROUTE':
-      wsManager.broadcast({ type: 'CEREBRUM_ROUTE', ...msg.payload, timestamp: Date.now() });
+    case 'CEREBRUM_ROUTE': {
+      const { level, src, dst } = msg.payload as { level: string; src: string; dst: string };
+      stateEngine.route(level, dst, src);
       break;
+    }
     case 'CEREBRUM_TALLY':
       wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER', 'TRAINER'], {
         type: 'CEREBRUM_TALLY', ...msg.payload, timestamp: Date.now(),
       });
       break;
     case 'CEREBRUM_MACRO_RUN':
+      stateEngine.addAlarm('info', `Macro executed: ${(msg.payload as any)?.macroId}`, 'macro');
       wsManager.broadcastToRoles(['OPERATOR', 'ENGINEER'], {
         type: 'CEREBRUM_MACRO_RUN', ...msg.payload, timestamp: Date.now(),
       });
@@ -272,6 +325,11 @@ async function handleMessage(msg: WsMessage, clientId: string, role: Role) {
     case 'CEREBRUM_SALVO':
       wsManager.broadcast({ type: 'CEREBRUM_SALVO', ...msg.payload, timestamp: Date.now() });
       break;
+    case 'ALARM_ACK': {
+      const { id } = msg.payload as { id: string };
+      stateEngine.acknowledgeAlarm(id);
+      break;
+    }
   }
 }
 

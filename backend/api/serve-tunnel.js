@@ -6,7 +6,7 @@ const fs     = require('fs');
 const path   = require('path');
 const { spawn } = require('child_process');
 
-const HTML = path.join(__dirname, 'nexus-demo.html');
+const HTML = path.join(__dirname, '..', '..', 'nexus-v5.html');
 const PORT = 8743;
 
 // 1. Start local HTTP server

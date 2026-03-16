@@ -51,6 +51,32 @@ services:
     depends_on:
       - redis
 
+  atem:
+    build:
+      context: ./backend/services/atem
+    ports:
+      - "8081:8081"
+    environment:
+      - ATEM_HOST=${ATEM_HOST:-192.168.1.240}
+      - ATEM_PORT=9910
+      - HTTP_PORT=8081
+      - NEXUS_API_URL=http://api:8080
+    depends_on:
+      - api
+
+  ember:
+    build:
+      context: ./backend/services/ember
+    ports:
+      - "8082:8082"
+    environment:
+      - EMBER_HOST=${EMBER_HOST:-192.168.1.100}
+      - EMBER_PORT=9000
+      - HTTP_PORT=8082
+      - NEXUS_API_URL=http://api:8080
+    depends_on:
+      - api
+
   nmos:
     build:
       context: ./backend/services/nmos

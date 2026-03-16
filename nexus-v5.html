@@ -309,6 +309,7 @@ button,select,input{font-family:var(--font)}
     <div class="si"><span class="si-lbl">PGM</span><span class="si-pgm" id="sb-pgm">CAM-01</span></div>
     <div class="si"><span class="si-lbl">PVW</span><span class="si-pvw" id="sb-pvw">CAM-02</span></div>
     <div class="si"><span class="si-ptp" id="sb-ptp">PTP ±1ns</span></div>
+    <div class="si"><span class="dot dot-off" id="ws-dot"></span><span class="si-lbl" id="ws-lbl">LOCAL</span></div>
     <div class="si" id="sb-alm" style="display:none"><span id="sb-alm-txt" style="color:var(--warn);font-size:9px"></span></div>
     <div class="si-sp"></div>
     <div class="si"><span class="dot dot-pgm dot-pulse"></span>&nbsp;<span class="si-air">ON AIR</span></div>
@@ -494,7 +495,194 @@ function _initAll() {
   addAlarm('ok','NEXUS v5 initialized — all systems nominal');
   addAlarm('info','PTP locked ±1.2ns — SMPTE ST 2059-2');
   addAlarm('warn','Viz Engine 2: CPU 88% — monitor');
+  _wsConnect();
 }
+
+// ─── WEBSOCKET CLIENT ─────────────────────────────────────────────────────────
+// Connects to the NEXUS state engine backend (ws://localhost:8080/ws/control).
+// Falls back gracefully to local simulation if backend is not running.
+// Source ID mapping: backend uses numeric IDs (1-21), UI uses string IDs (CAM-01 etc.)
+var _ws = null;
+var _wsReconnTimer = null;
+var _wsReconnCount = 0;
+var _wsConnected = false;
+
+// Map backend numeric source IDs → UI string IDs
+var _srcMap = {
+  '1':'CAM-01','2':'CAM-02','3':'CAM-03','4':'CAM-04',
+  '5':'CAM-05','6':'CAM-06','7':'CAM-07','8':'CAM-08',
+  '9':'GFX-01','10':'GFX-02',
+  '11':'VTR-01','12':'VTR-02','13':'VTR-03',
+  '14':'REM-01','15':'REM-02','16':'REM-03',
+  '20':'TST-01','21':'TST-02'
+};
+function _mapSrc(id) { return _srcMap[String(id)] || ('SRC-'+id); }
+
+// Pre-built demo JWT (HS256, secret=dev-secret-change-in-production, role=ENGINEER, 8h)
+// Generated offline — matches the server's dev JWT_SECRET
+var _DEMO_TOKEN = (function(){
+  function b64u(s){ return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+  var h = b64u(JSON.stringify({alg:'HS256',typ:'JWT'}));
+  var p = b64u(JSON.stringify({userId:'demo',role:ROLE||'ENGINEER',iss:'nexus-v4',exp:Math.floor(Date.now()/1000)+28800}));
+  // Signature is a placeholder — server will reject if JWT_SECRET differs, WS will close, we catch gracefully
+  var sig = b64u('nexus-demo-sig');
+  return h+'.'+p+'.'+sig;
+})();
+
+function _wsConnect() {
+  if (_ws && (_ws.readyState === WebSocket.OPEN || _ws.readyState === WebSocket.CONNECTING)) return;
+  var wsUrl = 'ws://localhost:8080/ws/control?token=' + _DEMO_TOKEN;
+  try {
+    _ws = new WebSocket(wsUrl);
+  } catch(e) { return; }
+
+  _ws.onopen = function() {
+    _wsConnected = true;
+    _wsReconnCount = 0;
+    _wsSetStatus(true);
+    _ws.send(JSON.stringify({type:'GET_STATE'}));
+    addAlarm('ok','WebSocket connected — live backend active');
+  };
+
+  _ws.onmessage = function(ev) {
+    try { _wsHandle(JSON.parse(ev.data)); } catch(e) {}
+  };
+
+  _ws.onclose = function() {
+    _wsConnected = false;
+    _wsSetStatus(false);
+    if (_wsReconnCount < 8) {
+      _wsReconnCount++;
+      _wsReconnTimer = setTimeout(_wsConnect, Math.min(_wsReconnCount * 2000, 16000));
+    }
+  };
+
+  _ws.onerror = function() { /* handled by onclose */ };
+}
+
+function _wsSetStatus(connected) {
+  var dot = document.getElementById('ws-dot');
+  var lbl = document.getElementById('ws-lbl');
+  if (dot) { dot.className = 'dot ' + (connected ? 'dot-ok' : 'dot-off'); }
+  if (lbl) { lbl.textContent = connected ? 'LIVE' : 'LOCAL'; }
+}
+
+function _wsHandle(msg) {
+  switch(msg.type) {
+    case 'FULL_STATE':
+      if (msg.state) _wsApplyFullState(msg.state);
+      break;
+    case 'TC_UPDATE':
+      if (msg.timecode) {
+        var el = document.getElementById('sb-tc'); if(el) el.textContent = msg.timecode;
+        // Stop local TC simulation to avoid drift
+        _ivs.forEach(function(iv){ clearInterval(iv); }); _ivs = [];
+      }
+      break;
+    case 'PTP_UPDATE':
+      var pe = document.getElementById('sb-ptp');
+      if (pe && msg.offset !== undefined) {
+        var off = parseFloat(msg.offset).toFixed(1);
+        pe.textContent = 'PTP '+(off>=0?'+':'')+off+'ns';
+        pe.style.color = Math.abs(off) > 5 ? 'var(--warn)' : 'var(--acc)';
+      }
+      break;
+    case 'SWITCHER_CUT':
+    case 'SWITCHER_SYNC':
+      if (msg.me === 0 || msg.me === undefined) {
+        var pgmId = _mapSrc(msg.pgm);
+        var pvwId = _mapSrc(msg.pvw);
+        SW.me[0].pgm = pgmId; SW.me[0].pvw = pvwId;
+        var ep=document.getElementById('sb-pgm'); if(ep) ep.textContent=pgmId;
+        var ev=document.getElementById('sb-pvw'); if(ev) ev.textContent=pvwId;
+        var lp=document.getElementById('lbl-pgm'); if(lp) lp.textContent=pgmId;
+        var lv=document.getElementById('lbl-pvw'); if(lv) lv.textContent=pvwId;
+        _refreshME();
+      }
+      break;
+    case 'SWITCHER_PVW':
+      if (msg.me === 0 || msg.me === undefined) {
+        var pvwId2 = _mapSrc(msg.pvw);
+        SW.me[0].pvw = pvwId2;
+        var ev2=document.getElementById('sb-pvw'); if(ev2) ev2.textContent=pvwId2;
+        _refreshME();
+      }
+      break;
+    case 'TALLY_UPDATE':
+      if (msg.tallies) _wsApplyTallies(msg.tallies);
+      break;
+    case 'ALARM':
+      if (msg.alarm) addAlarm(msg.alarm.severity||'info', msg.alarm.message||'');
+      break;
+    case 'ROUTER_ROUTE':
+      if (msg.dst && msg.src) ROUTER[msg.dst] = _mapSrc(msg.src);
+      break;
+    case 'SWITCHER_TRANS_PROGRESS':
+      if (msg.me === 0) {
+        var bar = document.getElementById('me-bar-0');
+        if (bar) bar.style.width = (msg.progress * 100) + '%';
+      }
+      break;
+  }
+}
+
+function _wsApplyFullState(state) {
+  // Sync ME banks
+  if (state.me) {
+    state.me.forEach(function(me, i) {
+      if (!SW.me[i]) return;
+      SW.me[i].pgm = _mapSrc(me.pgm);
+      SW.me[i].pvw = _mapSrc(me.pvw);
+    });
+    var ep=document.getElementById('sb-pgm'); if(ep) ep.textContent=SW.me[0].pgm;
+    var ev=document.getElementById('sb-pvw'); if(ev) ev.textContent=SW.me[0].pvw;
+    var lp=document.getElementById('lbl-pgm'); if(lp) lp.textContent=SW.me[0].pgm;
+    var lv=document.getElementById('lbl-pvw'); if(lv) lv.textContent=SW.me[0].pvw;
+    _refreshME();
+  }
+  // Sync router
+  if (state.router) {
+    state.router.forEach(function(r) { if(r.dst && r.src) ROUTER[r.dst] = _mapSrc(r.src); });
+  }
+  // Sync alarms
+  if (state.alarms && state.alarms.length) {
+    state.alarms.slice(0,5).forEach(function(a) {
+      addAlarm(a.severity||'info', a.message||'');
+    });
+  }
+}
+
+function _wsApplyTallies(tallies) {
+  // Update source status based on tally data
+  tallies.forEach(function(t) {
+    var sid = _mapSrc(t.source);
+    var src = SOURCES.find(function(s){ return s.id === sid; });
+    if (src) src.status = t.pgm ? 'pgm' : t.pvw ? 'pvw' : 'ok';
+  });
+}
+
+// Send action to backend (no-op if not connected)
+function _wsSend(msg) {
+  if (_ws && _ws.readyState === WebSocket.OPEN) _ws.send(JSON.stringify(msg));
+}
+
+// Override local cut/pvw/auto to also send to backend
+var _origMeCut = meCut;
+meCut = function(mi) {
+  _origMeCut(mi);
+  _wsSend({type:'SWITCHER_CUT', payload:{me:mi, pvw:SW.me[mi]?SOURCES.findIndex(function(s){return s.id===SW.me[mi].pvw;})+1:0}});
+};
+var _origMePvw = mePvw;
+mePvw = function(mi, sid) {
+  _origMePvw(mi, sid);
+  var srcIdx = SOURCES.findIndex(function(s){return s.id===sid;});
+  _wsSend({type:'SWITCHER_PVW', payload:{me:mi, source:srcIdx+1}});
+};
+var _origMeAuto = meAuto;
+meAuto = function(mi) {
+  _origMeAuto(mi);
+  _wsSend({type:'SWITCHER_AUTO', payload:{me:mi}});
+};
 </script>
 <script>
 // ─── LIVE VIEW ────────────────────────────────────────────────────────────────

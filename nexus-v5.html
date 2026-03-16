@@ -323,6 +323,7 @@ button,select,input{font-family:var(--font)}
     <div class="view" id="view-rundown"></div>
     <div class="view" id="view-playout"></div>
     <div class="view" id="view-orchestrator"></div><div class="view" id="view-training"></div>
+    <div class="view" id="view-compat"></div>
   </div>
 </div>
 
@@ -337,7 +338,8 @@ var VIEWS = [
   ['live','LIVE'],['mosaic','MOSAIC'],['switcher','SWITCH'],['router','ROUTER'],
   ['rundown','RUNDOWN'],['playout','PLAYOUT'],['orchestrator','ORCHESTRATE'],
   ['cloudmcr','CLOUD MCR'],['srt','SRT/CLOUD'],['scopes','SCOPES'],
-  ['ptp','SYNC'],['nmos','CONNECT'],['devices','DEVICES'],['api','API'],['preflight','PRE-FLIGHT'],['training','TRAINING']
+  ['ptp','SYNC'],['nmos','CONNECT'],['devices','DEVICES'],['api','API'],['preflight','PRE-FLIGHT'],
+  ['training','TRAINING'],['compat','COMPATIBILITY']
 ];
 
 // â”€â”€â”€ SOURCES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -442,10 +444,10 @@ function canOperator(){ return ROLE==='ENGINEER'||ROLE==='OPERATOR'; }
 
 // Role-based nav visibility
 var ROLE_NAV = {
-  ENGINEER: ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','api','preflight','training'],
-  OPERATOR: ['live','mosaic','switcher','router','rundown','playout','cloudmcr','srt','scopes','ptp','nmos','preflight','training'],
-  TRAINER:  ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','preflight','training'],
-  VIEWER:   ['live','mosaic','scopes','ptp','training']
+  ENGINEER: ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','api','preflight','training','compat'],
+  OPERATOR: ['live','mosaic','switcher','router','rundown','playout','cloudmcr','srt','scopes','ptp','nmos','preflight','training','compat'],
+  TRAINER:  ['live','mosaic','switcher','router','rundown','playout','orchestrator','cloudmcr','srt','scopes','ptp','nmos','devices','preflight','training','compat'],
+  VIEWER:   ['live','mosaic','scopes','ptp','training','compat']
 };
 
 function showView(id) {
@@ -501,6 +503,7 @@ function _initAll() {
   _initPlayout();
   _initOrchestrator();
   _initTraining();
+  _initCompat();
   addAlarm('ok','NEXUS v5 initialized â€” all systems nominal');
   addAlarm('info','PTP locked Â±1.2ns â€” SMPTE ST 2059-2');
   addAlarm('warn','Viz Engine 2: CPU 88% â€” monitor');
@@ -2190,7 +2193,134 @@ function _trComplete(){
 }
 </script>
 <script>
-// ─── SWITCH USER ──────────────────────────────────────────────────────────────
+// ─── COMPATIBILITY MATRIX VIEW ───────────────────────────────────────────────
+function _initCompat(){
+  var v=document.getElementById('view-compat'); if(!v) return;
+
+  // Protocols NEXUS supports
+  var PROTOCOLS=[
+    'SMPTE ST 2110','NMOS IS-04','NMOS IS-05','NMOS IS-07','NMOS IS-08',
+    'PTP ST 2059-2','SRT','NDI','RTMP/HLS','Ember+','SNMP','REST API','WebSocket'
+  ];
+
+  // Equipment list with protocol support flags (1=native, 2=via gateway, 0=no)
+  // 1=native ✓  2=via adapter ◎  0=—
+  var EQUIPMENT=[
+    {vendor:'Sony',model:'HDC-5500 / PWS-4500',cat:'Camera / CCU',
+     p:[1,1,1,0,0,1,0,0,0,0,1,0,0],note:'ST 2110 native via PWS-4500 IP unit'},
+    {vendor:'Sony',model:'XVS-9000 Switcher',cat:'Production Switcher',
+     p:[1,1,1,1,1,1,0,0,0,0,1,1,1],note:'Full NMOS + ST 2110 native'},
+    {vendor:'GV (Grass Valley)',model:'Korona / Karrera X',cat:'Production Switcher',
+     p:[1,1,1,1,1,1,0,0,0,1,1,1,1],note:'Ember+ control, full IP native'},
+    {vendor:'GV (Grass Valley)',model:'GV Orbit / Densité',cat:'Signal Processing',
+     p:[1,1,1,1,1,1,0,0,0,1,1,1,0],note:'GV Orbit orchestration compatible'},
+    {vendor:'EVS',model:'XT-VIA / IPDirector',cat:'Replay / Server',
+     p:[1,1,1,0,0,1,1,0,0,1,1,1,0],note:'ST 2110 native, SRT ingest, Ember+'},
+    {vendor:'Riedel',model:'MediorNet / Artist',cat:'Signal Transport / Comms',
+     p:[1,1,1,0,0,1,0,0,0,1,1,1,0],note:'MediorNet ST 2110, Artist Ember+'},
+    {vendor:'Riedel',model:'Bolero Wireless',cat:'Intercom',
+     p:[0,0,0,0,0,0,0,0,0,1,1,1,0],note:'Ember+ control integration'},
+    {vendor:'Lawo',model:'mc² / VSM',cat:'Audio Mixer / Control',
+     p:[1,1,1,1,1,1,0,0,0,1,1,1,1],note:'Full ST 2110-30/31, NMOS, Ember+'},
+    {vendor:'Calrec',model:'Artemis / Brio',cat:'Audio Mixer',
+     p:[1,1,1,0,1,1,0,0,0,1,1,1,0],note:'ST 2110-30 native, NMOS IS-08 audio'},
+    {vendor:'Netgear',model:'M4300 / AV Line',cat:'Network Switch',
+     p:[1,0,0,0,0,1,0,0,0,0,1,0,0],note:'ST 2110 multicast, PTP boundary clock'},
+    {vendor:'Dante (Audinate)',model:'Dante AV-H / AVIO',cat:'Audio Network',
+     p:[2,0,0,0,0,2,0,0,0,0,1,0,0],note:'Via Dante-ST2110 gateway; AES67 bridge'},
+    {vendor:'Yamaha',model:'DM7 / QL Series',cat:'Audio Mixer',
+     p:[2,0,0,0,0,2,0,0,0,0,1,0,0],note:'Dante AES67 → ST 2110-30 via gateway'},
+    {vendor:'Behringer',model:'Wing / X32',cat:'Audio Mixer',
+     p:[2,0,0,0,0,2,0,0,0,0,1,0,0],note:'Dante/AES67 adapter required'},
+    {vendor:'Blackmagic Design',model:'ATEM Constellation',cat:'Production Switcher',
+     p:[2,0,0,0,0,0,0,0,0,0,1,1,1],note:'SDI→ST2110 bridge; ATEM service in NEXUS'},
+    {vendor:'Blackmagic Design',model:'HyperDeck Studio',cat:'Recorder / Playout',
+     p:[1,0,0,0,0,0,0,0,0,0,1,1,0],note:'ST 2110 input, REST control'},
+    {vendor:'Vizrt',model:'Viz Engine / Trio',cat:'Graphics',
+     p:[1,1,1,0,0,1,0,0,0,1,1,1,0],note:'ST 2110 output, NMOS, Ember+ control'},
+    {vendor:'Ross Video',model:'Carbonite / Ultrix',cat:'Switcher / Router',
+     p:[1,1,1,0,0,1,0,0,0,1,1,1,0],note:'openGear ST 2110, NMOS, Ember+'},
+    {vendor:'Haivision',model:'SRT Gateway / Makito',cat:'Encoding / Streaming',
+     p:[1,0,0,0,0,0,1,0,1,0,1,1,0],note:'SRT native, ST 2110 input'},
+    {vendor:'Evertz',model:'MAGNUM / 7800 Series',cat:'Router / Processing',
+     p:[1,1,1,0,0,1,0,0,0,1,1,1,0],note:'Full IP routing, NMOS, Ember+'},
+    {vendor:'Multiviewer (generic)',model:'Imagine / Axon / TSL',cat:'Multiviewer',
+     p:[1,1,1,0,0,1,0,0,0,0,1,1,0],note:'ST 2110 inputs, NMOS discovery'}
+  ];
+
+  var legend='<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">'+
+    '<span style="font-size:9px;color:var(--t3);letter-spacing:1px">LEGEND:</span>'+
+    '<span style="font-size:10px;color:var(--ok)">&#10003; Native</span>'+
+    '<span style="font-size:10px;color:var(--warn)">&#9678; Via Gateway/Adapter</span>'+
+    '<span style="font-size:10px;color:var(--t3)">&#8212; Not Supported</span>'+
+  '</div>';
+
+  var tableHead='<tr><th style="min-width:110px;text-align:left">Vendor</th>'+
+    '<th style="min-width:160px;text-align:left">Model / Platform</th>'+
+    '<th style="min-width:120px;text-align:left">Category</th>'+
+    PROTOCOLS.map(function(p){
+      return '<th style="min-width:70px;font-size:7px;letter-spacing:1px;writing-mode:vertical-rl;transform:rotate(180deg);padding:8px 4px;height:90px">'+p+'</th>';
+    }).join('')+
+    '<th style="min-width:200px;text-align:left">Notes</th>'+
+  '</tr>';
+
+  var tableRows=EQUIPMENT.map(function(eq){
+    var cells=eq.p.map(function(val){
+      if(val===1) return '<td style="text-align:center;color:var(--ok);font-size:14px">&#10003;</td>';
+      if(val===2) return '<td style="text-align:center;color:var(--warn);font-size:12px">&#9678;</td>';
+      return '<td style="text-align:center;color:var(--t3)">&#8212;</td>';
+    }).join('');
+    return '<tr>'+
+      '<td style="font-weight:700;font-size:10px;color:var(--acc)">'+eq.vendor+'</td>'+
+      '<td style="font-size:10px;font-weight:600">'+eq.model+'</td>'+
+      '<td><span class="tag">'+eq.cat+'</span></td>'+
+      cells+
+      '<td style="font-size:9px;color:var(--t3);max-width:200px">'+eq.note+'</td>'+
+    '</tr>';
+  }).join('');
+
+  v.innerHTML=
+    '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">'+
+      '<div style="padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--b1);flex-shrink:0;display:flex;align-items:center;gap:16px;flex-wrap:wrap">'+
+        '<div>'+
+          '<div style="font-size:14px;font-weight:700;color:var(--acc)">Equipment Compatibility Matrix</div>'+
+          '<div style="font-size:9px;color:var(--t3);margin-top:2px">NEXUS v5 protocol support across broadcast vendors</div>'+
+        '</div>'+
+        '<div style="margin-left:auto">'+legend+'</div>'+
+      '</div>'+
+      '<div style="flex:1;overflow:auto;padding:8px">'+
+        '<div class="pnl">'+
+          '<div class="pnl-h">'+
+            '<span class="pnl-t">VENDOR COMPATIBILITY</span>'+
+            '<span class="bx bx-ok">'+EQUIPMENT.length+' DEVICES</span>'+
+            '<span class="bx bx-acc" style="margin-left:6px">'+PROTOCOLS.length+' PROTOCOLS</span>'+
+          '</div>'+
+          '<div style="overflow:auto">'+
+            '<table class="rt-table" style="width:100%">'+
+              tableHead+tableRows+
+            '</table>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">'+
+          _compatCard('SMPTE ST 2110','Full compliance','All video/audio/ancillary over IP. Multicast, IGMP v3, PTP-locked.','ok')+
+          _compatCard('NMOS IS-04/05/07/08','Full compliance','Auto-discovery, connection management, event/tally, audio channel mapping.','ok')+
+          _compatCard('Ember+','Native support','Control surface integration for Lawo, GV, Riedel, EVS, Vizrt via Ember+ gateway service.','ok')+
+          _compatCard('Dante / AES67','Via gateway','AES67 is natively bridgeable. Dante requires Dante-to-ST2110 gateway (e.g. Audinate AVIO or Focusrite RedNet).','warn')+
+          _compatCard('SDI Legacy','Via bridge','FPGA SDI bridge (sdi_to_st2110.vhd) converts SDI ↔ ST 2110. Supports 3G/HD/SD-SDI.','warn')+
+          _compatCard('ATEM / Blackmagic','Via service','Dedicated ATEM microservice (Go) bridges ATEM protocol to NEXUS WebSocket/REST API.','warn')+
+        '</div>'+
+      '</div>'+
+    '</div>';
+}
+
+function _compatCard(title,status,desc,sev){
+  var c=sev==='ok'?'var(--ok)':'var(--warn)';
+  var bx=sev==='ok'?'bx-ok':'bx-warn';
+  return '<div class="pnl"><div class="pnl-h"><span class="pnl-t">'+title+'</span><span class="bx '+bx+'">'+status+'</span></div>'+
+    '<div style="padding:10px;font-size:10px;color:var(--t2);line-height:1.6">'+desc+'</div></div>';
+}
+</script>
+<script>
 function switchUser(){
   // Build a modal overlay
   var existing=document.getElementById('switch-modal');
@@ -2289,8 +2419,3 @@ canEngineer=function(){
 </script>
 </body>
 </html>
-
-
-
-
-

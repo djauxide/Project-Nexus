@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NEXUS v5 — Broadcast Orchestration Platform</title>
+<title>NEXUS v5 â€” Broadcast Orchestration Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -268,17 +268,17 @@ button,select,input{font-family:var(--font)}
   <div class="lg-wrap">
     <div class="lg-logo">
       <div class="lg-nx">NEXUS</div>
-      <div class="lg-sub">Broadcast Orchestration Platform &nbsp;·&nbsp; v5</div>
+      <div class="lg-sub">Broadcast Orchestration Platform &nbsp;Â·&nbsp; v5</div>
     </div>
     <div class="lg-box">
       <div class="lg-err" id="lg-err">&#9888; AUTHENTICATION FAILED</div>
       <label class="lg-lbl">Access Code</label>
-      <input class="lg-inp" type="password" id="lg-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <input class="lg-inp" type="password" id="lg-pw" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" onkeydown="if(event.key==='Enter')doLogin()">
       <label class="lg-lbl">Operator Role</label>
       <select class="lg-sel" id="lg-role">
-        <option value="ENGINEER">ENGINEER — Full System Access</option>
-        <option value="OPERATOR">OPERATOR — Production Control</option>
-        <option value="VIEWER">VIEWER — Monitor Only</option>
+        <option value="ENGINEER">ENGINEER â€” Full System Access</option>
+        <option value="OPERATOR">OPERATOR â€” Production Control</option>
+        <option value="VIEWER">VIEWER â€” Monitor Only</option>
       </select>
       <button class="lg-btn" onclick="doLogin()">AUTHENTICATE</button>
       <div class="lg-hint">Demo access code: nexus2024</div>
@@ -308,7 +308,7 @@ button,select,input{font-family:var(--font)}
     <div class="si"><span class="si-lbl">TC</span><span class="si-tc" id="sb-tc">10:00:00:00</span></div>
     <div class="si"><span class="si-lbl">PGM</span><span class="si-pgm" id="sb-pgm">CAM-01</span></div>
     <div class="si"><span class="si-lbl">PVW</span><span class="si-pvw" id="sb-pvw">CAM-02</span></div>
-    <div class="si"><span class="si-ptp" id="sb-ptp">PTP ±1ns</span></div>
+    <div class="si"><span class="si-ptp" id="sb-ptp">PTP Â±1ns</span></div>
     <div class="si"><span class="dot dot-off" id="ws-dot"></span><span class="si-lbl" id="ws-lbl">LOCAL</span></div>
     <div class="si" id="sb-alm" style="display:none"><span id="sb-alm-txt" style="color:var(--warn);font-size:9px"></span></div>
     <div class="si-sp"></div>
@@ -330,23 +330,27 @@ button,select,input{font-family:var(--font)}
     <div class="view" id="view-devices"></div>
     <div class="view" id="view-api"></div>
     <div class="view" id="view-preflight"></div>
+    <div class="view" id="view-rundown"></div>
+    <div class="view" id="view-playout"></div>
+    <div class="view" id="view-orchestrator"></div>
   </div>
 </div>
 
 <script>
 'use strict';
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ CONSTANTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var PW = 'nexus2024';
 var ROLE = 'VIEWER';
 var _ivs = [];
 
 var VIEWS = [
   ['live','LIVE'],['mosaic','MOSAIC'],['switcher','SWITCH'],['router','ROUTER'],
+  ['rundown','RUNDOWN'],['playout','PLAYOUT'],['orchestrator','ORCHESTRATE'],
   ['cloudmcr','CLOUD MCR'],['srt','SRT/CLOUD'],['scopes','SCOPES'],
   ['ptp','SYNC'],['nmos','CONNECT'],['devices','DEVICES'],['api','API'],['preflight','PRE-FLIGHT']
 ];
 
-// ─── SOURCES ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ SOURCES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var SOURCES = [
   {id:'CAM-01',label:'CAM 01',type:'camera',loc:'Floor A',status:'pgm'},
   {id:'CAM-02',label:'CAM 02',type:'camera',loc:'Floor A',status:'pvw'},
@@ -374,7 +378,7 @@ var SOURCES = [
   {id:'AUX-02',label:'AUX 02',type:'aux',loc:'Aux',status:'ok'}
 ];
 
-// ─── SWITCHER STATE ───────────────────────────────────────────────────────────
+// â”€â”€â”€ SWITCHER STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var SW = {
   me: [
     {name:'ME 1',pgm:'CAM-01',pvw:'CAM-02',trans:0,running:false,rate:25,type:'MIX'},
@@ -383,7 +387,7 @@ var SW = {
   ]
 };
 
-// ─── ROUTER STATE ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ ROUTER STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var ROUTER = {};
 (function(){
   var dests = ['PGM-A','PGM-B','PVW-A','PVW-B','MON-1','MON-2','MON-3','MON-4',
@@ -393,7 +397,7 @@ var ROUTER = {};
   dests.forEach(function(d,i){ ROUTER[d] = srcs[i % srcs.length]; });
 })();
 
-// ─── MOSAIC STATE ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ MOSAIC STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var MOSAIC = {
   layout: '3x3',
   tiles: [
@@ -408,7 +412,7 @@ var MOSAIC = {
   }
 };
 
-// ─── ALARMS ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ ALARMS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var ALARMS = [];
 function addAlarm(sev, msg) {
   ALARMS.unshift({sev:sev, msg:msg, time:p2(_th)+':'+p2(_tm)+':'+p2(_ts)});
@@ -420,14 +424,14 @@ function _updateAlarmBar() {
   var el = document.getElementById('sb-alm');
   var tx = document.getElementById('sb-alm-txt');
   if (el && tx) {
-    if (cnt > 0) { el.style.display='flex'; tx.textContent='⚠ '+cnt+' ALARM'+(cnt>1?'S':''); }
+    if (cnt > 0) { el.style.display='flex'; tx.textContent='âš  '+cnt+' ALARM'+(cnt>1?'S':''); }
     else el.style.display = 'none';
   }
   var bdg = document.querySelector('#nb-switcher .bdg');
   if (bdg) { bdg.textContent=cnt||''; bdg.style.display=cnt?'inline':'none'; }
 }
 
-// ─── TIMECODE ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ TIMECODE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var _tf=0,_ts=0,_tm=0,_th=10;
 function p2(n){ return n<10?'0'+n:''+n; }
 function _startTC() {
@@ -441,7 +445,7 @@ function _startTC() {
   }, 40));
 }
 
-// ─── CORE NAV ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ CORE NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function canOp(){ return ROLE !== 'VIEWER'; }
 
 function showView(id) {
@@ -461,7 +465,7 @@ function _buildNav() {
   }).join('');
 }
 
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ LOGIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function doLogin() {
   var pw = document.getElementById('lg-pw').value;
   var err = document.getElementById('lg-err');
@@ -478,7 +482,7 @@ function doLogin() {
   showView('live');
 }
 
-// ─── INIT ALL ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ INIT ALL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _initAll() {
   _initLive();
   _initMosaic();
@@ -492,13 +496,16 @@ function _initAll() {
   _initDevices();
   _initAPI();
   _initPreflight();
-  addAlarm('ok','NEXUS v5 initialized — all systems nominal');
-  addAlarm('info','PTP locked ±1.2ns — SMPTE ST 2059-2');
-  addAlarm('warn','Viz Engine 2: CPU 88% — monitor');
+  _initRundown();
+  _initPlayout();
+  _initOrchestrator();
+  addAlarm('ok','NEXUS v5 initialized â€” all systems nominal');
+  addAlarm('info','PTP locked Â±1.2ns â€” SMPTE ST 2059-2');
+  addAlarm('warn','Viz Engine 2: CPU 88% â€” monitor');
   _wsConnect();
 }
 
-// ─── WEBSOCKET CLIENT ─────────────────────────────────────────────────────────
+// â”€â”€â”€ WEBSOCKET CLIENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Connects to the NEXUS state engine backend (ws://localhost:8080/ws/control).
 // Falls back gracefully to local simulation if backend is not running.
 // Source ID mapping: backend uses numeric IDs (1-21), UI uses string IDs (CAM-01 etc.)
@@ -507,7 +514,7 @@ var _wsReconnTimer = null;
 var _wsReconnCount = 0;
 var _wsConnected = false;
 
-// Map backend numeric source IDs → UI string IDs
+// Map backend numeric source IDs â†’ UI string IDs
 var _srcMap = {
   '1':'CAM-01','2':'CAM-02','3':'CAM-03','4':'CAM-04',
   '5':'CAM-05','6':'CAM-06','7':'CAM-07','8':'CAM-08',
@@ -519,12 +526,12 @@ var _srcMap = {
 function _mapSrc(id) { return _srcMap[String(id)] || ('SRC-'+id); }
 
 // Pre-built demo JWT (HS256, secret=dev-secret-change-in-production, role=ENGINEER, 8h)
-// Generated offline — matches the server's dev JWT_SECRET
+// Generated offline â€” matches the server's dev JWT_SECRET
 var _DEMO_TOKEN = (function(){
   function b64u(s){ return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
   var h = b64u(JSON.stringify({alg:'HS256',typ:'JWT'}));
   var p = b64u(JSON.stringify({userId:'demo',role:ROLE||'ENGINEER',iss:'nexus-v4',exp:Math.floor(Date.now()/1000)+28800}));
-  // Signature is a placeholder — server will reject if JWT_SECRET differs, WS will close, we catch gracefully
+  // Signature is a placeholder â€” server will reject if JWT_SECRET differs, WS will close, we catch gracefully
   var sig = b64u('nexus-demo-sig');
   return h+'.'+p+'.'+sig;
 })();
@@ -541,7 +548,7 @@ function _wsConnect() {
     _wsReconnCount = 0;
     _wsSetStatus(true);
     _ws.send(JSON.stringify({type:'GET_STATE'}));
-    addAlarm('ok','WebSocket connected — live backend active');
+    addAlarm('ok','WebSocket connected â€” live backend active');
   };
 
   _ws.onmessage = function(ev) {
@@ -685,7 +692,7 @@ meAuto = function(mi) {
 };
 </script>
 <script>
-// ─── LIVE VIEW ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ LIVE VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var _liveIv = null;
 function _initLive() {
   var v = document.getElementById('view-live');
@@ -765,7 +772,7 @@ function quickTake(sid) {
   SW.me[0].pgm = sid;
   var el = document.getElementById('sb-pgm'); if(el) el.textContent = sid;
   var lbl = document.getElementById('lbl-pgm'); if(lbl) lbl.textContent = sid;
-  addAlarm('info','TAKE: '+sid+' → PGM');
+  addAlarm('info','TAKE: '+sid+' â†’ PGM');
 }
 
 function _startLiveCanvases() {
@@ -821,7 +828,7 @@ function _drawVU(cvId, phase) {
 
 var _evts=[];
 var _evtMsgs=[
-  ['ok','PTP sync locked ±1ns'],['info','NMOS registry heartbeat OK'],
+  ['ok','PTP sync locked Â±1ns'],['info','NMOS registry heartbeat OK'],
   ['info','SDI Bridge A: 1080i50 detected'],['ok','EVS XT-VIA: record armed'],
   ['info','SRT REM-01: 4.2 Mbps stable'],['ok','Viz Engine 1: ready'],
   ['warn','Viz Engine 2: CPU 88%'],['info','Cloud encoder A: 8.4 Mbps'],
@@ -848,7 +855,7 @@ function _startLiveEvents() {
 }
 </script>
 <script>
-// ─── MOSAIC VIEW ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ MOSAIC VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var _mosaicIv=null, _mosaicMenu=-1, _mosaicPhases={};
 
 function _initMosaic() {
@@ -956,8 +963,8 @@ function _tileMenuHTML(idx, curSrc) {
   var groups={camera:[],graphics:[],replay:[],remote:[],network:[],test:[],clean:[],aux:[]};
   SOURCES.forEach(function(s){ if(groups[s.type]) groups[s.type].push(s); });
   var h='<div class="tile-menu" id="tile-menu-'+idx+'">'+
-    '<div class="tm-hdr"><span>ASSIGN SOURCE — TILE '+(idx+1)+'</span>'+
-    '<button class="btn btn-sm" onclick="closeTileMenu(event,'+idx+')">✕</button></div>'+
+    '<div class="tm-hdr"><span>ASSIGN SOURCE â€” TILE '+(idx+1)+'</span>'+
+    '<button class="btn btn-sm" onclick="closeTileMenu(event,'+idx+')">âœ•</button></div>'+
     '<div class="tm-list">';
   Object.keys(groups).forEach(function(g){
     if(!groups[g].length) return;
@@ -992,7 +999,7 @@ function assignTile(e,idx,srcId){
   _closeTileMenu(idx);
   _renderMosaicGrid();
   var src=SOURCES.find(function(s){return s.id===srcId;});
-  addAlarm('info','Tile '+(idx+1)+' → '+(src?src.label:srcId));
+  addAlarm('info','Tile '+(idx+1)+' â†’ '+(src?src.label:srcId));
 }
 
 function _startMosaicCanvases(){
@@ -1032,7 +1039,7 @@ function _startMosaicCanvases(){
 }
 </script>
 <script>
-// ─── SWITCHER VIEW ────────────────────────────────────────────────────────────
+// â”€â”€â”€ SWITCHER VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _initSwitcher() {
   var v=document.getElementById('view-switcher');
   v.innerHTML=
@@ -1108,7 +1115,7 @@ function mePvw(mi,sid){
     var lbl=document.getElementById('lbl-pvw'); if(lbl) lbl.textContent=sid;
   }
   _refreshME();
-  addAlarm('info','ME'+(mi+1)+' PVW → '+sid);
+  addAlarm('info','ME'+(mi+1)+' PVW â†’ '+sid);
 }
 
 function meCut(mi){
@@ -1121,7 +1128,7 @@ function meCut(mi){
     var lv=document.getElementById('lbl-pvw'); if(lv) lv.textContent=SW.me[0].pvw;
   }
   _refreshME();
-  addAlarm('info','ME'+(mi+1)+' CUT → '+SW.me[mi].pgm);
+  addAlarm('info','ME'+(mi+1)+' CUT â†’ '+SW.me[mi].pgm);
 }
 
 function meAuto(mi){
@@ -1130,7 +1137,7 @@ function meAuto(mi){
   SW.me[mi].rate=rEl?parseInt(rEl.value):25;
   SW.me[mi].running=true; SW.me[mi].trans=0;
   var btn=document.getElementById('me-auto-'+mi);
-  if(btn){btn.textContent='RUNNING…';btn.classList.add('btn-warn');}
+  if(btn){btn.textContent='RUNNINGâ€¦';btn.classList.add('btn-warn');}
   var iv=setInterval(function(){
     SW.me[mi].trans+=1/SW.me[mi].rate;
     var fill=document.getElementById('tf-'+mi);
@@ -1164,7 +1171,7 @@ function _buildMLRouter(){
     h+='<tr><td>'+d+'</td>';
     srcs.forEach(function(s){
       var r=ROUTER[d]===s.id;
-      h+='<td class="'+(r?'xpt':'')+'" onclick="xpt(\''+d+'\',\''+s.id+'\')">'+(r?'●':'·')+'</td>';
+      h+='<td class="'+(r?'xpt':'')+'" onclick="xpt(\''+d+'\',\''+s.id+'\')">'+(r?'â—':'Â·')+'</td>';
     });
     h+='</tr>';
   });
@@ -1174,7 +1181,7 @@ function _buildMLRouter(){
 function xpt(dest,src){
   if(!canOp()) return;
   ROUTER[dest]=src;
-  addAlarm('info','ROUTE: '+src+' → '+dest);
+  addAlarm('info','ROUTE: '+src+' â†’ '+dest);
   var el=document.getElementById('sw-body');
   if(el&&el.innerHTML.indexOf('rt-table')>=0) el.innerHTML=_buildMLRouter();
 }
@@ -1205,7 +1212,7 @@ function _buildMacros(){
   var macros=[
     {n:'OPEN SHOW',d:'Fade up from black, GFX lower third on'},
     {n:'COMMERCIAL BREAK',d:'Fade to black, hold 5s, return PGM'},
-    {n:'REPLAY',d:'Cut to EVS, 3× slow motion, return PGM'},
+    {n:'REPLAY',d:'Cut to EVS, 3Ã— slow motion, return PGM'},
     {n:'REMOTE GUEST',d:'SRT remote in, lower third, IFB route'},
     {n:'CLOSE SHOW',d:'Fade to black, roll credits, mute audio'},
     {n:'EMERGENCY CUT',d:'Instant cut to black, mute, alert all'}
@@ -1235,7 +1242,7 @@ function _buildAlarms(){
 }
 </script>
 <script>
-// ─── ROUTER VIEW ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ ROUTER VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _initRouter(){
   var v=document.getElementById('view-router');
   var levels=['VIDEO','AUDIO L','AUDIO R','ANC','METADATA'];
@@ -1271,7 +1278,7 @@ function _buildFullRouter(){
     h+='<tr><td>'+d+'</td>';
     srcs.forEach(function(s){
       var r=ROUTER[d]===s.id;
-      h+='<td class="'+(r?'xpt':'')+'" onclick="rtXpt(\''+d+'\',\''+s.id+'\')">'+(r?'●':'·')+'</td>';
+      h+='<td class="'+(r?'xpt':'')+'" onclick="rtXpt(\''+d+'\',\''+s.id+'\')">'+(r?'â—':'Â·')+'</td>';
     });
     h+='</tr>';
   });
@@ -1281,13 +1288,13 @@ function _buildFullRouter(){
 function rtXpt(dest,src){
   if(!canOp()) return;
   ROUTER[dest]=src;
-  addAlarm('info','ROUTE: '+src+' → '+dest);
+  addAlarm('info','ROUTE: '+src+' â†’ '+dest);
   var v=document.getElementById('view-router');
   var tbl=v.querySelector('.rt-table');
   if(tbl) tbl.parentNode.innerHTML=_buildFullRouter();
 }
 
-// ─── CLOUD MCR VIEW ───────────────────────────────────────────────────────────
+// â”€â”€â”€ CLOUD MCR VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var RACK=[
   {slot:1,name:'NEXUS Core',type:'server',status:'ok',cpu:34,mem:61,temp:42},
   {slot:2,name:'SDI Bridge A',type:'bridge',status:'ok',cpu:12,mem:28,temp:38},
@@ -1310,9 +1317,9 @@ function _initCloudMCR(){
   v.innerHTML=
     '<div style="display:flex;gap:8px;padding:8px;flex:1;overflow:auto">'+
       '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">'+
-        '<div class="pnl"><div class="pnl-h"><span class="pnl-t">VIRTUAL RACK — GROUND</span><span class="bx bx-ok">ONLINE</span></div>'+
+        '<div class="pnl"><div class="pnl-h"><span class="pnl-t">VIRTUAL RACK â€” GROUND</span><span class="bx bx-ok">ONLINE</span></div>'+
           '<div style="padding:8px">'+ground.map(_ruHTML).join('')+'</div></div>'+
-        '<div class="pnl"><div class="pnl-h"><span class="pnl-t">VIRTUAL RACK — CLOUD</span><span class="bx bx-acc">AWS EU-WEST-1</span></div>'+
+        '<div class="pnl"><div class="pnl-h"><span class="pnl-t">VIRTUAL RACK â€” CLOUD</span><span class="bx bx-acc">AWS EU-WEST-1</span></div>'+
           '<div style="padding:8px">'+cloud.map(_ruHTML).join('')+'</div></div>'+
       '</div>'+
       '<div style="width:250px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">'+
@@ -1333,15 +1340,15 @@ function _ruHTML(d){
     '<span class="tag">'+d.type.toUpperCase()+'</span>'+
     (d.cpu?'<span style="font-size:9px;color:'+cc+'">CPU '+d.cpu+'%</span>':'<span style="font-size:9px;color:var(--acc)">CLOUD</span>')+
     (d.mem?'<span style="font-size:9px;color:'+mc+'">MEM '+d.mem+'%</span>':'<span style="font-size:9px;color:var(--ok)">ACTIVE</span>')+
-    (d.temp?'<span style="font-size:9px;color:var(--t3)">'+d.temp+'°C</span>':'')+
+    (d.temp?'<span style="font-size:9px;color:var(--t3)">'+d.temp+'Â°C</span>':'')+
   '</div>';
 }
 
 function _cloudSidebarHTML(){
   var links=[
-    {n:'Ground→Cloud A',bw:'1.2 Gbps',lat:'12ms',s:'ok'},
-    {n:'Ground→Cloud B',bw:'800 Mbps',lat:'14ms',s:'ok'},
-    {n:'Cloud→CDN',bw:'4.8 Gbps',lat:'8ms',s:'ok'},
+    {n:'Groundâ†’Cloud A',bw:'1.2 Gbps',lat:'12ms',s:'ok'},
+    {n:'Groundâ†’Cloud B',bw:'800 Mbps',lat:'14ms',s:'ok'},
+    {n:'Cloudâ†’CDN',bw:'4.8 Gbps',lat:'8ms',s:'ok'},
     {n:'SRT Ingest',bw:'42 Mbps',lat:'180ms',s:'warn'}
   ];
   var h='<div class="pnl"><div class="pnl-h"><span class="pnl-t">NETWORK LINKS</span></div><div style="padding:6px">';
@@ -1369,7 +1376,7 @@ function _cloudSidebarHTML(){
 }
 </script>
 <script>
-// ─── SRT VIEW ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ SRT VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _initSRT(){
   var v=document.getElementById('view-srt');
   var streams=[
@@ -1400,7 +1407,7 @@ function _initSRT(){
   v.innerHTML=h+'</div></div></div>';
 }
 
-// ─── SCOPES VIEW ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ SCOPES VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var _scopeIv=null;
 function _initScopes(){
   var v=document.getElementById('view-scopes');
@@ -1410,7 +1417,7 @@ function _initScopes(){
         '<div style="background:#000;height:200px"><canvas id="cv-wfm" style="width:100%;height:100%;display:block"></canvas></div></div>'+
       '<div class="pnl"><div class="pnl-h"><span class="pnl-t">VECTORSCOPE</span></div>'+
         '<div style="background:#000;height:200px"><canvas id="cv-vec" style="width:100%;height:100%;display:block"></canvas></div></div>'+
-      '<div class="pnl"><div class="pnl-h"><span class="pnl-t">AUDIO METERS — 8CH</span></div>'+
+      '<div class="pnl"><div class="pnl-h"><span class="pnl-t">AUDIO METERS â€” 8CH</span></div>'+
         '<div style="padding:8px;display:flex;gap:4px;align-items:flex-end;height:200px" id="audio-meters"></div></div>'+
       '<div class="pnl"><div class="pnl-h"><span class="pnl-t">HISTOGRAM</span></div>'+
         '<div style="background:#000;height:200px"><canvas id="cv-hist" style="width:100%;height:100%;display:block"></canvas></div></div>'+
@@ -1495,7 +1502,7 @@ function _drawAudio(){
 }
 </script>
 <script>
-// ─── PTP VIEW ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ PTP VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _initPTP(){
   var v=document.getElementById('view-ptp');
   v.innerHTML=
@@ -1508,7 +1515,7 @@ function _initPTP(){
             '<tr><td>GrandMaster</td><td style="font-family:monospace;font-size:9px">00:1A:2B:3C:4D:5E</td></tr>'+
             '<tr><td>Offset</td><td style="color:var(--ok)">+1.2 ns</td></tr>'+
             '<tr><td>Path Delay</td><td>234 ns</td></tr>'+
-            '<tr><td>Freq Adj</td><td>−12 ppb</td></tr>'+
+            '<tr><td>Freq Adj</td><td>âˆ’12 ppb</td></tr>'+
             '<tr><td>Sync Interval</td><td>125 ms</td></tr>'+
             '<tr><td>Lock Duration</td><td style="color:var(--ok)">4h 22m</td></tr>'+
           '</table>'+
@@ -1519,7 +1526,7 @@ function _initPTP(){
           '<div style="text-align:center;padding:10px;background:rgba(0,212,255,.07);border:1px solid var(--acc);border-radius:4px;margin-bottom:10px">'+
             '<div class="lbl">GRANDMASTER</div>'+
             '<div style="font-size:14px;font-weight:700;color:var(--acc);margin:4px 0">GPS-GNSS-01</div>'+
-            '<div style="font-size:8px;color:var(--t3)">Stratum 1 · GNSS Locked · UTC</div>'+
+            '<div style="font-size:8px;color:var(--t3)">Stratum 1 Â· GNSS Locked Â· UTC</div>'+
           '</div>'+
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'+
             ['NEXUS Core','SDI Bridge A','SDI Bridge B','IP Router','EVS XT-VIA','Viz Engine 1'].map(function(n){
@@ -1532,7 +1539,7 @@ function _initPTP(){
     '</div>';
 }
 
-// ─── NMOS VIEW ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ NMOS VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _initNMOS(){
   var v=document.getElementById('view-nmos');
   var nodes=[
@@ -1561,7 +1568,7 @@ function _initNMOS(){
 }
 function nmosCon(id){ if(!canOp()) return; addAlarm('info','NMOS IS-05: '+id+' connected'); }
 
-// ─── DEVICES VIEW ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ DEVICES VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _initDevices(){
   var v=document.getElementById('view-devices');
   var devs=['NEXUS Core','SDI Bridge','IP Router','EVS XT-VIA','Viz Engine','SRT GW','PTP GM'];
@@ -1575,14 +1582,14 @@ function _initDevices(){
     h+='<tr><td>'+d+'</td>';
     feats.forEach(function(_,fi){
       var ok=compat[di]&&compat[di][fi];
-      h+='<td style="background:var(--bg2)">'+(ok?'<span style="color:var(--ok);font-size:13px">✓</span>':'<span style="color:var(--t3)">—</span>')+'</td>';
+      h+='<td style="background:var(--bg2)">'+(ok?'<span style="color:var(--ok);font-size:13px">âœ“</span>':'<span style="color:var(--t3)">â€”</span>')+'</td>';
     });
     h+='</tr>';
   });
   v.innerHTML=h+'</table></div></div></div>';
 }
 
-// ─── API VIEW ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ API VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _initAPI(){
   var v=document.getElementById('view-api');
   var eps=[
@@ -1612,14 +1619,14 @@ function _initAPI(){
   v.innerHTML=h+'</div></div></div>';
 }
 
-// ─── PRE-FLIGHT VIEW ──────────────────────────────────────────────────────────
+// â”€â”€â”€ PRE-FLIGHT VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _initPreflight(){
   var v=document.getElementById('view-preflight');
   var checks=[
-    {n:'PTP Sync',s:'ok',d:'Locked ±1.2ns'},
+    {n:'PTP Sync',s:'ok',d:'Locked Â±1.2ns'},
     {n:'NMOS Registry',s:'ok',d:'7 nodes registered'},
     {n:'SDI Bridges',s:'ok',d:'A+B online, 1080i50'},
-    {n:'IP Router',s:'ok',d:'256×256 matrix ready'},
+    {n:'IP Router',s:'ok',d:'256Ã—256 matrix ready'},
     {n:'EVS XT-VIA',s:'ok',d:'Armed, 4 channels'},
     {n:'Viz Engines',s:'warn',d:'Engine 2 CPU 88%'},
     {n:'SRT Streams',s:'ok',d:'3 IN, 3 OUT active'},
@@ -1638,7 +1645,7 @@ function _initPreflight(){
         '<div style="font-size:32px;font-weight:700;color:'+oc+'">'+pass+'/'+checks.length+'</div>'+
         '<div>'+
           '<div style="font-size:14px;font-weight:700;color:'+oc+'">'+(warn?'WARNINGS DETECTED':'ALL SYSTEMS GO')+'</div>'+
-          '<div style="font-size:9px;color:var(--t3)">'+pass+' passed · '+warn+' warnings · 0 critical</div>'+
+          '<div style="font-size:9px;color:var(--t3)">'+pass+' passed Â· '+warn+' warnings Â· 0 critical</div>'+
         '</div>'+
         '<div style="margin-left:auto">'+
           '<button class="btn btn-acc btn-xl" onclick="addAlarm(\'info\',\'Pre-flight check complete\')">RUN CHECKS</button>'+
@@ -1657,6 +1664,337 @@ function _initPreflight(){
       '</div></div>'+
     '</div>';
 }
+
+<script>
+// ─── RUNDOWN VIEW (AMPP Event Producer equivalent) ────────────────────────────
+var _RD = {
+  running: false, currentCue: -1,
+  cues: [
+    {id:1, type:'LIVE',    label:'COLD OPEN',         src:'CAM-01', dur:30,  status:'done'},
+    {id:2, type:'GFX',     label:'TITLE CARD',         src:'GFX-01', dur:8,   status:'done'},
+    {id:3, type:'LIVE',    label:'PRESENTER INTRO',    src:'CAM-02', dur:45,  status:'live'},
+    {id:4, type:'PKG',     label:'PACKAGE  SEGMENT 1',src:'VTR-01', dur:120, status:'ready'},
+    {id:5, type:'LIVE',    label:'INTERVIEW A',        src:'CAM-03', dur:180, status:'ready'},
+    {id:6, type:'GFX',     label:'LOWER THIRD STING',  src:'GFX-02', dur:5,   status:'ready'},
+    {id:7, type:'LIVE',    label:'INTERVIEW B',        src:'CAM-04', dur:120, status:'ready'},
+    {id:8, type:'PKG',     label:'PACKAGE  SEGMENT 2',src:'VTR-02', dur:90,  status:'ready'},
+    {id:9, type:'LIVE',    label:'CLOSING REMARKS',    src:'CAM-01', dur:60,  status:'ready'},
+    {id:10,type:'GFX',     label:'END CARD',           src:'GFX-01', dur:10,  status:'ready'}
+  ]
+};
+function _initRundown(){
+  var v=document.getElementById('view-rundown');
+  v.innerHTML=
+    '<div style="display:flex;gap:8px;padding:8px;height:100%;overflow:hidden">'+
+      '<div style="flex:1;display:flex;flex-direction:column;gap:8px;min-width:0">'+
+        '<div class="pnl" style="flex-shrink:0">'+
+          '<div class="pnl-h">'+
+            '<span class="pnl-t">PRODUCTION RUNDOWN</span>'+
+            '<span class="bx bx-ok" id="rd-status">READY</span>'+
+            '<div style="margin-left:auto;display:flex;gap:6px">'+
+              '<button class="btn" onclick="rdGo()">&#9654; GO</button>'+
+              '<button class="btn" onclick="rdHold()">&#9646;&#9646; HOLD</button>'+
+              '<button class="btn" onclick="rdSkip()">&#9654;&#9654; SKIP</button>'+
+              '<button class="btn btn-pgm" onclick="rdTake()">TAKE</button>'+
+            '</div>'+
+          '</div>'+
+          '<div id="rd-cue-list" style="padding:6px;overflow-y:auto;max-height:420px"></div>'+
+        '</div>'+
+        '<div class="pnl" style="flex-shrink:0">'+
+          '<div class="pnl-h"><span class="pnl-t">ADD CUE</span></div>'+
+          '<div style="padding:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+            '<select class="sel" id="rd-type" style="width:80px"><option>LIVE</option><option>PKG</option><option>GFX</option><option>BREAK</option></select>'+
+            '<input class="lg-inp" id="rd-label" placeholder="Cue label" style="flex:1;margin:0;min-width:120px">'+
+            '<select class="sel" id="rd-src" style="width:90px">'+
+              ['CAM-01','CAM-02','CAM-03','GFX-01','VTR-01','VTR-02'].map(function(s){return '<option>'+s+'</option>';}).join('')+
+            '</select>'+
+            '<input class="lg-inp" id="rd-dur" placeholder="Dur (s)" style="width:70px;margin:0" type="number" value="30">'+
+            '<button class="btn" onclick="rdAddCue()">+ ADD</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">'+
+        '<div class="pnl">'+
+          '<div class="pnl-h"><span class="pnl-t">ON AIR NOW</span></div>'+
+          '<div style="padding:12px" id="rd-oncue">'+
+            '<div style="font-size:22px;font-weight:700;color:var(--pgm);margin-bottom:4px" id="rd-cur-label">PRESENTER INTRO</div>'+
+            '<div style="font-size:10px;color:var(--t2)" id="rd-cur-src">CAM-02</div>'+
+            '<div style="margin-top:12px"><div style="font-size:8px;color:var(--t3);margin-bottom:4px">ELAPSED</div>'+
+              '<div style="font-size:28px;font-family:var(--mono);color:var(--acc)" id="rd-elapsed">00:00:23</div></div>'+
+            '<div style="margin-top:8px"><div style="font-size:8px;color:var(--t3);margin-bottom:4px">REMAINING</div>'+
+              '<div style="font-size:28px;font-family:var(--mono);color:var(--warn)" id="rd-remain">00:00:22</div></div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="pnl">'+
+          '<div class="pnl-h"><span class="pnl-t">NEXT CUE</span></div>'+
+          '<div style="padding:12px" id="rd-nextcue">'+
+            '<div style="font-size:16px;font-weight:700;color:var(--pvw)" id="rd-next-label">PACKAGE — SEGMENT 1</div>'+
+            '<div style="font-size:10px;color:var(--t2)" id="rd-next-src">VTR-01 · 2:00</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="pnl">'+
+          '<div class="pnl-h"><span class="pnl-t">SHOW CLOCK</span></div>'+
+          '<div style="padding:12px;text-align:center">'+
+            '<div style="font-size:36px;font-family:var(--mono);color:var(--acc)" id="rd-show-clock">00:08:23</div>'+
+            '<div style="font-size:8px;color:var(--t3);margin-top:4px">TOTAL ELAPSED</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  _rdRender();
+  _rdStartClock();
+}
+function _rdRender(){
+  var el=document.getElementById('rd-cue-list'); if(!el) return;
+  el.innerHTML=_RD.cues.map(function(c,i){
+    var isCur=i===_RD.currentCue, isNext=i===_RD.currentCue+1;
+    var bg=isCur?'rgba(255,26,58,.12)':isNext?'rgba(0,255,136,.06)':'transparent';
+    var border=isCur?'var(--pgm)':isNext?'var(--pvw)':'var(--b1)';
+    var typeColor=c.type==='LIVE'?'var(--pgm)':c.type==='GFX'?'var(--pur)':c.type==='PKG'?'var(--acc)':'var(--t3)';
+    var doneOp=c.status==='done'?'0.4':'1';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:4px;border:1px solid '+border+';margin-bottom:3px;background:'+bg+';opacity:'+doneOp+';cursor:pointer" onclick="rdJump('+i+')">'+
+      '<span style="font-size:9px;color:var(--t3);width:18px;text-align:right">'+c.id+'</span>'+
+      '<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;background:'+typeColor+';color:#000;min-width:32px;text-align:center">'+c.type+'</span>'+
+      '<span style="flex:1;font-size:10px;font-weight:700">'+c.label+'</span>'+
+      '<span style="font-size:9px;color:var(--t2)">'+c.src+'</span>'+
+      '<span style="font-size:9px;color:var(--t3);font-family:var(--mono);width:36px;text-align:right">'+_fmtDur(c.dur)+'</span>'+
+      (isCur?'<span class="dot dot-pgm dot-pulse"></span>':isNext?'<span class="dot dot-pvw"></span>':'<span class="dot dot-off"></span>')+
+    '</div>';
+  }).join('');
+}
+function _fmtDur(s){ return p2(Math.floor(s/60))+':'+p2(s%60); }
+function rdGo(){ if(!canOp()) return; _RD.running=true; if(_RD.currentCue<0) _RD.currentCue=0; _rdRender(); addAlarm('info','Rundown GO'); document.getElementById('rd-status').textContent='RUNNING'; }
+function rdHold(){ if(!canOp()) return; _RD.running=false; addAlarm('info','Rundown HOLD'); document.getElementById('rd-status').textContent='HOLD'; }
+function rdSkip(){ if(!canOp()) return; _RD.currentCue=Math.min(_RD.currentCue+1,_RD.cues.length-1); _rdRender(); }
+function rdTake(){ if(!canOp()) return; var c=_RD.cues[_RD.currentCue]; if(c){ meCut(0); addAlarm('info','RD TAKE: '+c.label); } }
+function rdJump(i){ if(!canOp()) return; _RD.currentCue=i; _rdRender(); }
+function rdAddCue(){
+  if(!canOp()) return;
+  var lbl=document.getElementById('rd-label').value||'NEW CUE';
+  var type=document.getElementById('rd-type').value;
+  var src=document.getElementById('rd-src').value;
+  var dur=parseInt(document.getElementById('rd-dur').value)||30;
+  _RD.cues.push({id:_RD.cues.length+1,type:type,label:lbl,src:src,dur:dur,status:'ready'});
+  _rdRender();
+  document.getElementById('rd-label').value='';
+}
+var _rdShowSec=503, _rdElapsed=23;
+function _rdStartClock(){
+  _ivs.push(setInterval(function(){
+    if(_RD.running){ _rdShowSec++; _rdElapsed++; }
+    var el=document.getElementById('rd-show-clock'); if(el) el.textContent=p2(Math.floor(_rdShowSec/60))+':'+p2(_rdShowSec%60)+':00';
+    var ee=document.getElementById('rd-elapsed'); if(ee) ee.textContent='00:'+p2(Math.floor(_rdElapsed/60))+':'+p2(_rdElapsed%60);
+    var cur=_RD.cues[_RD.currentCue];
+    var rem=cur?Math.max(0,cur.dur-_rdElapsed):0;
+    var re=document.getElementById('rd-remain'); if(re) re.textContent='00:'+p2(Math.floor(rem/60))+':'+p2(rem%60);
+    if(_RD.running && cur && _rdElapsed>=cur.dur){ _RD.currentCue++; _rdElapsed=0; _rdRender(); }
+  },1000));
+}
+</script>
+<script>
+//  PLAYOUT VIEW (AMPP Playout X equivalent) ───────
+var _PL_CHANNELS = [
+  {id:'CH-01',name:'NEWS 24',status:'on',src:'CLN-01',format:'1080i50',bitrate:'50 Mbps',region:'EU-WEST',uptime:'14h 22m'},
+  {id:'CH-02',name:'SPORTS HD',status:'on',src:'CLN-02',format:'1080p50',bitrate:'80 Mbps',region:'EU-WEST',uptime:'6h 11m'},
+  {id:'CH-03',name:'ARCHIVE',status:'standby',src:'VTR-01',format:'1080i50',bitrate:'50 Mbps',region:'US-EAST',uptime:'0h 00m'},
+  {id:'CH-04',name:'STREAM-1',status:'on',src:'CLN-01',format:'720p50',bitrate:'8 Mbps',region:'CLOUD',uptime:'2h 45m'},
+  {id:'CH-05',name:'STREAM-2',status:'off',src:'',format:'1080p25',bitrate:'',region:'CLOUD',uptime:''}
+];
+function _initPlayout(){
+  var v=document.getElementById('view-playout');
+  v.innerHTML=
+    '<div style="padding:8px;display:flex;flex-direction:column;gap:8px;height:100%;overflow:auto">'+
+      '<div class="pnl">'+
+        '<div class="pnl-h">'+
+          '<span class="pnl-t">PLAYOUT CHANNELS</span>'+
+          '<span class="bx bx-ok" id="pl-active">'+_PL_CHANNELS.filter(function(c){return c.status==='on';}).length+' ACTIVE</span>'+
+          '<div style="margin-left:auto;display:flex;gap:6px">'+
+            '<button class="btn" onclick="plAddChannel()">+ SPIN UP</button>'+
+          '</div>'+
+        '</div>'+
+        '<div id="pl-list" style="padding:6px"></div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
+        '<div class="pnl"><div class="pnl-h"><span class="pnl-t">TOTAL BANDWIDTH</span></div>'+
+          '<div style="padding:12px;text-align:center"><div style="font-size:32px;font-family:var(--mono);color:var(--acc)">138 Mbps</div><div style="font-size:8px;color:var(--t3);margin-top:4px">OF 1 Gbps ALLOCATED</div></div></div>'+
+        '<div class="pnl"><div class="pnl-h"><span class="pnl-t">REGIONS</span></div>'+
+          '<div style="padding:12px">'+
+            [['EU-WEST','ok',2],['US-EAST','standby',1],['CLOUD','ok',2]].map(function(r){
+              return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+                '<span class="dot dot-'+(r[1]==='ok'?'ok':'warn')+'"></span>'+
+                '<span style="flex:1;font-size:10px">'+r[0]+'</span>'+
+                '<span style="font-size:9px;color:var(--t2)">'+r[2]+' ch</span></div>';
+            }).join('')+
+          '</div></div>'+
+        '<div class="pnl"><div class="pnl-h"><span class="pnl-t">FAILOVER</span></div>'+
+          '<div style="padding:12px">'+
+            '<div style="font-size:10px;color:var(--ok);margin-bottom:8px">&#10003; Multi-region resilience ACTIVE</div>'+
+            '<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Primary: EU-WEST</div>'+
+            '<div style="font-size:9px;color:var(--t2);margin-bottom:4px">Backup: US-EAST</div>'+
+            '<div style="font-size:9px;color:var(--t2)">RTO: &lt;30s</div>'+
+          '</div></div>'+
+      '</div>'+
+    '</div>';
+  _plRender();
+}
+function _plRender(){
+  var el=document.getElementById('pl-list'); if(!el) return;
+  el.innerHTML=_PL_CHANNELS.map(function(c){
+    var sc=c.status==='on'?'var(--ok)':c.status==='standby'?'var(--warn)':'var(--t3)';
+    var bg=c.status==='on'?'rgba(0,255,136,.04)':'transparent';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;border:1px solid var(--b1);margin-bottom:3px;background:'+bg+'">'+
+      '<span class="dot" style="background:'+sc+'"'+(c.status==='on'?' class="dot-pulse"':'')+' ></span>'+
+      '<span style="font-size:10px;font-weight:700;width:90px">'+c.name+'</span>'+
+      '<span style="font-size:9px;color:var(--t2);width:70px">'+c.id+'</span>'+
+      '<span style="font-size:9px;color:var(--acc);width:70px">'+c.src+'</span>'+
+      '<span style="font-size:9px;color:var(--t2);width:70px">'+c.format+'</span>'+
+      '<span style="font-size:9px;color:var(--t2);width:70px">'+c.bitrate+'</span>'+
+      '<span style="font-size:9px;color:var(--t3);width:70px">'+c.region+'</span>'+
+      '<span style="font-size:9px;color:var(--t3);flex:1">UP: '+c.uptime+'</span>'+
+      '<button class="btn btn-sm" onclick="plToggle(\''+c.id+'\')">'+(c.status==='on'?'SPIN DOWN':'SPIN UP')+'</button>'+
+    '</div>';
+  }).join('');
+}
+function plToggle(id){
+  if(!canOp()) return;
+  var ch=_PL_CHANNELS.find(function(c){return c.id===id;});
+  if(!ch) return;
+  ch.status=ch.status==='on'?'off':'on';
+  if(ch.status==='on') ch.uptime='0h 00m';
+  _plRender();
+  var cnt=_PL_CHANNELS.filter(function(c){return c.status==='on';}).length;
+  var el=document.getElementById('pl-active'); if(el) el.textContent=cnt+' ACTIVE';
+  addAlarm('info','Playout '+id+': '+(ch.status==='on'?'SPUN UP':'SPUN DOWN'));
+}
+function plAddChannel(){
+  if(!canOp()) return;
+  var n=_PL_CHANNELS.length+1;
+  _PL_CHANNELS.push({id:'CH-0'+n,name:'CHANNEL '+n,status:'off',src:'',format:'1080i50',bitrate:'',region:'CLOUD',uptime:''});
+  _plRender();
+  addAlarm('info','Playout CH-0'+n+' provisioned');
+}
+</script>
+<script>
+// ─── ORCHESTRATOR VIEW (AMPP elastic MPU equivalent) ──────────────────────
+var _ORCH_SERVICES = [
+  {id:'switcher',name:'Virtual Switcher',type:'COMPUTE',status:'running',cpu:34,mem:61,instances:2,region:'EU-WEST'},
+  {id:'multiviewer',name:'Multiviewer',type:'COMPUTE',status:'running',cpu:18,mem:42,instances:1,region:'EU-WEST'},
+  {id:'recorder',name:'Recorder',type:'STORAGE',status:'running',cpu:22,mem:55,instances:2,region:'EU-WEST'},
+  {id:'nmos',name:'NMOS Registry',type:'CONTROL',status:'running',cpu:5,mem:18,instances:1,region:'EU-WEST'},
+  {id:'atem',name:'ATEM Bridge',type:'HARDWARE',status:'running',cpu:8,mem:12,instances:1,region:'LOCAL'},
+  {id:'ember',name:'Ember+ Gateway',type:'HARDWARE',status:'warn',cpu:12,mem:28,instances:1,region:'LOCAL'},
+  {id:'srt-gw',name:'SRT Gateway',type:'NETWORK',status:'running',cpu:45,mem:38,instances:3,region:'CLOUD'},
+  {id:'ptp',name:'PTP Monitor',type:'TIMING',status:'running',cpu:2,mem:8,instances:1,region:'LOCAL'}
+];
+function _initOrchestrator(){
+  var v=document.getElementById('view-orchestrator');
+  v.innerHTML=
+    '<div style="padding:8px;display:flex;flex-direction:column;gap:8px;height:100%;overflow:auto">'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;flex-shrink:0">'+
+        _orchStatCard('SERVICES','8 / 8','var(--ok)')+
+        _orchStatCard('TOTAL CPU','18%','var(--ok)')+
+        _orchStatCard('TOTAL MEM','38%','var(--ok)')+
+        _orchStatCard('INSTANCES','12','var(--acc)')+
+      '</div>'+
+      '<div class="pnl" style="flex:1">'+
+        '<div class="pnl-h">'+
+          '<span class="pnl-t">SERVICE MESH</span>'+
+          '<span class="bx bx-ok" id="orch-health">ALL HEALTHY</span>'+
+          '<div style="margin-left:auto;display:flex;gap:6px">'+
+            '<button class="btn" onclick="orchScaleAll()">&#8679; SCALE ALL</button>'+
+            '<button class="btn" onclick="orchRebalance()">&#8635; REBALANCE</button>'+
+          '</div>'+
+        '</div>'+
+        '<div id="orch-list" style="padding:6px"></div>'+
+      '</div>'+
+      '<div class="pnl" style="flex-shrink:0">'+
+        '<div class="pnl-h"><span class="pnl-t">DEPLOY NEW SERVICE</span></div>'+
+        '<div style="padding:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+          '<select class="sel" id="orch-type" style="width:100px"><option>COMPUTE</option><option>STORAGE</option><option>NETWORK</option><option>CONTROL</option></select>'+
+          '<input class="lg-inp" id="orch-name" placeholder="Service name" style="flex:1;margin:0;min-width:120px">'+
+          '<select class="sel" id="orch-region" style="width:90px"><option>EU-WEST</option><option>US-EAST</option><option>CLOUD</option><option>LOCAL</option></select>'+
+          '<input class="lg-inp" id="orch-inst" placeholder="Instances" type="number" value="1" style="width:80px;margin:0">'+
+          '<button class="btn" onclick="orchDeploy()">&#9654; DEPLOY</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  _orchRender();
+}
+function _orchStatCard(label,val,color){
+  return '<div class="pnl"><div style="padding:12px;text-align:center">'+
+    '<div style="font-size:28px;font-weight:700;font-family:var(--mono);color:'+color+'">'+val+'</div>'+
+    '<div style="font-size:8px;color:var(--t3);margin-top:4px;letter-spacing:1px">'+label+'</div>'+
+  '</div></div>';
+}
+function _orchRender(){
+  var el=document.getElementById('orch-list'); if(!el) return;
+  el.innerHTML=_ORCH_SERVICES.map(function(s){
+    var sc=s.status==='running'?'var(--ok)':s.status==='warn'?'var(--warn)':'var(--pgm)';
+    var typeColor={'COMPUTE':'var(--acc)','STORAGE':'var(--pur)','NETWORK':'var(--pvw)','HARDWARE':'var(--gold)','CONTROL':'var(--warn)','TIMING':'var(--t2)'}[s.type]||'var(--t2)';
+    var cpuColor=s.cpu>80?'var(--pgm)':s.cpu>60?'var(--warn)':'var(--ok)';
+    var memColor=s.mem>80?'var(--pgm)':s.mem>60?'var(--warn)':'var(--ok)';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;border:1px solid var(--b1);margin-bottom:3px;background:var(--bg2)">'+
+      '<span class="dot" style="background:'+sc+'"></span>'+
+      '<span style="font-size:10px;font-weight:700;width:140px">'+s.name+'</span>'+
+      '<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;background:'+typeColor+';color:#000;width:70px;text-align:center">'+s.type+'</span>'+
+      '<span style="font-size:9px;color:var(--t3);width:60px">'+s.region+'</span>'+
+      '<div style="display:flex;align-items:center;gap:4px;width:100px">'+
+        '<span style="font-size:8px;color:var(--t3)">CPU</span>'+
+        '<div style="flex:1;height:4px;background:var(--b1);border-radius:2px"><div style="height:100%;width:'+s.cpu+'%;background:'+cpuColor+';border-radius:2px"></div></div>'+
+        '<span style="font-size:8px;color:'+cpuColor+'">'+s.cpu+'%</span>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:4px;width:100px">'+
+        '<span style="font-size:8px;color:var(--t3)">MEM</span>'+
+        '<div style="flex:1;height:4px;background:var(--b1);border-radius:2px"><div style="height:100%;width:'+s.mem+'%;background:'+memColor+';border-radius:2px"></div></div>'+
+        '<span style="font-size:8px;color:'+memColor+'">'+s.mem+'%</span>'+
+      '</div>'+
+      '<span style="font-size:9px;color:var(--t2);width:60px">'+s.instances+' inst.</span>'+
+      '<div style="margin-left:auto;display:flex;gap:4px">'+
+        '<button class="btn btn-sm" onclick="orchScale(\''+s.id+'\',1)">+</button>'+
+        '<button class="btn btn-sm" onclick="orchScale(\''+s.id+'\',-1)">-</button>'+
+        '<button class="btn btn-sm" onclick="orchRestart(\''+s.id+'\')">&#8635;</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+function orchScale(id,delta){
+  if(!canOp()) return;
+  var s=_ORCH_SERVICES.find(function(x){return x.id===id;});
+  if(!s) return;
+  s.instances=Math.max(1,s.instances+delta);
+  _orchRender();
+  addAlarm('info',s.name+': scaled to '+s.instances+' instance'+(s.instances>1?'s':''));
+}
+function orchRestart(id){
+  if(!canOp()) return;
+  var s=_ORCH_SERVICES.find(function(x){return x.id===id;});
+  if(s){ addAlarm('info',s.name+': restarting...'); setTimeout(function(){ addAlarm('ok',s.name+': online'); },2000); }
+}
+function orchScaleAll(){
+  if(!canOp()) return;
+  _ORCH_SERVICES.forEach(function(s){ if(s.status==='running') s.instances=Math.min(s.instances+1,8); });
+  _orchRender();
+  addAlarm('info','All services scaled up');
+}
+function orchRebalance(){
+  if(!canOp()) return;
+  addAlarm('info','Rebalancing service mesh...');
+  setTimeout(function(){ addAlarm('ok','Service mesh rebalanced  optimal distribution'); },1500);
+}
+function orchDeploy(){
+  if(!canOp()) return;
+  var name=document.getElementById('orch-name').value||'NEW SERVICE';
+  var type=document.getElementById('orch-type').value;
+  var region=document.getElementById('orch-region').value;
+  var inst=parseInt(document.getElementById('orch-inst').value)||1;
+  _ORCH_SERVICES.push({id:'svc-'+Date.now(),name:name,type:type,status:'running',cpu:0,mem:0,instances:inst,region:region});
+  _orchRender();
+  addAlarm('ok',name+' deployed ('+inst+' instance'+(inst>1?'s':'')+') in '+region);
+  document.getElementById('orch-name').value='';
+}
 </script>
 </body>
 </html>
+
+
+

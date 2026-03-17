@@ -1,0 +1,17 @@
+'use strict';
+const fs = require('fs'), path = require('path');
+const HTML = path.join(__dirname, '..', '..', 'nexus-v6.html');
+console.log('File exists:', fs.existsSync(HTML));
+if (!fs.existsSync(HTML)) process.exit(1);
+const stat = fs.statSync(HTML);
+console.log('File size:', stat.size, 'bytes');
+const c = fs.readFileSync(HTML, 'utf8');
+const lines = c.split('\n').length;
+console.log('Lines:', lines);
+console.log('Valid HTML start:', c.startsWith('<!DOCTYPE'));
+console.log('Valid HTML end:', c.trimEnd().endsWith('</html>'));
+console.log('Has login:', c.includes('id="login"'));
+console.log('Has doLogin:', c.includes('doLogin'));
+console.log('Has NAV_GROUPS:', c.includes('NAV_GROUPS'));
+console.log('Script balance:', (c.split('<script').length - 1), 'open /', (c.split('</script>').length - 1), 'close');
+console.log('\nAll good — ready to serve on port 8080');

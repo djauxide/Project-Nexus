@@ -22,29 +22,29 @@ if "%CHOICE%"=="3" exit /b 0
 
 :demo
 echo.
-echo  Starting demo server on http://localhost:3000 ...
+echo  Starting demo server on http://localhost:8080 ...
 echo  Password: nexus2024
 echo.
 start "NEXUS Demo" cmd /k "node backend\api\serve-local.js"
 timeout /t 2 >nul
-start "" "http://localhost:3000"
+start "" "http://localhost:8080"
 echo  Done. Close the NEXUS Demo window to stop.
 pause >nul
 exit /b 0
 
 :fullstack
 echo.
-echo  Starting API backend on port 8080...
+echo  Starting API backend on port 3000...
 start "NEXUS API" cmd /k "cd backend\api && npm run dev"
 timeout /t 3 >nul
-echo  Starting demo UI on port 3000...
+echo  Starting demo UI on port 8080...
 start "NEXUS Demo" cmd /k "node backend\api\serve-local.js"
 timeout /t 2 >nul
-start "" "http://localhost:3000"
+start "" "http://localhost:8080"
 echo.
-echo  UI:      http://localhost:3000  (password: nexus2024)
-echo  API:     http://localhost:8080
-echo  WS:      ws://localhost:8080/ws/control
+echo  UI:      http://localhost:8080  (password: nexus2024)
+echo  API:     http://localhost:3000
+echo  WS:      ws://localhost:3000/ws
 echo.
 echo  Status bar shows LIVE when WebSocket connects to backend.
 echo  Close both terminal windows to stop.

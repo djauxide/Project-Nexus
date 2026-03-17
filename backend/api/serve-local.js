@@ -5,11 +5,26 @@ const path = require('path');
 const { exec } = require('child_process');
 
 const HTML = path.join(__dirname, '..', '..', 'nexus-v6.html');
-const PORT = 3000;
+const PORT = 8080;
+
+if (!fs.existsSync(HTML)) {
+  console.error('ERROR: nexus-v6.html not found at', HTML);
+  process.exit(1);
+}
 
 const server = http.createServer(function(req, res) {
+  // Serve nexus-v6.html for all requests
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   fs.createReadStream(HTML).pipe(res);
+});
+
+server.on('error', function(err) {
+  if (err.code === 'EADDRINUSE') {
+    console.error('Port ' + PORT + ' is already in use. Kill the existing process and retry.');
+  } else {
+    console.error('Server error:', err.message);
+  }
+  process.exit(1);
 });
 
 server.listen(PORT, '0.0.0.0', function() {
@@ -23,17 +38,23 @@ server.listen(PORT, '0.0.0.0', function() {
   });
 
   console.log('');
-  console.log('NEXUS v6 Demo — Local Server');
-  console.log('============================');
+  console.log('  NEXUS v6 — Local Demo Server');
+  console.log('  ==============================');
   ips.forEach(function(ip) {
     console.log('  http://' + ip + ':' + PORT);
   });
   console.log('');
-  console.log('Password: nexus2024');
-  console.log('Press Ctrl+C to stop.');
+  console.log('  Password : nexus2024');
+  console.log('  File     : ' + HTML);
+  console.log('');
+  console.log('  Press Ctrl+C to stop.');
   console.log('');
 
   exec('cmd /c start http://localhost:' + PORT);
 });
 
-process.on('SIGINT', function() { server.close(); process.exit(0); });
+process.on('SIGINT', function() {
+  console.log('\nStopping server...');
+  server.close();
+  process.exit(0);
+});

@@ -1,0 +1,118 @@
+<script>
+// ── NAVIGATION ─────────────────────────────────────────────────────────────
+function nav(view) {
+  if (!canAccess(view)) {
+    toast(`Access denied: ${view.toUpperCase()} requires ${getMinRole(view)} role`, 'err');
+    return;
+  }
+  // hide all views
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('view-' + view);
+  if (el) el.classList.add('active');
+  S.activeView = view;
+  // update nav item highlights
+  document.querySelectorAll('.nav-item').forEach(i => {
+    i.classList.toggle('active', i.getAttribute('onclick') === `nav('${view}')`);
+  });
+  // update label
+  const labels = {
+    live:'LIVE OUTPUT',mosaic:'MOSAIC',switcher:'SWITCHER',router:'ROUTER',
+    rundown:'RUNDOWN',playout:'PLAYOUT',cloudmcr:'CLOUD MCR',srt:'SRT / TRANSPORT',
+    scopes:'SCOPES',ptp:'PTP / SYNC',nmos:'NMOS',devices:'DEVICES',
+    api:'API / WS',orchestrate:'ORCHESTRATE',network:'NETWORK',
+    compat:'COMPAT',preflight:'PRE-FLIGHT',training:'TRAINING'
+  };
+  document.getElementById('active-page-label').textContent = labels[view] || view.toUpperCase();
+  // close all dropdowns
+  document.querySelectorAll('.nav-group-btn').forEach(b => b.classList.remove('open'));
+  // view-specific init
+  if (view === 'mosaic') buildMosaic();
+  if (view === 'router') buildRouter();
+  if (view === 'rundown') renderRundown();
+  if (view === 'cloudmcr') buildSignalFlow();
+  if (view === 'compat') buildCompat();
+  if (view === 'preflight') buildPreflight();
+  if (view === 'training') buildTraining();
+  if (view === 'nmos') buildNMOS();
+  if (view === 'ptp') buildPTPSlaves();
+  if (view === 'devices') buildDevices();
+  if (view === 'orchestrate') buildOrchestrate();
+  if (view === 'srt') buildSRT();
+}
+
+function getMinRole(view) {
+  if (ROLE_ACCESS.viewer.includes(view)) return 'VIEWER';
+  if (ROLE_ACCESS.operator.includes(view)) return 'OPERATOR';
+  if (ROLE_ACCESS.trainer.includes(view)) return 'TRAINER';
+  return 'ENGINEER';
+}
+
+function toggleGroup(id) {
+  const btn = document.querySelector(`#${id} .nav-group-btn`);
+  btn.classList.toggle('open');
+}
+
+// ── USER / ROLE ────────────────────────────────────────────────────────────
+function openUserModal() { document.getElementById('user-modal').style.display='flex'; }
+function openWfModal() { document.getElementById('wf-modal').style.display='flex'; }
+function closeModal(id) { document.getElementById(id).style.display='none'; }
+
+function applyUser() {
+  S.user = document.getElementById('su-name').value || 'User';
+  S.role = document.getElementById('su-role').value;
+  document.getElementById('user-name').textContent = S.user;
+  const pill = document.getElementById('role-pill');
+  pill.textContent = S.role.toUpperCase();
+  pill.className = `role-pill ${S.role}`;
+  closeModal('user-modal');
+  // enforce role: if current view not accessible, go to live
+  if (!canAccess(S.activeView)) nav('live');
+  // hide/show nav groups
+  applyNavVisibility();
+  toast(`Switched to ${S.user} (${S.role})`, 'ok');
+}
+
+function applyNavVisibility() {
+  const engGroup = document.getElementById('ng-eng');
+  const sysGroup = document.getElementById('ng-sys');
+  if (S.role === 'viewer') {
+    engGroup.style.display = 'none';
+    sysGroup.style.display = 'none';
+  } else if (S.role === 'operator') {
+    engGroup.style.display = 'none';
+    sysGroup.style.display = 'flex';
+  } else {
+    engGroup.style.display = 'flex';
+    sysGroup.style.display = 'flex';
+  }
+}
+
+// ── WORKFLOW ───────────────────────────────────────────────────────────────
+function setWorkflow(wf) {
+  S.workflow = wf;
+  const badge = document.getElementById('wf-badge');
+  const icons = {ground:'🏭',cloud:'☁',hybrid:'⚡'};
+  const labels = {ground:'GROUND',cloud:'CLOUD',hybrid:'HYBRID'};
+  badge.textContent = `${icons[wf]} ${labels[wf]}`;
+  badge.className = `wf-badge ${wf}`;
+  // update wf selector buttons
+  ['ground','cloud','hybrid'].forEach(w => {
+    const el = document.getElementById('wf-'+w);
+    if (el) el.classList.toggle('active', w === wf);
+  });
+  toast(`Workflow: ${labels[wf]}`, 'info');
+  dbPut('config', {key:'workflow', value:wf});
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+function doLogin() {
+  const pw = document.getElementById('login-pw').value;
+  if (pw === 'nexus2024') {
+    document.getElementById('login-modal').style.display = 'none';
+    initApp();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('login-pw').value = '';
+  }
+}
+</script>

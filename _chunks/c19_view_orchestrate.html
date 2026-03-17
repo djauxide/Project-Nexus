@@ -1,0 +1,34 @@
+<!-- VIEW: ORCHESTRATE -->
+<div class="view" id="view-orchestrate">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">🤖</span>Automation Engine</div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Engine</span><span class="sr-val">RUNNING</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Active Rules</span><span class="sr-val" id="orch-rules">7</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Events Today</span><span class="sr-val" id="orch-events">142</span></div>
+      <div style="margin-top:10px;display:flex;gap:6px">
+        <button class="btn sm success" onclick="orchStart()">▶ Start</button>
+        <button class="btn sm danger" onclick="orchStop()">⏹ Stop</button>
+        <button class="btn sm" onclick="orchTest()">🧪 Test</button>
+      </div>
+    </div>
+    <div class="card" style="flex:2">
+      <div class="card-title"><span class="ct-icon">📋</span>Automation Rules</div>
+      <div id="orch-rule-list"></div>
+      <button class="btn sm primary" style="margin-top:8px" onclick="addOrchRule()">+ Add Rule</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">🔀</span>Visual Workflow</div>
+      <div id="workflow-canvas" style="background:var(--bg2);border-radius:var(--r);height:200px;position:relative;overflow:hidden;border:1px solid var(--b1)">
+        <svg id="wf-svg" width="100%" height="100%" style="position:absolute;inset:0"></svg>
+        <div id="wf-nodes"></div>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">📜</span>Event Log</div>
+      <div id="orch-log" style="font-family:var(--mono);font-size:11px;color:var(--t2);max-height:200px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>

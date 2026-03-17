@@ -1,0 +1,72 @@
+<script>
+// ── ORCHESTRATE ────────────────────────────────────────────────────────────
+function buildOrchestrate() {
+  S.orchRules = [
+    {id:1,trigger:'PGM source = REMOTE',action:'Enable SRT failover',active:true},
+    {id:2,trigger:'Audio level < -40 dBFS',action:'Alert: audio loss',active:true},
+    {id:3,trigger:'PTP offset > 100ns',action:'Alert: sync drift',active:true},
+    {id:4,trigger:'Rundown item = BREAK',action:'Route to break bumper',active:true},
+    {id:5,trigger:'Cloud latency > 500ms',action:'Switch to ground path',active:false},
+    {id:6,trigger:'Disk usage > 90%',action:'Archive to S3',active:true},
+    {id:7,trigger:'Show clock = 00:28:00',action:'Cue closing titles',active:true},
+  ];
+  renderOrchRules();
+  buildWorkflowCanvas();
+  orchLog('Automation engine started');
+  orchLog('7 rules loaded');
+  orchLog('Monitoring 14 devices');
+}
+
+function renderOrchRules() {
+  const el = document.getElementById('orch-rule-list');
+  if (!el) return;
+  el.innerHTML = S.orchRules.map(r => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--b1);border-radius:4px;margin-bottom:4px;font-size:12px">
+      <span class="dot ${r.active?'ok':'off'}"></span>
+      <span style="flex:1;color:var(--t2)">IF <span style="color:var(--acc)">${r.trigger}</span></span>
+      <span style="color:var(--t1)">→ ${r.action}</span>
+      <button class="btn sm" onclick="toggleOrchRule(${r.id})">${r.active?'ON':'OFF'}</button>
+    </div>`).join('');
+}
+
+function toggleOrchRule(id) {
+  const rule = S.orchRules.find(r => r.id === id);
+  if (rule) { rule.active = !rule.active; renderOrchRules(); }
+}
+
+function addOrchRule() { toast('Rule editor: drag-and-drop builder coming soon', 'info'); }
+function orchStart() { S.orchRunning = true; toast('Automation engine started', 'ok'); }
+function orchStop() { S.orchRunning = false; toast('Automation engine stopped', 'warn'); }
+function orchTest() { toast('Running rule test suite...', 'info'); setTimeout(() => toast('All 7 rules passed', 'ok'), 1500); }
+
+function orchLog(msg) {
+  const el = document.getElementById('orch-log');
+  if (!el) return;
+  const div = document.createElement('div');
+  div.style.cssText = 'padding:2px 0;border-bottom:1px solid var(--b1)';
+  div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.insertBefore(div, el.firstChild);
+}
+
+function buildWorkflowCanvas() {
+  const svg = document.getElementById('wf-svg');
+  const nodes = document.getElementById('wf-nodes');
+  if (!svg || !nodes) return;
+  nodes.innerHTML = '';
+  const wfNodes = [
+    {label:'Trigger',icon:'⚡',x:5,y:40,col:'var(--warn)'},
+    {label:'Condition',icon:'❓',x:25,y:40,col:'var(--acc)'},
+    {label:'Action',icon:'⚙',x:50,y:40,col:'var(--ok)'},
+    {label:'Notify',icon:'🔔',x:75,y:40,col:'var(--pur)'},
+  ];
+  wfNodes.forEach(n => {
+    const div = document.createElement('div');
+    div.style.cssText = `position:absolute;left:${n.x}%;top:${n.y}%;transform:translate(-50%,-50%);
+      background:var(--b1);border:1px solid ${n.col};border-radius:6px;padding:8px 12px;
+      font-size:11px;font-weight:600;color:${n.col};text-align:center;cursor:pointer;min-width:70px`;
+    div.innerHTML = `<div style="font-size:16px">${n.icon}</div>${n.label}`;
+    div.onclick = () => toast(`${n.label} node`, 'info');
+    nodes.appendChild(div);
+  });
+}
+</script>

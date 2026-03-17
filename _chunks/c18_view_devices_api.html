@@ -1,0 +1,49 @@
+<!-- VIEW: DEVICES -->
+<div class="view" id="view-devices">
+  <div class="row" style="align-items:center;flex-wrap:nowrap">
+    <div class="card-title" style="margin:0"><span class="ct-icon">🖥</span>Device Inventory</div>
+    <div class="spacer" style="flex:1"></div>
+    <button class="btn sm primary" onclick="scanDevices()">🔍 Scan Network</button>
+    <button class="btn sm" onclick="addDevice()">+ Add Device</button>
+  </div>
+  <div class="card" style="flex:1;overflow:auto">
+    <div id="device-list"></div>
+  </div>
+</div>
+
+<!-- VIEW: API -->
+<div class="view" id="view-api">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">⚙</span>WebSocket Status</div>
+      <div class="status-row"><span class="dot" id="ws-dot" style="background:var(--warn)"></span><span class="sr-label">Connection</span><span class="sr-val" id="ws-status">SIMULATED</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Messages/s</span><span class="sr-val" id="ws-mps">0</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Latency</span><span class="sr-val" id="ws-lat">—</span></div>
+      <div style="margin-top:10px">
+        <button class="btn sm primary" onclick="wsConnect()">Connect</button>
+        <button class="btn sm danger" onclick="wsDisconnect()">Disconnect</button>
+      </div>
+    </div>
+    <div class="card" style="flex:2">
+      <div class="card-title"><span class="ct-icon">📨</span>API Console</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <input id="api-cmd" style="flex:1;background:var(--b1);border:1px solid var(--b2);color:var(--t1);padding:6px 10px;border-radius:var(--r);font-family:var(--mono);font-size:12px" placeholder='{"type":"ping"}' />
+        <button class="btn sm primary" onclick="apiSend()">Send</button>
+      </div>
+      <div id="api-log" style="background:var(--bg2);border-radius:var(--r);padding:8px;height:200px;overflow-y:auto;font-family:var(--mono);font-size:11px;color:var(--t2)"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📋</span>REST Endpoints</div>
+      <div style="font-size:11px;font-family:var(--mono);color:var(--t2);line-height:2">
+        <div><span style="color:var(--ok)">GET</span>  /api/v1/status</div>
+        <div><span style="color:var(--ok)">GET</span>  /api/v1/sources</div>
+        <div><span style="color:var(--acc)">POST</span> /api/v1/route</div>
+        <div><span style="color:var(--acc)">POST</span> /api/v1/switch</div>
+        <div><span style="color:var(--warn)">PUT</span>  /api/v1/config</div>
+        <div><span style="color:var(--pgm)">DEL</span>  /api/v1/session</div>
+      </div>
+    </div>
+  </div>
+</div>

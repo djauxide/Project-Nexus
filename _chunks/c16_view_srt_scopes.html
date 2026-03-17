@@ -1,0 +1,50 @@
+<!-- VIEW: SRT / TRANSPORT -->
+<div class="view" id="view-srt">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">📡</span>SRT Streams</div>
+      <div id="srt-streams"></div>
+      <button class="btn sm primary" style="margin-top:8px" onclick="addSRTStream()">+ Add Stream</button>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">📊</span>Transport Stats</div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">SRT Caller 1</span><span class="sr-val">12.4 Mbps</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">SRT Listener 1</span><span class="sr-val">8.2 Mbps</span></div>
+      <div class="status-row"><span class="dot warn"></span><span class="sr-label">RIST Stream</span><span class="sr-val">RTT 42ms</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">RTMP Ingest</span><span class="sr-val">4.8 Mbps</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">NDI Bridge</span><span class="sr-val">3 sources</span></div>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">🌐</span>Contribution Links</div>
+      <div id="contrib-links"></div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: SCOPES -->
+<div class="view" id="view-scopes">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">📊</span>Waveform Monitor</div>
+      <div class="scope-box" style="height:160px"><canvas id="scope-wfm" width="400" height="160"></canvas><div class="scope-label">WFM</div></div>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">🎯</span>Vectorscope</div>
+      <div class="scope-box" style="height:160px"><canvas id="scope-vec" width="160" height="160" style="width:160px;margin:0 auto;display:block"></canvas><div class="scope-label">VECT</div></div>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">🔊</span>Audio Loudness</div>
+      <div class="scope-box" style="height:160px"><canvas id="scope-loud" width="400" height="160"></canvas><div class="scope-label">LUFS</div></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📈</span>Histogram</div>
+      <div class="scope-box" style="height:120px"><canvas id="scope-hist" width="400" height="120"></canvas><div class="scope-label">HIST</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📊</span>Loudness Meter</div>
+      <div id="loudness-meters" style="display:flex;gap:8px;align-items:flex-end;height:120px;padding:8px 0"></div>
+    </div>
+  </div>
+</div>

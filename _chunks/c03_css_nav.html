@@ -1,0 +1,34 @@
+<style>
+/* ── DROPDOWN NAV ── */
+#nav{display:flex;align-items:center;gap:2px;height:100%}
+.nav-group{position:relative;height:100%;display:flex;align-items:center}
+.nav-group-btn{display:flex;align-items:center;gap:5px;padding:0 12px;height:100%;
+  background:transparent;border:none;color:var(--t2);cursor:pointer;
+  font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;
+  transition:var(--ease);white-space:nowrap}
+.nav-group-btn:hover,.nav-group-btn.open{color:var(--t1);background:rgba(255,255,255,.04)}
+.nav-group-btn .chevron{font-size:8px;transition:transform .15s}
+.nav-group-btn.open .chevron{transform:rotate(180deg)}
+.nav-group-btn .ng-dot{width:6px;height:6px;border-radius:50%;margin-right:2px}
+.ng-dot.prod{background:var(--pgm)}
+.ng-dot.eng{background:var(--acc)}
+.ng-dot.sys{background:var(--pur)}
+.nav-dropdown{position:absolute;top:100%;left:0;min-width:180px;
+  background:#0a0a1e;border:1px solid var(--b2);border-radius:0 0 var(--r2) var(--r2);
+  box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;z-index:200;overflow:hidden}
+.nav-group:hover .nav-dropdown,.nav-group-btn.open+.nav-dropdown{display:block}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;
+  cursor:pointer;transition:var(--ease);color:var(--t2);font-size:12px;
+  border-left:2px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.05);color:var(--t1);border-left-color:var(--acc)}
+.nav-item.active{background:rgba(0,212,255,.08);color:var(--acc);border-left-color:var(--acc)}
+.nav-item .ni-icon{font-size:14px;width:18px;text-align:center}
+.nav-item .ni-badge{margin-left:auto;font-size:9px;padding:1px 5px;
+  border-radius:3px;background:rgba(255,26,58,.3);color:var(--pgm);font-weight:600}
+.nav-item .ni-badge.live{animation:pulse-badge 1.5s infinite}
+@keyframes pulse-badge{0%,100%{opacity:1}50%{opacity:.5}}
+/* active page indicator in topbar */
+#active-page-label{font-size:11px;color:var(--t2);font-weight:500;
+  padding:3px 8px;background:var(--b1);border-radius:var(--r);
+  border:1px solid var(--b2);white-space:nowrap}
+</style>

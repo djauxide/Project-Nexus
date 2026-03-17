@@ -1,0 +1,79 @@
+<script>
+// ── DEVICES ────────────────────────────────────────────────────────────────
+function buildDevices() {
+  const el = document.getElementById('device-list');
+  if (!el) return;
+  const devices = [
+    {name:'ATEM Constellation 8K',vendor:'Blackmagic',ip:'10.0.1.10',type:'Switcher',status:'ok',proto:'IP'},
+    {name:'Grass Valley LDX 86N',vendor:'Grass Valley',ip:'10.0.1.20',type:'Camera',status:'ok',proto:'IP'},
+    {name:'EVS XT-VIA',vendor:'EVS',ip:'10.0.1.30',type:'Server',status:'ok',proto:'IP'},
+    {name:'Lawo mc²56 MkII',vendor:'Lawo',ip:'10.0.1.40',type:'Audio',status:'warn',proto:'IP'},
+    {name:'Riedel Artist 128',vendor:'Riedel',ip:'10.0.1.50',type:'Comms',status:'ok',proto:'IP'},
+    {name:'Imagine Selenio MXO',vendor:'Imagine',ip:'10.0.1.60',type:'Gateway',status:'ok',proto:'IP'},
+    {name:'Cisco Nexus 9336C',vendor:'Cisco',ip:'10.0.0.1',type:'Switch',status:'ok',proto:'MGMT'},
+    {name:'Meinberg LANTIME M1000',vendor:'Meinberg',ip:'10.0.0.10',type:'PTP GM',status:'ok',proto:'PTP'},
+  ];
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:var(--b1)">
+      <th style="padding:8px;text-align:left;color:var(--t2);font-size:10px">DEVICE</th>
+      <th style="padding:8px;text-align:left;color:var(--t2);font-size:10px">VENDOR</th>
+      <th style="padding:8px;text-align:left;color:var(--t2);font-size:10px">IP</th>
+      <th style="padding:8px;text-align:left;color:var(--t2);font-size:10px">TYPE</th>
+      <th style="padding:8px;text-align:left;color:var(--t2);font-size:10px">PROTO</th>
+      <th style="padding:8px;text-align:left;color:var(--t2);font-size:10px">STATUS</th>
+      <th style="padding:8px"></th>
+    </tr></thead>
+    <tbody>${devices.map(d => `<tr style="border-bottom:1px solid var(--b1)">
+      <td style="padding:7px 8px;font-weight:500">${d.name}</td>
+      <td style="padding:7px 8px;color:var(--t2)">${d.vendor}</td>
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;color:var(--acc)">${d.ip}</td>
+      <td style="padding:7px 8px"><span class="tag ip">${d.type}</span></td>
+      <td style="padding:7px 8px"><span class="tag ${d.proto==='IP'?'ip':'sdi'}">${d.proto}</span></td>
+      <td style="padding:7px 8px"><span class="dot ${d.status}"></span></td>
+      <td style="padding:7px 8px"><button class="btn sm" onclick="toast('Connecting to ${d.name}','info')">Connect</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function scanDevices() { toast('Scanning network for NMOS/mDNS devices...', 'info'); }
+function addDevice() { toast('Manual device add: not implemented in demo', 'info'); }
+
+// ── API CONSOLE ────────────────────────────────────────────────────────────
+function apiLog(msg, type='recv') {
+  const el = document.getElementById('api-log');
+  if (!el) return;
+  const div = document.createElement('div');
+  div.style.cssText = `padding:2px 0;border-bottom:1px solid var(--b1);color:${type==='send'?'var(--acc)':'var(--ok)'}`;
+  div.textContent = `[${new Date().toLocaleTimeString()}] ${type.toUpperCase()}: ${msg}`;
+  el.insertBefore(div, el.firstChild);
+  S.nmsgs++;
+  const mps = document.getElementById('ws-mps');
+  if (mps) mps.textContent = S.nmsgs;
+}
+
+function apiSend() {
+  const cmd = document.getElementById('api-cmd').value;
+  if (!cmd) return;
+  apiLog(cmd, 'send');
+  setTimeout(() => {
+    try {
+      const obj = JSON.parse(cmd);
+      const resp = obj.type === 'ping' ? '{"type":"pong","ts":' + Date.now() + '}' :
+                   obj.type === 'status' ? '{"status":"ok","version":"6.0.0"}' :
+                   '{"error":"unknown command"}';
+      apiLog(resp, 'recv');
+    } catch(e) { apiLog('{"error":"invalid JSON"}', 'recv'); }
+  }, 80);
+}
+
+function wsConnect() {
+  document.getElementById('ws-dot').style.background = 'var(--ok)';
+  document.getElementById('ws-status').textContent = 'CONNECTED (sim)';
+  toast('WebSocket connected (simulated)', 'ok');
+}
+function wsDisconnect() {
+  document.getElementById('ws-dot').style.background = 'var(--crit)';
+  document.getElementById('ws-status').textContent = 'DISCONNECTED';
+  toast('WebSocket disconnected', 'warn');
+}
+</script>

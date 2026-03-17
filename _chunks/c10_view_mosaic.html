@@ -1,0 +1,13 @@
+<!-- VIEW: MOSAIC -->
+<div class="view" id="view-mosaic">
+  <div class="row" style="align-items:center">
+    <div class="card-title" style="margin:0"><span class="ct-icon">⊞</span>Mosaic Multiviewer</div>
+    <div class="spacer" style="flex:1"></div>
+    <select id="mv-layout" onchange="buildMosaic()" style="background:var(--b1);border:1px solid var(--b2);color:var(--t1);padding:5px 10px;border-radius:var(--r);font-size:12px">
+      <option value="2x2">2×2 (4 sources)</option>
+      <option value="3x3" selected>3×3 (9 sources)</option>
+      <option value="4x4">4×4 (16 sources)</option>
+    </select>
+  </div>
+  <div id="mv-container" style="flex:1;min-height:0"></div>
+</div>

@@ -1,0 +1,90 @@
+<script>
+// ── NMOS ───────────────────────────────────────────────────────────────────
+function buildNMOS() {
+  const nodes = document.getElementById('nmos-nodes');
+  if (!nodes) return;
+  const devices = [
+    {name:'ATEM Constellation',type:'Switcher',senders:4,receivers:8,status:'ok'},
+    {name:'Grass Valley LDX',type:'Camera',senders:2,receivers:0,status:'ok'},
+    {name:'EVS XT-VIA',type:'Server',senders:6,receivers:6,status:'ok'},
+    {name:'Lawo mc²56',type:'Audio',senders:8,receivers:8,status:'warn'},
+    {name:'Riedel Artist',type:'Comms',senders:2,receivers:2,status:'ok'},
+    {name:'Imagine Selenio',type:'Gateway',senders:4,receivers:4,status:'ok'},
+  ];
+  nodes.innerHTML = devices.map(d => `
+    <div class="status-row">
+      <span class="dot ${d.status}"></span>
+      <span class="sr-label">${d.name} <span style="color:var(--t3);font-size:10px">${d.type}</span></span>
+      <span class="sr-val" style="font-size:10px">↑${d.senders} ↓${d.receivers}</span>
+    </div>`).join('');
+
+  const conns = document.getElementById('nmos-connections');
+  if (conns) {
+    conns.innerHTML = [
+      {src:'LDX CAM 1/0',dst:'ATEM IN 1',status:'ok'},
+      {src:'LDX CAM 2/0',dst:'ATEM IN 2',status:'ok'},
+      {src:'EVS OUT 1',dst:'ATEM IN 5',status:'ok'},
+      {src:'ATEM PGM',dst:'EVS REC 1',status:'ok'},
+      {src:'Lawo AES67/1',dst:'ATEM AUD 1',status:'warn'},
+    ].map(c => `
+      <div class="status-row">
+        <span class="dot ${c.status}"></span>
+        <span class="sr-label" style="font-family:var(--mono);font-size:11px">${c.src} → ${c.dst}</span>
+      </div>`).join('');
+  }
+
+  const events = document.getElementById('nmos-events');
+  if (events) {
+    const evts = ['IS-07: tally/pgm → true','IS-07: tally/pvw → false','IS-04: node registered','IS-05: connection active'];
+    events.innerHTML = evts.map(e => `<div style="padding:2px 0;border-bottom:1px solid var(--b1);color:var(--acc)">${new Date().toLocaleTimeString()} ${e}</div>`).join('');
+  }
+}
+
+function nmosMakeConnection() { toast('IS-05: Connection request sent', 'ok'); }
+
+// ── PTP SLAVES ─────────────────────────────────────────────────────────────
+function buildPTPSlaves() {
+  const el = document.getElementById('ptp-slaves');
+  if (!el) return;
+  const slaves = [
+    {name:'ATEM Constellation',offset:12,state:'SLAVE'},
+    {name:'Grass Valley LDX 86',offset:18,state:'SLAVE'},
+    {name:'EVS XT-VIA',offset:9,state:'SLAVE'},
+    {name:'Lawo mc²56',offset:22,state:'SLAVE'},
+    {name:'Riedel Artist 128',offset:15,state:'SLAVE'},
+    {name:'Imagine Selenio MXO',offset:31,state:'SLAVE'},
+    {name:'Cisco Nexus 9K',offset:5,state:'SLAVE'},
+  ];
+  el.innerHTML = slaves.map(s => {
+    const cls = s.offset > 25 ? 'warn' : 'ok';
+    return `<div class="status-row">
+      <span class="dot ${cls}"></span>
+      <span class="sr-label">${s.name}</span>
+      <span class="sr-val">±${s.offset} ns</span>
+      <span style="font-size:10px;color:var(--t3);margin-left:8px">${s.state}</span>
+    </div>`;
+  }).join('');
+  drawPTPGraph(slaves);
+}
+
+function drawPTPGraph(slaves) {
+  const c = document.getElementById('ptp-graph');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = 'rgba(0,212,255,.2)'; ctx.lineWidth = 1;
+  for (let y = 0; y <= h; y += h/4) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+  slaves.forEach((s, si) => {
+    const col = si === 0 ? 'rgba(0,255,136,.8)' : `rgba(0,212,255,${.3+si*.05})`;
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let x = 0; x < w; x++) {
+      const noise = (Math.random()-.5) * 4;
+      const y = h/2 - (s.offset + noise) / 50 * h;
+      x === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  });
+}
+</script>

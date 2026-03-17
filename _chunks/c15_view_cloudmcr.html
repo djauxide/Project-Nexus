@@ -1,0 +1,75 @@
+<!-- VIEW: CLOUD MCR -->
+<div class="view" id="view-cloudmcr">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">☁</span>Cloud MCR — AWS eu-west-1
+        <span class="ct-sub"><span class="dot ok"></span> CONNECTED</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="aws-card" style="flex:1;min-width:180px">
+          <div class="aws-icon">📡</div>
+          <div class="aws-info">
+            <div class="aws-name">MediaConnect</div>
+            <div class="aws-desc">ST 2110 / SRT ingest</div>
+          </div>
+          <div class="aws-stat">● LIVE</div>
+        </div>
+        <div class="aws-card" style="flex:1;min-width:180px">
+          <div class="aws-icon">🎬</div>
+          <div class="aws-info">
+            <div class="aws-name">MediaLive</div>
+            <div class="aws-desc">Live encode / transcode</div>
+          </div>
+          <div class="aws-stat">● LIVE</div>
+        </div>
+        <div class="aws-card" style="flex:1;min-width:180px">
+          <div class="aws-icon">📦</div>
+          <div class="aws-info">
+            <div class="aws-name">MediaPackage</div>
+            <div class="aws-desc">HLS / DASH packaging</div>
+          </div>
+          <div class="aws-stat">● LIVE</div>
+        </div>
+        <div class="aws-card" style="flex:1;min-width:180px">
+          <div class="aws-icon">⚡</div>
+          <div class="aws-info">
+            <div class="aws-name">Lambda</div>
+            <div class="aws-desc">Event-driven automation</div>
+          </div>
+          <div class="aws-stat" id="lambda-stat">● IDLE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">🏗</span>Virtual Rack — Cloud</div>
+      <div class="rack" id="cloud-rack"></div>
+    </div>
+    <div class="card" style="flex:2">
+      <div class="card-title"><span class="ct-icon">🔀</span>Signal Flow — Ground → Cloud</div>
+      <div id="signal-canvas">
+        <svg id="sf-svg" width="100%" height="100%" style="position:absolute;inset:0"></svg>
+        <div id="sf-nodes"></div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📊</span>Transport Metrics</div>
+      <div class="meter-row"><span class="mr-label">Ingest BW</span><div class="mr-bar"><div class="mr-fill" id="m-ingest" style="width:65%;background:var(--ok)"></div></div><span class="mr-val">65%</span></div>
+      <div class="meter-row"><span class="mr-label">Encode CPU</span><div class="mr-bar"><div class="mr-fill" id="m-cpu" style="width:42%;background:var(--acc)"></div></div><span class="mr-val">42%</span></div>
+      <div class="meter-row"><span class="mr-label">Latency</span><div class="mr-bar"><div class="mr-fill" id="m-lat" style="width:18%;background:var(--pvw)"></div></div><span class="mr-val">180ms</span></div>
+      <div class="meter-row"><span class="mr-label">Packet Loss</span><div class="mr-bar"><div class="mr-fill" id="m-loss" style="width:2%;background:var(--warn)"></div></div><span class="mr-val">0.2%</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">⚡</span>Lambda Triggers</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn sm primary" onclick="triggerLambda('failover')">🔄 Trigger Failover</button>
+        <button class="btn sm" onclick="triggerLambda('scale-up')">📈 Scale Up Encode</button>
+        <button class="btn sm" onclick="triggerLambda('snapshot')">📸 Snapshot Config</button>
+        <button class="btn sm danger" onclick="triggerLambda('emergency-stop')">🛑 Emergency Stop</button>
+      </div>
+    </div>
+  </div>
+</div>

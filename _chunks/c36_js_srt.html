@@ -1,0 +1,40 @@
+<script>
+// ── SRT ────────────────────────────────────────────────────────────────────
+function buildSRT() {
+  const el = document.getElementById('srt-streams');
+  if (!el) return;
+  const streams = [
+    {name:'SRT Caller 1',mode:'CALLER',host:'contrib.venue-a.com',port:9000,bitrate:'12.4 Mbps',rtt:'42ms',loss:'0.1%',status:'ok'},
+    {name:'SRT Listener 1',mode:'LISTENER',host:'0.0.0.0',port:9001,bitrate:'8.2 Mbps',rtt:'—',loss:'0%',status:'ok'},
+    {name:'RIST Stream',mode:'RIST',host:'rist.cloud.com',port:5004,bitrate:'6.1 Mbps',rtt:'88ms',loss:'0.3%',status:'warn'},
+    {name:'RTMP Ingest',mode:'RTMP',host:'rtmp://ingest.local',port:1935,bitrate:'4.8 Mbps',rtt:'—',loss:'0%',status:'ok'},
+  ];
+  el.innerHTML = streams.map(s => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--b1);border-radius:4px;margin-bottom:4px;font-size:11px">
+      <span class="dot ${s.status}"></span>
+      <span style="font-weight:600;color:var(--t1);min-width:120px">${s.name}</span>
+      <span class="tag ip">${s.mode}</span>
+      <span style="font-family:var(--mono);color:var(--t2);flex:1">${s.host}:${s.port}</span>
+      <span style="font-family:var(--mono);color:var(--ok)">${s.bitrate}</span>
+      <span style="font-family:var(--mono);color:var(--t2)">RTT:${s.rtt}</span>
+      <span style="font-family:var(--mono);color:${s.loss==='0%'?'var(--ok)':'var(--warn)'}">Loss:${s.loss}</span>
+      <button class="btn sm danger" onclick="toast('Stream stopped','warn')">Stop</button>
+    </div>`).join('');
+
+  const contrib = document.getElementById('contrib-links');
+  if (contrib) {
+    contrib.innerHTML = [
+      {name:'Venue A',type:'SRT',bw:'12.4 Mbps',status:'ok'},
+      {name:'Remote Studio',type:'SRT',bw:'8.2 Mbps',status:'ok'},
+      {name:'OB Truck 1',type:'RIST',bw:'6.1 Mbps',status:'warn'},
+      {name:'Social Ingest',type:'RTMP',bw:'4.8 Mbps',status:'ok'},
+    ].map(c => `<div class="status-row">
+      <span class="dot ${c.status}"></span>
+      <span class="sr-label">${c.name} <span class="tag ip" style="font-size:9px">${c.type}</span></span>
+      <span class="sr-val">${c.bw}</span>
+    </div>`).join('');
+  }
+}
+
+function addSRTStream() { toast('SRT stream configuration dialog: coming soon', 'info'); }
+</script>

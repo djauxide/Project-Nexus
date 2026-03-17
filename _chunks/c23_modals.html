@@ -1,0 +1,66 @@
+<!-- ── MODALS ── -->
+<!-- Login -->
+<div class="modal-overlay" id="login-modal">
+  <div class="modal">
+    <h3>🔐 NEXUS v6 Access</h3>
+    <div class="form-group"><label>Password</label>
+      <input type="password" id="login-pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="login-err" style="color:var(--crit);font-size:12px;display:none">Incorrect password</div>
+    <div class="modal-footer">
+      <button class="btn primary" onclick="doLogin()">Login</button>
+    </div>
+  </div>
+</div>
+
+<!-- Switch User -->
+<div class="modal-overlay" id="user-modal" style="display:none">
+  <div class="modal">
+    <h3>👤 Switch User / Role</h3>
+    <div class="form-group"><label>Name</label>
+      <input type="text" id="su-name" value="Engineer">
+    </div>
+    <div class="form-group"><label>Role</label>
+      <select id="su-role">
+        <option value="engineer">Engineer — Full Access</option>
+        <option value="operator">Operator — Production Only</option>
+        <option value="viewer">Viewer — Monitor Only</option>
+        <option value="trainer">Trainer — Production + Training</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('user-modal')">Cancel</button>
+      <button class="btn primary" onclick="applyUser()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Workflow Modal -->
+<div class="modal-overlay" id="wf-modal" style="display:none">
+  <div class="modal">
+    <h3>⚡ Workflow Mode</h3>
+    <p style="color:var(--t2);font-size:12px;margin-bottom:16px">Select the operational workflow for this session.</p>
+    <div class="wf-selector">
+      <div class="wf-opt ground" onclick="setWorkflow('ground');closeModal('wf-modal')">
+        <div class="wo-icon">🏭</div><div class="wo-label">GROUND</div>
+        <div class="wo-desc">On-premises SDI/IP infrastructure only</div>
+      </div>
+      <div class="wf-opt cloud" onclick="setWorkflow('cloud');closeModal('wf-modal')">
+        <div class="wo-icon">☁</div><div class="wo-label">CLOUD</div>
+        <div class="wo-desc">AWS MediaLive / MediaConnect</div>
+      </div>
+      <div class="wf-opt hybrid" onclick="setWorkflow('hybrid');closeModal('wf-modal')">
+        <div class="wo-icon">⚡</div><div class="wo-label">HYBRID</div>
+        <div class="wo-desc">Ground infrastructure + cloud burst</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('wf-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast"></div>
+</div><!-- end #main -->
+</div><!-- end #app -->

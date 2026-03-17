@@ -1,0 +1,41 @@
+<!-- VIEW: TRAINING -->
+<div class="view" id="view-training">
+  <div class="training-hero">
+    <div style="font-size:32px;margin-bottom:6px">🎓</div>
+    <h2>NEXUS Training Academy</h2>
+    <p>Role-aware learning paths for broadcast IP infrastructure</p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap">
+      <span class="tag ip">IP Workflows</span>
+      <span class="tag sdi">SDI Fundamentals</span>
+      <span class="tag cloud">Cloud MCR</span>
+      <span class="tag live">Live Production</span>
+    </div>
+  </div>
+
+  <!-- Progress overview -->
+  <div class="card">
+    <div class="card-title"><span class="ct-icon">📊</span>Your Progress
+      <span class="ct-sub" id="training-progress-label">0 / 7 modules complete</span>
+    </div>
+    <div class="progress-bar" style="height:8px"><div class="progress-fill" id="training-overall-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- Module grid -->
+  <div class="module-grid" id="module-grid"></div>
+
+  <!-- Lesson panel (shown when a module is open) -->
+  <div class="lesson-panel" id="lesson-panel">
+    <div class="lesson-header">
+      <button class="btn sm" onclick="closelesson()">← Back</button>
+      <h3 id="lesson-title">Module Title</h3>
+      <span class="ct-sub" id="lesson-step-label" style="margin-left:auto">Step 1 of 4</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="lesson-progress-bar" style="width:0%"></div></div>
+    <div class="lesson-body" id="lesson-body"></div>
+    <div id="quiz-area"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" id="lesson-prev" onclick="lessonNav(-1)">← Prev</button>
+      <button class="btn primary" id="lesson-next" onclick="lessonNav(1)">Next →</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,85 @@
+<style>
+/* ── RUNDOWN / PLAYOUT ── */
+.rundown-table{width:100%;border-collapse:collapse;font-size:12px}
+.rundown-table th{background:var(--b1);color:var(--t2);font-weight:600;
+  padding:8px 10px;text-align:left;font-size:10px;letter-spacing:.5px;text-transform:uppercase;
+  border-bottom:1px solid var(--b2)}
+.rundown-table td{padding:7px 10px;border-bottom:1px solid var(--b1);color:var(--t1)}
+.rundown-table tr:hover td{background:rgba(255,255,255,.02)}
+.rundown-table tr.on-air td{background:rgba(255,26,58,.06)}
+.rundown-table tr.on-air td:first-child{border-left:3px solid var(--pgm)}
+.rundown-table tr.next td{background:rgba(0,255,136,.04)}
+.rundown-table tr.next td:first-child{border-left:3px solid var(--pvw)}
+.rd-status{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:600}
+.rd-status.air{background:rgba(255,26,58,.2);color:var(--pgm)}
+.rd-status.next{background:rgba(0,255,136,.2);color:var(--ok)}
+.rd-status.ready{background:rgba(0,212,255,.2);color:var(--acc)}
+.rd-status.hold{background:rgba(255,170,0,.2);color:var(--warn)}
+
+/* ── SCOPES ── */
+.scope-box{background:#000;border-radius:var(--r);overflow:hidden;position:relative}
+.scope-box canvas{display:block;width:100%;height:100%}
+.scope-label{position:absolute;top:4px;left:6px;font-size:9px;font-weight:600;
+  color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase}
+
+/* ── NETWORK / PROTOCOL TABLE ── */
+.proto-table{width:100%;border-collapse:collapse;font-size:12px}
+.proto-table th{background:var(--b1);color:var(--t2);font-weight:600;
+  padding:8px 10px;text-align:left;font-size:10px;letter-spacing:.5px;text-transform:uppercase;
+  border-bottom:1px solid var(--b2)}
+.proto-table td{padding:7px 10px;border-bottom:1px solid var(--b1);color:var(--t1);vertical-align:top}
+.proto-table tr:hover td{background:rgba(255,255,255,.02)}
+.proto-badge{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;margin-right:3px;display:inline-block}
+.pb-sdi{background:rgba(255,204,51,.2);color:var(--gold)}
+.pb-ip{background:rgba(0,212,255,.2);color:var(--acc)}
+.pb-cloud{background:rgba(187,119,255,.2);color:var(--pur)}
+.pb-hybrid{background:rgba(0,255,136,.2);color:var(--ok)}
+
+/* ── PTP / NMOS ── */
+.ptp-clock{font-family:var(--mono);font-size:32px;color:var(--acc);
+  text-align:center;padding:16px;letter-spacing:2px;
+  text-shadow:0 0 20px rgba(0,212,255,.4)}
+.ptp-offset{font-family:var(--mono);font-size:13px;color:var(--ok);text-align:center}
+
+/* ── COMPAT MATRIX ── */
+.compat-table{width:100%;border-collapse:collapse;font-size:11px}
+.compat-table th,.compat-table td{padding:6px 8px;border:1px solid var(--b1);text-align:center}
+.compat-table th{background:var(--b1);color:var(--t2);font-size:10px}
+.compat-cell.yes{color:var(--ok)}
+.compat-cell.no{color:var(--crit)}
+.compat-cell.partial{color:var(--warn)}
+
+/* ── PREFLIGHT ── */
+.pf-check{display:flex;align-items:center;gap:10px;padding:8px 12px;
+  background:var(--b1);border-radius:var(--r);margin-bottom:6px;font-size:12px}
+.pf-check .pf-name{flex:1;color:var(--t1)}
+.pf-check .pf-result{font-family:var(--mono);font-size:11px}
+.pf-check.pass .pf-result{color:var(--ok)}
+.pf-check.fail .pf-result{color:var(--crit)}
+.pf-check.warn .pf-result{color:var(--warn)}
+.pf-check.run .pf-result{color:var(--acc)}
+
+/* ── WORKFLOW SWITCHER ── */
+.wf-selector{display:flex;gap:6px}
+.wf-opt{flex:1;padding:10px;border-radius:var(--r);border:1px solid var(--b2);
+  background:var(--b1);cursor:pointer;transition:var(--ease);text-align:center}
+.wf-opt:hover{border-color:var(--acc)}
+.wf-opt.active.ground{border-color:var(--ok);background:rgba(0,255,136,.08)}
+.wf-opt.active.cloud{border-color:var(--acc);background:rgba(0,212,255,.08)}
+.wf-opt.active.hybrid{border-color:var(--pur);background:rgba(187,119,255,.08)}
+.wf-opt .wo-icon{font-size:20px;margin-bottom:4px}
+.wf-opt .wo-label{font-size:11px;font-weight:600;letter-spacing:.5px}
+.wf-opt .wo-desc{font-size:10px;color:var(--t2);margin-top:2px}
+
+/* ── MISC ── */
+.tag{font-size:10px;padding:2px 7px;border-radius:3px;font-weight:600;display:inline-block}
+.tag.ip{background:rgba(0,212,255,.15);color:var(--acc)}
+.tag.sdi{background:rgba(255,204,51,.15);color:var(--gold)}
+.tag.cloud{background:rgba(187,119,255,.15);color:var(--pur)}
+.tag.live{background:rgba(255,26,58,.2);color:var(--pgm)}
+.meter-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.meter-row .mr-label{font-size:11px;color:var(--t2);width:80px;flex-shrink:0}
+.meter-row .mr-bar{flex:1;height:8px;background:var(--b2);border-radius:4px;overflow:hidden}
+.meter-row .mr-fill{height:100%;border-radius:4px;transition:.2s}
+.meter-row .mr-val{font-family:var(--mono);font-size:10px;color:var(--t2);width:40px;text-align:right}
+</style>

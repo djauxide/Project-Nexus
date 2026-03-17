@@ -1,0 +1,30 @@
+<style>
+/* ── LAYOUT ── */
+#app{display:flex;flex-direction:column;height:100vh}
+#topbar{display:flex;align-items:center;gap:8px;padding:0 12px;height:44px;
+  background:linear-gradient(90deg,#020210,#05051a);
+  border-bottom:1px solid var(--b2);flex-shrink:0;position:relative;z-index:100}
+#topbar .brand{font-family:var(--display);font-size:22px;font-weight:700;
+  letter-spacing:2px;color:var(--acc);text-shadow:0 0 20px rgba(0,212,255,.4);
+  margin-right:8px;white-space:nowrap}
+#topbar .brand span{color:var(--t2);font-size:13px;font-weight:400;
+  letter-spacing:1px;margin-left:6px;font-family:var(--font)}
+#topbar .spacer{flex:1}
+#topbar .tc{font-family:var(--mono);font-size:14px;color:var(--acc);
+  background:var(--b1);padding:3px 10px;border-radius:var(--r);
+  border:1px solid var(--b2);letter-spacing:1px}
+#topbar .wf-badge{font-size:10px;font-weight:600;padding:3px 8px;
+  border-radius:3px;letter-spacing:1px;cursor:pointer;transition:var(--ease)}
+#topbar .wf-badge.ground{background:rgba(0,255,136,.15);color:var(--ok);border:1px solid rgba(0,255,136,.3)}
+#topbar .wf-badge.cloud{background:rgba(0,212,255,.15);color:var(--acc);border:1px solid rgba(0,212,255,.3)}
+#topbar .wf-badge.hybrid{background:rgba(187,119,255,.15);color:var(--pur);border:1px solid rgba(187,119,255,.3)}
+#topbar .user-btn{display:flex;align-items:center;gap:6px;background:var(--b1);
+  border:1px solid var(--b2);border-radius:var(--r);padding:4px 10px;
+  cursor:pointer;transition:var(--ease);color:var(--t1)}
+#topbar .user-btn:hover{border-color:var(--acc);color:var(--acc)}
+#topbar .role-pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;letter-spacing:.5px}
+.role-pill.engineer{background:rgba(0,212,255,.2);color:var(--acc);border:1px solid rgba(0,212,255,.4)}
+.role-pill.operator{background:rgba(0,255,136,.2);color:var(--ok);border:1px solid rgba(0,255,136,.4)}
+.role-pill.viewer{background:rgba(144,144,176,.2);color:var(--t2);border:1px solid rgba(144,144,176,.3)}
+.role-pill.trainer{background:rgba(255,204,51,.2);color:var(--gold);border:1px solid rgba(255,204,51,.4)}
+</style>

@@ -1,0 +1,48 @@
+<!-- VIEW: PLAYOUT -->
+<div class="view" id="view-playout">
+  <div class="row">
+    <div class="card" style="flex:2">
+      <div class="card-title"><span class="ct-icon">▶</span>Playout Engine</div>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <div style="background:#000;border-radius:6px;flex:1;aspect-ratio:16/9;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center">
+          <canvas id="playout-canvas" style="width:100%;height:100%;display:block"></canvas>
+          <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.6);padding:2px 6px;border-radius:3px;font-size:10px;color:var(--acc);font-family:var(--mono)" id="playout-tc">00:00:00:00</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn danger" onclick="playoutCue()">⏮ CUE</button>
+        <button class="btn success" onclick="playoutPlay()">▶ PLAY</button>
+        <button class="btn" onclick="playoutPause()">⏸ PAUSE</button>
+        <button class="btn" onclick="playoutStop()">⏹ STOP</button>
+        <div style="flex:1;height:6px;background:var(--b2);border-radius:3px;overflow:hidden;cursor:pointer" onclick="scrub(event,this)">
+          <div id="playout-progress" style="height:100%;width:0%;background:var(--acc);border-radius:3px;transition:.1s"></div>
+        </div>
+        <span id="playout-remain" style="font-family:var(--mono);font-size:11px;color:var(--t2)">00:00</span>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">📂</span>Clip Queue</div>
+      <div id="clip-queue" style="display:flex;flex-direction:column;gap:4px"></div>
+      <button class="btn sm primary" style="margin-top:8px;width:100%" onclick="addClip()">+ Add Clip</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">🎞</span>Graphics / CG</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn sm" onclick="cgTake('Lower Third')">Lower Third</button>
+        <button class="btn sm" onclick="cgTake('Full Screen')">Full Screen</button>
+        <button class="btn sm" onclick="cgTake('Ticker')">Ticker</button>
+        <button class="btn sm" onclick="cgTake('Sting')">Sting</button>
+        <button class="btn sm danger" onclick="cgClear()">✕ Clear All</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📊</span>Playout Stats</div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Engine</span><span class="sr-val">RUNNING</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Frame Rate</span><span class="sr-val">50.00 fps</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Buffer</span><span class="sr-val">4 frames</span></div>
+      <div class="status-row"><span class="dot warn"></span><span class="sr-label">Disk I/O</span><span class="sr-val">78%</span></div>
+    </div>
+  </div>
+</div>

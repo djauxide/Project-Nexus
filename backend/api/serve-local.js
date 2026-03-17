@@ -23,7 +23,7 @@ server.listen(PORT, '0.0.0.0', function() {
   });
 
   console.log('');
-  console.log('NEXUS v4 Demo — Local Server');
+  console.log('NEXUS v5 Demo — Local Server');
   console.log('============================');
   ips.forEach(function(ip) {
     console.log('  http://' + ip + ':' + PORT);

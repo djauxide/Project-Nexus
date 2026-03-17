@@ -1,0 +1,114 @@
+<script>
+// ── CLOUD MCR ──────────────────────────────────────────────────────────────
+function buildCloudRack() {
+  const el = document.getElementById('cloud-rack');
+  if (!el) return;
+  const units = [
+    {name:'MediaConnect Ingest',type:'AWS',stat:'LIVE',cls:'active'},
+    {name:'MediaLive Channel 1',type:'ENCODE',stat:'1080p50',cls:'active'},
+    {name:'MediaLive Channel 2',type:'ENCODE',stat:'720p50',cls:'active'},
+    {name:'MediaPackage HLS',type:'PACKAGE',stat:'LIVE',cls:'active'},
+    {name:'CloudFront CDN',type:'DELIVERY',stat:'12.4k viewers',cls:'active'},
+    {name:'Lambda Failover',type:'FUNCTION',stat:'IDLE',cls:'warn'},
+    {name:'S3 Archive',type:'STORAGE',stat:'2.4 TB',cls:'active'},
+    {name:'Elemental Link',type:'HARDWARE',stat:'OFFLINE',cls:'crit'},
+  ];
+  el.innerHTML = units.map(u => `
+    <div class="rack-unit ${u.cls}">
+      <div class="ru-name">${u.name}</div>
+      <div class="ru-type">${u.type}</div>
+      <div class="ru-stat">${u.stat}</div>
+    </div>`).join('');
+}
+
+function buildSignalFlow() {
+  buildCloudRack();
+  const svg = document.getElementById('sf-svg');
+  const nodes = document.getElementById('sf-nodes');
+  if (!svg || !nodes) return;
+  nodes.innerHTML = '';
+  svg.innerHTML = '';
+
+  const nodeData = [
+    {id:'cam',label:'Camera',icon:'📷',sub:'SDI',x:2,y:30,cls:''},
+    {id:'sdi-gw',label:'SDI→IP GW',icon:'🔄',sub:'ST 2110',x:14,y:30,cls:'active'},
+    {id:'sw',label:'Switcher',icon:'🎛',sub:'ME 1',x:26,y:30,cls:'active'},
+    {id:'enc',label:'Encoder',icon:'📦',sub:'H.264',x:38,y:30,cls:'active'},
+    {id:'srt',label:'SRT',icon:'📡',sub:'Contribution',x:50,y:30,cls:'active'},
+    {id:'mc',label:'MediaConnect',icon:'☁',sub:'AWS',x:62,y:30,cls:'cloud'},
+    {id:'ml',label:'MediaLive',icon:'🎬',sub:'AWS',x:74,y:30,cls:'cloud'},
+    {id:'mp',label:'MediaPackage',icon:'📦',sub:'HLS/DASH',x:86,y:30,cls:'cloud'},
+  ];
+
+  const W = 800, H = 320;
+  nodeData.forEach(n => {
+    const div = document.createElement('div');
+    div.className = `sf-node ${n.cls}`;
+    div.style.left = `${n.x}%`;
+    div.style.top = `${n.y}%`;
+    div.style.transform = 'translate(-50%,-50%)';
+    div.innerHTML = `<span class="sn-icon">${n.icon}</span>${n.label}<span class="sn-label">${n.sub}</span>`;
+    div.onclick = () => toast(`${n.label}: ${n.sub}`, 'info');
+    nodes.appendChild(div);
+  });
+
+  // Draw connecting lines via SVG
+  setTimeout(() => {
+    const container = document.getElementById('signal-canvas');
+    if (!container) return;
+    const cw = container.offsetWidth, ch = container.offsetHeight;
+    svg.setAttribute('viewBox', `0 0 ${cw} ${ch}`);
+    const divs = nodes.querySelectorAll('.sf-node');
+    for (let i = 0; i < divs.length - 1; i++) {
+      const a = divs[i].getBoundingClientRect();
+      const b = divs[i+1].getBoundingClientRect();
+      const cr = container.getBoundingClientRect();
+      const x1 = a.right - cr.left, y1 = a.top + a.height/2 - cr.top;
+      const x2 = b.left - cr.left, y2 = b.top + b.height/2 - cr.top;
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+      line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+      const isCloud = i >= 4;
+      line.setAttribute('stroke', isCloud ? 'rgba(0,212,255,.5)' : 'rgba(0,255,136,.5)');
+      line.setAttribute('stroke-width','2');
+      line.setAttribute('stroke-dasharray', isCloud ? '6,3' : 'none');
+      svg.appendChild(line);
+    }
+  }, 100);
+}
+
+function triggerLambda(action) {
+  const msgs = {
+    'failover': 'Lambda: Failover triggered — switching to backup encoder',
+    'scale-up': 'Lambda: Scaling up MediaLive to 4K encode',
+    'snapshot': 'Lambda: Config snapshot saved to S3',
+    'emergency-stop': 'Lambda: EMERGENCY STOP — all channels halted'
+  };
+  const types = {'failover':'warn','scale-up':'info','snapshot':'ok','emergency-stop':'err'};
+  toast(msgs[action], types[action]);
+  document.getElementById('lambda-stat').textContent = '● RUNNING';
+  setTimeout(() => { document.getElementById('lambda-stat').textContent = '● IDLE'; }, 3000);
+}
+
+// animate cloud metrics
+function animateCloudMetrics() {
+  const metrics = [
+    {id:'m-ingest', min:55, max:80, color:'var(--ok)', valSuffix:'%'},
+    {id:'m-cpu', min:30, max:65, color:'var(--acc)', valSuffix:'%'},
+    {id:'m-lat', min:10, max:30, color:'var(--pvw)', valSuffix:'%'},
+    {id:'m-loss', min:0, max:5, color:'var(--warn)', valSuffix:'%'},
+  ];
+  metrics.forEach(m => {
+    const el = document.getElementById(m.id);
+    if (!el) return;
+    const v = m.min + Math.random() * (m.max - m.min);
+    el.style.width = v + '%';
+    el.style.background = m.color;
+    const parent = el.parentElement.parentElement;
+    if (parent) {
+      const val = parent.querySelector('.mr-val');
+      if (val) val.textContent = v.toFixed(0) + m.valSuffix;
+    }
+  });
+}
+</script>

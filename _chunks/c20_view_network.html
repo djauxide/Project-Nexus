@@ -1,0 +1,42 @@
+<!-- VIEW: NETWORK -->
+<div class="view" id="view-network">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">🌐</span>Network Topology</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="status-row" style="flex:1;min-width:160px"><span class="dot ok"></span><span class="sr-label">Core Switch A</span><span class="sr-val">100GbE</span></div>
+        <div class="status-row" style="flex:1;min-width:160px"><span class="dot ok"></span><span class="sr-label">Core Switch B</span><span class="sr-val">100GbE</span></div>
+        <div class="status-row" style="flex:1;min-width:160px"><span class="dot ok"></span><span class="sr-label">Edge Router</span><span class="sr-val">10GbE</span></div>
+        <div class="status-row" style="flex:1;min-width:160px"><span class="dot warn"></span><span class="sr-label">WAN Link</span><span class="sr-val">1GbE</span></div>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">📊</span>Bandwidth</div>
+      <div class="meter-row"><span class="mr-label">ST 2110</span><div class="mr-bar"><div class="mr-fill" style="width:72%;background:var(--acc)"></div></div><span class="mr-val">72 Gbps</span></div>
+      <div class="meter-row"><span class="mr-label">SRT/RIST</span><div class="mr-bar"><div class="mr-fill" style="width:35%;background:var(--ok)"></div></div><span class="mr-val">350 Mbps</span></div>
+      <div class="meter-row"><span class="mr-label">Management</span><div class="mr-bar"><div class="mr-fill" style="width:8%;background:var(--pur)"></div></div><span class="mr-val">80 Mbps</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct-icon">📋</span>Protocol Reference</div>
+    <div style="overflow-x:auto">
+      <table class="proto-table">
+        <thead><tr><th>Protocol</th><th>Layer</th><th>Use Case</th><th>Latency</th><th>Bandwidth</th><th>Workflow</th></tr></thead>
+        <tbody>
+          <tr><td><strong>SMPTE ST 2110-20</strong></td><td>IP/UDP</td><td>Uncompressed video transport</td><td>&lt;1ms</td><td>3–12 Gbps/ch</td><td><span class="proto-badge pb-ip">IP</span><span class="proto-badge pb-hybrid">Hybrid</span></td></tr>
+          <tr><td><strong>SMPTE ST 2110-30</strong></td><td>IP/UDP</td><td>Uncompressed audio (AES67)</td><td>&lt;1ms</td><td>1–10 Mbps</td><td><span class="proto-badge pb-ip">IP</span></td></tr>
+          <tr><td><strong>SMPTE ST 2110-40</strong></td><td>IP/UDP</td><td>Ancillary data (captions, TC)</td><td>&lt;1ms</td><td>&lt;1 Mbps</td><td><span class="proto-badge pb-ip">IP</span></td></tr>
+          <tr><td><strong>SRT</strong></td><td>UDP</td><td>Contribution over internet</td><td>80–500ms</td><td>1–50 Mbps</td><td><span class="proto-badge pb-cloud">Cloud</span><span class="proto-badge pb-hybrid">Hybrid</span></td></tr>
+          <tr><td><strong>RIST</strong></td><td>UDP</td><td>Reliable internet streaming</td><td>100–600ms</td><td>1–100 Mbps</td><td><span class="proto-badge pb-cloud">Cloud</span></td></tr>
+          <tr><td><strong>NDI</strong></td><td>TCP/UDP</td><td>LAN video over IP</td><td>~16ms</td><td>100–250 Mbps</td><td><span class="proto-badge pb-ip">IP</span></td></tr>
+          <tr><td><strong>RTMP</strong></td><td>TCP</td><td>Streaming ingest (legacy)</td><td>1–5s</td><td>1–20 Mbps</td><td><span class="proto-badge pb-cloud">Cloud</span></td></tr>
+          <tr><td><strong>HLS / DASH</strong></td><td>HTTP</td><td>OTT delivery</td><td>2–30s</td><td>1–20 Mbps</td><td><span class="proto-badge pb-cloud">Cloud</span></td></tr>
+          <tr><td><strong>SDI (3G/12G)</strong></td><td>Physical</td><td>Legacy baseband video</td><td>&lt;1ms</td><td>3–12 Gbps</td><td><span class="proto-badge pb-sdi">SDI</span></td></tr>
+          <tr><td><strong>NMOS IS-04/05</strong></td><td>HTTP/WS</td><td>Device discovery &amp; routing</td><td>~10ms</td><td>Minimal</td><td><span class="proto-badge pb-ip">IP</span></td></tr>
+          <tr><td><strong>PTP (IEEE 1588)</strong></td><td>UDP</td><td>Precision time sync</td><td>N/A</td><td>Minimal</td><td><span class="proto-badge pb-ip">IP</span><span class="proto-badge pb-hybrid">Hybrid</span></td></tr>
+          <tr><td><strong>AWS MediaConnect</strong></td><td>Cloud</td><td>Managed ST 2110 / SRT cloud</td><td>50–200ms</td><td>Up to 200 Mbps</td><td><span class="proto-badge pb-cloud">Cloud</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

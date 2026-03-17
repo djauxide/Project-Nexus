@@ -1,0 +1,84 @@
+<script>
+// ── COMPAT ─────────────────────────────────────────────────────────────────
+function buildCompat() {
+  const tbody = document.getElementById('compat-body');
+  if (!tbody) return;
+  const devices = [
+    {name:'ATEM Constellation 8K',st2110:'yes',nmos:'yes',ptp:'yes',srt:'yes',ndi:'partial',sdi:'yes',ampp:'no'},
+    {name:'Grass Valley LDX 86N',st2110:'yes',nmos:'yes',ptp:'yes',srt:'no',ndi:'no',sdi:'yes',ampp:'partial'},
+    {name:'EVS XT-VIA',st2110:'yes',nmos:'yes',ptp:'yes',srt:'yes',ndi:'yes',sdi:'yes',ampp:'yes'},
+    {name:'Lawo mc²56 MkII',st2110:'yes',nmos:'yes',ptp:'yes',srt:'no',ndi:'no',sdi:'yes',ampp:'no'},
+    {name:'Riedel Artist 128',st2110:'partial',nmos:'partial',ptp:'yes',srt:'no',ndi:'no',sdi:'yes',ampp:'no'},
+    {name:'Imagine Selenio MXO',st2110:'yes',nmos:'yes',ptp:'yes',srt:'yes',ndi:'partial',sdi:'yes',ampp:'no'},
+    {name:'Vizrt Viz Engine',st2110:'yes',nmos:'partial',ptp:'yes',srt:'no',ndi:'yes',sdi:'yes',ampp:'no'},
+    {name:'Harmonic Spectrum X',st2110:'yes',nmos:'yes',ptp:'yes',srt:'yes',ndi:'no',sdi:'yes',ampp:'no'},
+  ];
+  const icons = {yes:'✓',no:'✗',partial:'~'};
+  tbody.innerHTML = devices.map(d => `<tr>
+    <td style="text-align:left;font-weight:500;padding:6px 8px">${d.name}</td>
+    ${['st2110','nmos','ptp','srt','ndi','sdi','ampp'].map(k =>
+      `<td class="compat-cell ${d[k]}">${icons[d[k]]}</td>`).join('')}
+  </tr>`).join('');
+
+  const vendors = document.getElementById('vendor-list');
+  if (vendors) {
+    vendors.innerHTML = ['Blackmagic Design','Grass Valley','EVS','Lawo','Riedel','Imagine Communications','Vizrt','Harmonic','Ross Video','Calrec'].map(v =>
+      `<div class="status-row"><span class="dot ok"></span><span class="sr-label">${v}</span><span class="sr-val" style="font-size:10px">Certified</span></div>`
+    ).join('');
+  }
+
+  const standards = document.getElementById('standards-list');
+  if (standards) {
+    standards.innerHTML = ['SMPTE ST 2110','SMPTE ST 2059-2 (PTP)','AMWA NMOS IS-04/05/07/08','AES67','VSF TR-03/04','EBU R 128','ETSI TS 103 190'].map(s =>
+      `<div class="status-row"><span class="dot ok"></span><span class="sr-label">${s}</span></div>`
+    ).join('');
+  }
+}
+
+// ── PREFLIGHT ──────────────────────────────────────────────────────────────
+const PF_CHECKS = [
+  {name:'PTP Grandmaster Lock',key:'ptp'},
+  {name:'ST 2110 Network Reachable',key:'net'},
+  {name:'NMOS Registry Active',key:'nmos'},
+  {name:'Switcher Connected',key:'sw'},
+  {name:'Audio Engine Running',key:'audio'},
+  {name:'Playout Engine Ready',key:'playout'},
+  {name:'Cloud MCR Reachable',key:'cloud'},
+  {name:'SRT Streams Active',key:'srt'},
+  {name:'Recording Storage Available',key:'storage'},
+  {name:'Monitoring Feeds Active',key:'mon'},
+];
+
+function buildPreflight() {
+  const el = document.getElementById('preflight-checks');
+  if (!el) return;
+  el.innerHTML = PF_CHECKS.map(c => `
+    <div class="pf-check" id="pf-${c.key}">
+      <span class="dot off"></span>
+      <span class="pf-name">${c.name}</span>
+      <span class="pf-result">—</span>
+    </div>`).join('');
+}
+
+function runPreflight() {
+  const results = {ptp:'ok',net:'ok',nmos:'ok',sw:'ok',audio:'ok',playout:'ok',cloud:'warn',srt:'ok',storage:'warn',mon:'ok'};
+  const msgs = {ptp:'LOCKED ±18ns',net:'100GbE OK',nmos:'IS-04 Active',sw:'Connected',audio:'Running',playout:'Ready',cloud:'High latency',srt:'2 streams',storage:'71% used',mon:'All feeds'};
+  PF_CHECKS.forEach((c, i) => {
+    setTimeout(() => {
+      const el = document.getElementById(`pf-${c.key}`);
+      if (!el) return;
+      const res = results[c.key];
+      el.className = `pf-check ${res}`;
+      el.querySelector('.dot').className = `dot ${res}`;
+      el.querySelector('.pf-result').textContent = msgs[c.key];
+    }, i * 200);
+  });
+  setTimeout(() => {
+    const pass = Object.values(results).filter(r => r === 'ok').length;
+    const warn = Object.values(results).filter(r => r === 'warn').length;
+    const rpt = document.getElementById('pf-report');
+    if (rpt) rpt.innerHTML = `<span style="color:var(--ok)">${pass} checks passed</span>, <span style="color:var(--warn)">${warn} warnings</span>. System ready for broadcast.`;
+    toast(`Pre-flight: ${pass} OK, ${warn} warnings`, warn > 0 ? 'warn' : 'ok');
+  }, PF_CHECKS.length * 200 + 200);
+}
+</script>

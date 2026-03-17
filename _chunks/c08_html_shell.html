@@ -1,0 +1,69 @@
+</head>
+<body>
+<div id="app">
+
+<!-- ── TOPBAR ── -->
+<div id="topbar">
+  <div class="brand">NEXUS <span>v6</span></div>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <!-- PRODUCTION group -->
+    <div class="nav-group" id="ng-prod">
+      <button class="nav-group-btn" onclick="toggleGroup('ng-prod')">
+        <span class="ng-dot prod"></span>PRODUCTION<span class="chevron">▾</span>
+      </button>
+      <div class="nav-dropdown">
+        <div class="nav-item" onclick="nav('live')"><span class="ni-icon">📺</span>Live Output<span class="ni-badge live">LIVE</span></div>
+        <div class="nav-item" onclick="nav('mosaic')"><span class="ni-icon">⊞</span>Mosaic</div>
+        <div class="nav-item" onclick="nav('switcher')"><span class="ni-icon">🎛</span>Switcher</div>
+        <div class="nav-item" onclick="nav('router')"><span class="ni-icon">⇄</span>Router</div>
+        <div class="nav-item" onclick="nav('rundown')"><span class="ni-icon">📋</span>Rundown</div>
+        <div class="nav-item" onclick="nav('playout')"><span class="ni-icon">▶</span>Playout</div>
+      </div>
+    </div>
+
+    <!-- ENGINEERING group -->
+    <div class="nav-group" id="ng-eng">
+      <button class="nav-group-btn" onclick="toggleGroup('ng-eng')">
+        <span class="ng-dot eng"></span>ENGINEERING<span class="chevron">▾</span>
+      </button>
+      <div class="nav-dropdown">
+        <div class="nav-item" onclick="nav('cloudmcr')"><span class="ni-icon">☁</span>Cloud MCR</div>
+        <div class="nav-item" onclick="nav('srt')"><span class="ni-icon">📡</span>SRT / Transport</div>
+        <div class="nav-item" onclick="nav('scopes')"><span class="ni-icon">📊</span>Scopes</div>
+        <div class="nav-item" onclick="nav('ptp')"><span class="ni-icon">⏱</span>PTP / Sync</div>
+        <div class="nav-item" onclick="nav('nmos')"><span class="ni-icon">🔗</span>NMOS</div>
+        <div class="nav-item" onclick="nav('devices')"><span class="ni-icon">🖥</span>Devices</div>
+        <div class="nav-item" onclick="nav('api')"><span class="ni-icon">⚙</span>API / WS</div>
+        <div class="nav-item" onclick="nav('orchestrate')"><span class="ni-icon">🤖</span>Orchestrate</div>
+      </div>
+    </div>
+
+    <!-- SYSTEM group -->
+    <div class="nav-group" id="ng-sys">
+      <button class="nav-group-btn" onclick="toggleGroup('ng-sys')">
+        <span class="ng-dot sys"></span>SYSTEM<span class="chevron">▾</span>
+      </button>
+      <div class="nav-dropdown">
+        <div class="nav-item" onclick="nav('network')"><span class="ni-icon">🌐</span>Network</div>
+        <div class="nav-item" onclick="nav('compat')"><span class="ni-icon">✅</span>Compat</div>
+        <div class="nav-item" onclick="nav('preflight')"><span class="ni-icon">🚀</span>Pre-flight</div>
+        <div class="nav-item" onclick="nav('training')"><span class="ni-icon">🎓</span>Training</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="spacer"></div>
+  <span id="active-page-label">LIVE OUTPUT</span>
+  <div id="wf-badge" class="wf-badge hybrid" onclick="openWfModal()">⚡ HYBRID</div>
+  <div class="tc" id="tc">00:00:00:00</div>
+  <div class="user-btn" onclick="openUserModal()">
+    <span id="user-icon">👤</span>
+    <span id="user-name">Engineer</span>
+    <span id="role-pill" class="role-pill engineer">ENGINEER</span>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div id="main">

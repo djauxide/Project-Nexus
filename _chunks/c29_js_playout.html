@@ -1,0 +1,63 @@
+<script>
+// ── PLAYOUT ────────────────────────────────────────────────────────────────
+function initClips() {
+  S.clips = [
+    {id:1,name:'Opening Titles',dur:15,type:'STING'},
+    {id:2,name:'Top Story PKG',dur:210,type:'PKG'},
+    {id:3,name:'Sport Highlights',dur:180,type:'PKG'},
+    {id:4,name:'Weather Graphic',dur:30,type:'GFX'},
+    {id:5,name:'Break Bumper',dur:5,type:'STING'},
+  ];
+  renderClipQueue();
+}
+
+function renderClipQueue() {
+  const el = document.getElementById('clip-queue');
+  if (!el) return;
+  el.innerHTML = '';
+  S.clips.forEach((c,i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--b1);border-radius:4px;font-size:11px';
+    div.innerHTML = `<span style="color:var(--t3);font-family:var(--mono)">${String(i+1).padStart(2,'0')}</span>
+      <span style="flex:1;color:var(--t1)">${c.name}</span>
+      <span class="tag ${c.type==='STING'?'live':'ip'}">${c.type}</span>
+      <span style="font-family:var(--mono);color:var(--t2)">${fmtDur(c.dur)}</span>
+      <button class="btn sm" onclick="cueClip(${i})">CUE</button>`;
+    el.appendChild(div);
+  });
+}
+
+function fmtDur(s) {
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+let _playTimer = null;
+function playoutPlay() {
+  if (S.playoutPlaying) return;
+  S.playoutPlaying = true;
+  _playTimer = setInterval(() => {
+    S.playoutPos = Math.min(S.playoutPos + 1, S.playoutDur);
+    const pct = (S.playoutPos / S.playoutDur) * 100;
+    const el = document.getElementById('playout-progress');
+    if (el) el.style.width = pct + '%';
+    const rem = document.getElementById('playout-remain');
+    if (rem) rem.textContent = fmtDur(S.playoutDur - S.playoutPos);
+    if (S.playoutPos >= S.playoutDur) { playoutStop(); toast('Clip ended', 'info'); }
+  }, 1000);
+  toast('Playout: PLAY', 'ok');
+}
+function playoutPause() { clearInterval(_playTimer); S.playoutPlaying = false; toast('Playout: PAUSE','warn'); }
+function playoutStop() { clearInterval(_playTimer); S.playoutPlaying = false; S.playoutPos = 0; const el=document.getElementById('playout-progress'); if(el) el.style.width='0%'; }
+function playoutCue() { playoutStop(); toast('Cued to start','info'); }
+function cueClip(i) { S.playoutDur = S.clips[i].dur; playoutStop(); toast(`Cued: ${S.clips[i].name}`,'ok'); }
+function addClip() { toast('Clip browser: not connected to media asset manager','info'); }
+function scrub(e, bar) {
+  const rect = bar.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  S.playoutPos = Math.floor(pct * S.playoutDur);
+  const el = document.getElementById('playout-progress');
+  if (el) el.style.width = (pct*100) + '%';
+}
+function cgTake(name) { toast(`CG: ${name} ON AIR`, 'ok'); }
+function cgClear() { toast('CG: All cleared', 'info'); }
+</script>

@@ -1,0 +1,49 @@
+<!-- VIEW: COMPAT -->
+<div class="view" id="view-compat">
+  <div class="card">
+    <div class="card-title"><span class="ct-icon">✅</span>Equipment Compatibility Matrix</div>
+    <div style="overflow-x:auto">
+      <table class="compat-table">
+        <thead><tr>
+          <th>Device</th><th>ST 2110</th><th>NMOS</th><th>PTP</th><th>SRT</th><th>NDI</th><th>SDI</th><th>AMPP</th>
+        </tr></thead>
+        <tbody id="compat-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">🔗</span>Vendor Integrations</div>
+      <div id="vendor-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📋</span>Standards Compliance</div>
+      <div id="standards-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: PREFLIGHT -->
+<div class="view" id="view-preflight">
+  <div class="row" style="align-items:center;flex-wrap:nowrap">
+    <div class="card-title" style="margin:0"><span class="ct-icon">🚀</span>Pre-flight Checks</div>
+    <div class="spacer" style="flex:1"></div>
+    <button class="btn primary" onclick="runPreflight()">▶ Run All Checks</button>
+  </div>
+  <div class="card">
+    <div id="preflight-checks"></div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📊</span>System Health</div>
+      <div class="meter-row"><span class="mr-label">CPU</span><div class="mr-bar"><div class="mr-fill" id="pf-cpu" style="width:34%;background:var(--ok)"></div></div><span class="mr-val" id="pf-cpu-v">34%</span></div>
+      <div class="meter-row"><span class="mr-label">Memory</span><div class="mr-bar"><div class="mr-fill" id="pf-mem" style="width:58%;background:var(--acc)"></div></div><span class="mr-val" id="pf-mem-v">58%</span></div>
+      <div class="meter-row"><span class="mr-label">Disk</span><div class="mr-bar"><div class="mr-fill" id="pf-disk" style="width:71%;background:var(--warn)"></div></div><span class="mr-val" id="pf-disk-v">71%</span></div>
+      <div class="meter-row"><span class="mr-label">Network</span><div class="mr-bar"><div class="mr-fill" id="pf-net" style="width:45%;background:var(--ok)"></div></div><span class="mr-val" id="pf-net-v">45%</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📋</span>Preflight Report</div>
+      <div id="pf-report" style="font-size:12px;color:var(--t2)">Run checks to generate report.</div>
+    </div>
+  </div>
+</div>

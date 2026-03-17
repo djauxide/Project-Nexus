@@ -1,0 +1,93 @@
+<script>
+'use strict';
+// ── STATE ──────────────────────────────────────────────────────────────────
+const S = {
+  role: 'engineer', user: 'Engineer',
+  workflow: 'hybrid',
+  activeView: 'live',
+  pgmSrc: 0, pvwSrc: 1,
+  swSources: ['CAM 1','CAM 2','CAM 3','CAM 4','CAM 5','CAM 6','VT 1','VT 2','GFX','REM 1','REM 2','BARS','BLACK','COLR','FILL','KEY'],
+  routes: {}, routeLocks: {},
+  rundown: [], showRunning: false, showElapsed: 0,
+  clips: [], playoutPlaying: false, playoutPos: 0, playoutDur: 300,
+  orchRules: [], orchRunning: true,
+  trainingProgress: {},
+  db: null,
+  ptpOffset: 18,
+  nmsgs: 0,
+};
+
+// ── ROLE ACCESS ────────────────────────────────────────────────────────────
+const ROLE_ACCESS = {
+  engineer: ['live','mosaic','switcher','router','rundown','playout','cloudmcr','srt','scopes','ptp','nmos','devices','api','orchestrate','network','compat','preflight','training'],
+  operator: ['live','mosaic','switcher','router','rundown','playout','scopes','network','compat','preflight'],
+  viewer:   ['live','mosaic','scopes'],
+  trainer:  ['live','mosaic','switcher','router','rundown','playout','scopes','training','compat'],
+};
+
+function canAccess(view) {
+  return (ROLE_ACCESS[S.role] || []).includes(view);
+}
+
+// ── INDEXEDDB ──────────────────────────────────────────────────────────────
+function initDB() {
+  const req = indexedDB.open('nexus_v6', 1);
+  req.onupgradeneeded = e => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains('presets')) db.createObjectStore('presets', {keyPath:'id'});
+    if (!db.objectStoreNames.contains('rundowns')) db.createObjectStore('rundowns', {keyPath:'id'});
+    if (!db.objectStoreNames.contains('config')) db.createObjectStore('config', {keyPath:'key'});
+    if (!db.objectStoreNames.contains('training')) db.createObjectStore('training', {keyPath:'id'});
+  };
+  req.onsuccess = e => {
+    S.db = e.target.result;
+    loadTrainingProgress();
+  };
+}
+
+function dbPut(store, obj) {
+  if (!S.db) return;
+  const tx = S.db.transaction(store, 'readwrite');
+  tx.objectStore(store).put(obj);
+}
+
+function dbGet(store, key, cb) {
+  if (!S.db) return;
+  const tx = S.db.transaction(store, 'readonly');
+  const req = tx.objectStore(store).get(key);
+  req.onsuccess = () => cb(req.result);
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg, type='info', dur=3000) {
+  const el = document.createElement('div');
+  el.className = `toast-msg ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), dur);
+}
+
+// ── TIMECODE ──────────────────────────────────────────────────────────────
+let _tcStart = Date.now();
+function updateTC() {
+  const ms = Date.now() - _tcStart;
+  const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+  const s = Math.floor((ms%60000)/1000), f = Math.floor((ms%1000)/20);
+  const fmt = n => String(n).padStart(2,'0');
+  const tc = `${fmt(h)}:${fmt(m)}:${fmt(s)}:${fmt(f)}`;
+  document.getElementById('tc').textContent = tc;
+  document.getElementById('pgm-tc').textContent = tc;
+  document.getElementById('playout-tc').textContent = tc;
+}
+
+// ── PTP CLOCK ─────────────────────────────────────────────────────────────
+function updatePTP() {
+  const now = new Date();
+  const ns = String(Math.floor(Math.random()*999999999)).padStart(9,'0');
+  const fmt = n => String(n).padStart(2,'0');
+  document.getElementById('ptp-time').textContent =
+    `${fmt(now.getHours())}:${fmt(now.getMinutes())}:${fmt(now.getSeconds())}.${ns}`;
+  S.ptpOffset = Math.max(5, Math.min(50, S.ptpOffset + (Math.random()-.5)*3));
+  document.getElementById('ptp-offset').textContent = `Offset: ±${S.ptpOffset.toFixed(0)} ns`;
+}
+</script>

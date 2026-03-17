@@ -1,0 +1,107 @@
+<script>
+// ── ROUTER ─────────────────────────────────────────────────────────────────
+const ROUTER_SRCS = ['CAM 1','CAM 2','CAM 3','CAM 4','VT 1','VT 2','GFX','REM 1','REM 2','SRT 1','SRT 2','NDI 1','BARS','BLACK','FILL','KEY'];
+const ROUTER_DSTS = ['MON 1','MON 2','MON 3','MON 4','REC 1','REC 2','SW PGM','SW PVW','AUX 1','AUX 2','ENC 1','ENC 2','CLOUD','STREAM','CONF 1','CONF 2'];
+let selSrc = null, selDst = null;
+
+function buildRouter() {
+  const el = document.getElementById('router-matrix');
+  if (!el) return;
+  // init default routes
+  if (Object.keys(S.routes).length === 0) {
+    ROUTER_DSTS.forEach((d,i) => { S.routes[d] = ROUTER_SRCS[i % ROUTER_SRCS.length]; });
+  }
+  const cols = ROUTER_SRCS.length;
+  el.style.display = 'grid';
+  el.style.gridTemplateColumns = `80px repeat(${cols}, 1fr)`;
+  el.style.gap = '2px';
+  el.innerHTML = '';
+  // header row
+  const corner = document.createElement('div');
+  corner.className = 'router-hdr';
+  corner.textContent = 'DST \\ SRC';
+  el.appendChild(corner);
+  ROUTER_SRCS.forEach(s => {
+    const h = document.createElement('div');
+    h.className = 'router-hdr';
+    h.textContent = s;
+    el.appendChild(h);
+  });
+  // rows
+  ROUTER_DSTS.forEach(dst => {
+    const dh = document.createElement('div');
+    dh.className = 'router-hdr';
+    dh.style.textAlign = 'right';
+    dh.style.paddingRight = '6px';
+    dh.textContent = dst;
+    el.appendChild(dh);
+    ROUTER_SRCS.forEach(src => {
+      const cell = document.createElement('div');
+      const isRouted = S.routes[dst] === src;
+      const isLocked = S.routeLocks[dst];
+      cell.className = 'router-cell' + (isRouted ? ' routed' : '') + (isLocked ? ' locked' : '');
+      cell.textContent = isRouted ? '●' : '·';
+      cell.title = `${src} → ${dst}`;
+      cell.onclick = () => {
+        if (isLocked) { toast(`${dst} is locked`, 'warn'); return; }
+        selSrc = src; selDst = dst;
+        document.getElementById('router-sel-src').textContent = src;
+        document.getElementById('router-sel-dst').textContent = dst;
+      };
+      el.appendChild(cell);
+    });
+  });
+  renderActiveRoutes();
+  renderRoutePresets();
+}
+
+function doRoute() {
+  if (!selSrc || !selDst) { toast('Select source and destination first', 'warn'); return; }
+  if (S.routeLocks[selDst]) { toast(`${selDst} is locked`, 'warn'); return; }
+  S.routes[selDst] = selSrc;
+  toast(`Routed: ${selSrc} → ${selDst}`, 'ok');
+  dbPut('presets', {id:'routes', data: S.routes});
+  buildRouter();
+}
+
+function lockAllRoutes() {
+  ROUTER_DSTS.forEach(d => S.routeLocks[d] = true);
+  buildRouter();
+  toast('All routes locked', 'warn');
+}
+
+function clearRoutes() {
+  if (!canAccess('router')) { toast('No access','err'); return; }
+  S.routes = {};
+  buildRouter();
+  toast('Routes cleared', 'info');
+}
+
+function saveRoutePreset() {
+  const name = `Preset ${Date.now().toString().slice(-4)}`;
+  dbPut('presets', {id: name, data: {...S.routes}});
+  toast(`Saved: ${name}`, 'ok');
+  renderRoutePresets();
+}
+
+function renderRoutePresets() {
+  const el = document.getElementById('route-presets');
+  if (!el) return;
+  el.innerHTML = '';
+  ['News Default','Sports','OB Truck','Cloud MCR'].forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'btn sm';
+    b.textContent = p;
+    b.onclick = () => toast(`Loaded preset: ${p}`, 'ok');
+    el.appendChild(b);
+  });
+}
+
+function renderActiveRoutes() {
+  const el = document.getElementById('active-routes');
+  if (!el) return;
+  el.innerHTML = Object.entries(S.routes).slice(0,8).map(([d,s]) =>
+    `<div style="padding:2px 0;border-bottom:1px solid var(--b1)">${s.padEnd(8)} → ${d}</div>`
+  ).join('');
+}
+</script>

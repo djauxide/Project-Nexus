@@ -1,0 +1,75 @@
+<script>
+// ── RUNDOWN ────────────────────────────────────────────────────────────────
+const RD_TYPES = ['LIVE','VT','GFX','BREAK','INTERVIEW','PKG','STING'];
+const RD_SOURCES = ['CAM 1','CAM 2','VT 1','VT 2','GFX','REMOTE','STUDIO'];
+
+function initRundown() {
+  S.rundown = [
+    {id:1,item:'OPENING TITLES',type:'STING',source:'GFX',dur:'00:00:15',status:'next'},
+    {id:2,item:'HEADLINES',type:'LIVE',source:'CAM 1',dur:'00:02:00',status:'ready'},
+    {id:3,item:'TOP STORY — POLITICS',type:'PKG',source:'VT 1',dur:'00:03:30',status:'ready'},
+    {id:4,item:'INTERVIEW — MINISTER',type:'INTERVIEW',source:'REMOTE',dur:'00:05:00',status:'ready'},
+    {id:5,item:'BREAK 1',type:'BREAK',source:'GFX',dur:'00:02:00',status:'hold'},
+    {id:6,item:'SPORT ROUNDUP',type:'PKG',source:'VT 2',dur:'00:04:00',status:'ready'},
+    {id:7,item:'WEATHER',type:'LIVE',source:'CAM 2',dur:'00:02:30',status:'ready'},
+    {id:8,item:'CLOSING',type:'STING',source:'GFX',dur:'00:00:10',status:'ready'},
+  ];
+}
+
+function renderRundown() {
+  const tbody = document.getElementById('rundown-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  S.rundown.forEach((item, i) => {
+    const tr = document.createElement('tr');
+    tr.className = item.status === 'air' ? 'on-air' : item.status === 'next' ? 'next' : '';
+    tr.innerHTML = `
+      <td style="color:var(--t3);font-family:var(--mono)">${String(i+1).padStart(2,'0')}</td>
+      <td style="font-weight:500">${item.item}</td>
+      <td><span class="tag ${item.type==='LIVE'?'live':item.type==='PKG'?'ip':'sdi'}">${item.type}</span></td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--t2)">${item.source}</td>
+      <td style="font-family:var(--mono);font-size:11px">${item.dur}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--t3)">—</td>
+      <td><span class="rd-status ${item.status}">${item.status.toUpperCase()}</span></td>
+      <td>
+        <button class="btn sm" onclick="rdTake(${i})" ${!canAccess('rundown')?'disabled':''}>TAKE</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function rdTake(idx) {
+  S.rundown.forEach((r,i) => {
+    r.status = i === idx ? 'air' : i === idx+1 ? 'next' : r.status === 'air' ? 'ready' : r.status;
+  });
+  renderRundown();
+  toast(`ON AIR: ${S.rundown[idx].item}`, 'ok');
+}
+
+function addRundownItem() {
+  const item = prompt('Item name:');
+  if (!item) return;
+  S.rundown.push({id:Date.now(),item,type:'LIVE',source:'CAM 1',dur:'00:01:00',status:'ready'});
+  renderRundown();
+}
+
+function saveRundown() {
+  dbPut('rundowns', {id:'current', data: S.rundown});
+  toast('Rundown saved', 'ok');
+}
+
+let _showTimer = null;
+function startShow() {
+  S.showRunning = true;
+  _showTimer = setInterval(() => {
+    S.showElapsed++;
+    const h=Math.floor(S.showElapsed/3600), m=Math.floor((S.showElapsed%3600)/60), s=S.showElapsed%60;
+    const fmt = n => String(n).padStart(2,'0');
+    const el = document.getElementById('show-clock');
+    if (el) el.textContent = `${fmt(h)}:${fmt(m)}:${fmt(s)}`;
+  }, 1000);
+  toast('Show started', 'ok');
+}
+function pauseShow() { clearInterval(_showTimer); S.showRunning = false; }
+function resetShow() { clearInterval(_showTimer); S.showElapsed = 0; const el=document.getElementById('show-clock'); if(el) el.textContent='00:00:00'; }
+</script>

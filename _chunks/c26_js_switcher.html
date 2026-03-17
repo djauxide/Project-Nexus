@@ -1,0 +1,84 @@
+<script>
+// ── SWITCHER ───────────────────────────────────────────────────────────────
+function buildSwitcherBuses() {
+  ['pgm','pvw'].forEach(bus => {
+    const el = document.getElementById(`sw-${bus}-bus`);
+    if (!el) return;
+    el.innerHTML = '';
+    S.swSources.forEach((src, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'sw-btn' + (bus==='pgm' && i===S.pgmSrc ? ' pgm' : '') + (bus==='pvw' && i===S.pvwSrc ? ' pvw' : '');
+      btn.innerHTML = `<span>${src}</span><span class="sw-num">${i+1}</span>`;
+      btn.onclick = () => selectSource(bus, i);
+      el.appendChild(btn);
+    });
+  });
+  document.getElementById('sw-pgm-label').textContent = S.swSources[S.pgmSrc];
+  document.getElementById('sw-pvw-label').textContent = S.swSources[S.pvwSrc];
+  // aux
+  const aux = document.getElementById('aux-btns');
+  if (aux) {
+    aux.innerHTML = '';
+    for (let i=1;i<=4;i++) {
+      const b = document.createElement('button');
+      b.className = 'btn sm';
+      b.textContent = `AUX ${i}`;
+      b.onclick = () => toast(`AUX ${i} → ${S.swSources[S.pgmSrc]}`, 'ok');
+      aux.appendChild(b);
+    }
+  }
+}
+
+function selectSource(bus, idx) {
+  if (bus === 'pgm') S.pgmSrc = idx;
+  else S.pvwSrc = idx;
+  buildSwitcherBuses();
+  updatePgmLabel();
+}
+
+function doCut() {
+  if (!canAccess('switcher') && !canAccess('live')) { toast('No access','err'); return; }
+  const tmp = S.pgmSrc; S.pgmSrc = S.pvwSrc; S.pvwSrc = tmp;
+  buildSwitcherBuses();
+  updatePgmLabel();
+  toast(`CUT → ${S.swSources[S.pgmSrc]}`, 'ok');
+}
+
+function doAuto() {
+  if (!canAccess('switcher') && !canAccess('live')) { toast('No access','err'); return; }
+  toast(`AUTO → ${S.swSources[S.pvwSrc]}`, 'info');
+  setTimeout(() => { doCut(); }, 500);
+}
+
+function doFTB() { toast('Fade to Black', 'warn'); }
+function doKey() { toast('Key 1 toggled', 'info'); }
+function doDSK() { toast('DSK toggled', 'info'); }
+function toggleKey(n) {
+  const btn = event.target;
+  const on = btn.textContent.includes('OFF');
+  btn.textContent = `KEY ${n}: ${on?'ON':'OFF'}`;
+  btn.className = on ? 'btn sm primary' : 'btn sm';
+  toast(`Key ${n} ${on?'ON':'OFF'}`, on?'ok':'info');
+}
+function toggleDSK(n) {
+  const btn = event.target;
+  const on = btn.textContent.includes('OFF');
+  btn.textContent = `DSK ${n}: ${on?'ON':'OFF'}`;
+  btn.className = on ? 'btn sm primary' : 'btn sm';
+}
+
+function updateTbar(v) {
+  document.getElementById('sw-tbar-val').textContent = v + '%';
+}
+
+function updatePgmLabel() {
+  const pgmLabel = document.getElementById('pgm-src-label');
+  const pvwLabel = document.getElementById('pvw-src-label');
+  if (pgmLabel) pgmLabel.textContent = S.swSources[S.pgmSrc] + ' — Studio A';
+  if (pvwLabel) pvwLabel.textContent = S.swSources[S.pvwSrc] + ' — Studio B';
+  const swPgm = document.getElementById('sw-pgm-label');
+  const swPvw = document.getElementById('sw-pvw-label');
+  if (swPgm) swPgm.textContent = S.swSources[S.pgmSrc];
+  if (swPvw) swPvw.textContent = S.swSources[S.pvwSrc];
+}
+</script>

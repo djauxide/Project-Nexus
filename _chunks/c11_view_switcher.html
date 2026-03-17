@@ -1,0 +1,66 @@
+<!-- VIEW: SWITCHER -->
+<div class="view" id="view-switcher">
+  <div class="row">
+    <div class="card" style="flex:2">
+      <div class="card-title"><span class="ct-icon">🎛</span>M/E 1 — Main Switcher</div>
+      <div class="sw-label">PROGRAM</div>
+      <div class="sw-bus" id="sw-pgm-bus"></div>
+      <div class="sw-label">PREVIEW</div>
+      <div class="sw-bus" id="sw-pvw-bus"></div>
+      <div class="sw-trans-row">
+        <label>T-Bar</label>
+        <input type="range" id="sw-tbar" min="0" max="100" value="0" oninput="updateTbar(this.value)">
+        <span class="sw-trans-val" id="sw-tbar-val">0%</span>
+        <select id="sw-trans-type" style="background:var(--b1);border:1px solid var(--b2);color:var(--t1);padding:4px 8px;border-radius:var(--r);font-size:11px">
+          <option>MIX</option><option>WIPE</option><option>DIP</option><option>DVE</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="sw-cut" onclick="doCut()">✂ CUT</button>
+        <button class="sw-auto" onclick="doAuto()">▶ AUTO</button>
+        <button class="btn sm" onclick="doFTB()">⬛ FTB</button>
+        <button class="btn sm" onclick="doKey()">🔑 KEY 1</button>
+        <button class="btn sm" onclick="doDSK()">DSK</button>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="card-title"><span class="ct-icon">📊</span>ME Status</div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Program</span><span class="sr-val" id="sw-pgm-label">CAM 1</span></div>
+      <div class="status-row"><span class="dot pvw" style="background:var(--pvw)"></span><span class="sr-label">Preview</span><span class="sr-val" id="sw-pvw-label">CAM 2</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">Transition</span><span class="sr-val" id="sw-trans-label">MIX 25f</span></div>
+      <div class="status-row"><span class="dot off"></span><span class="sr-label">Key 1</span><span class="sr-val">OFF</span></div>
+      <div class="status-row"><span class="dot off"></span><span class="sr-label">DSK</span><span class="sr-val">OFF</span></div>
+      <div style="margin-top:10px">
+        <div class="card-title" style="font-size:12px">Macro Recall</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn sm" onclick="toast('Macro 1: Titles','ok')">M1</button>
+          <button class="btn sm" onclick="toast('Macro 2: Break','ok')">M2</button>
+          <button class="btn sm" onclick="toast('Macro 3: Sting','ok')">M3</button>
+          <button class="btn sm" onclick="toast('Macro 4: Fade','ok')">M4</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">🔑</span>Upstream Keys</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn sm" onclick="toggleKey(1)">KEY 1: OFF</button>
+        <button class="btn sm" onclick="toggleKey(2)">KEY 2: OFF</button>
+        <button class="btn sm" onclick="toggleKey(3)">KEY 3: OFF</button>
+        <button class="btn sm" onclick="toggleKey(4)">KEY 4: OFF</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">🎨</span>Downstream Keys</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn sm" onclick="toggleDSK(1)">DSK 1: OFF</button>
+        <button class="btn sm" onclick="toggleDSK(2)">DSK 2: OFF</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">⚡</span>Aux Outputs</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap" id="aux-btns"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,62 @@
+<!-- VIEW: LIVE OUTPUT -->
+<div class="view" id="view-live">
+  <div class="row">
+    <div class="card" style="flex:2;min-width:300px">
+      <div class="card-title"><span class="ct-icon">📺</span>Program Output
+        <span class="ct-sub"><span class="dot crit"></span> ON AIR</span>
+      </div>
+      <div style="background:#000;border-radius:6px;aspect-ratio:16/9;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center">
+        <canvas id="pgm-canvas" style="width:100%;height:100%;display:block"></canvas>
+        <div style="position:absolute;top:8px;left:8px;background:var(--pgm);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:1px">● PGM</div>
+        <div style="position:absolute;top:8px;right:8px;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.5);padding:2px 6px;border-radius:3px" id="pgm-tc">00:00:00:00</div>
+        <div style="position:absolute;bottom:8px;left:8px;font-size:11px;color:rgba(255,255,255,.8);font-weight:600" id="pgm-src-label">CAM 1 — Studio A</div>
+      </div>
+    </div>
+    <div class="card" style="flex:1;min-width:200px">
+      <div class="card-title"><span class="ct-icon">👁</span>Preview</div>
+      <div style="background:#000;border-radius:6px;aspect-ratio:16/9;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center">
+        <canvas id="pvw-canvas" style="width:100%;height:100%;display:block"></canvas>
+        <div style="position:absolute;top:8px;left:8px;background:var(--pvw);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:1px">● PVW</div>
+        <div style="position:absolute;bottom:8px;left:8px;font-size:11px;color:rgba(255,255,255,.8);font-weight:600" id="pvw-src-label">CAM 2 — Studio B</div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:6px">
+        <button class="btn danger" style="flex:1" onclick="doCut()">✂ CUT</button>
+        <button class="btn primary" style="flex:1" onclick="doAuto()">▶ AUTO</button>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">🔊</span>Audio Meters</div>
+      <div id="audio-meters"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📡</span>Signal Status</div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">SDI Input A</span><span class="sr-val">1080i50</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">SDI Input B</span><span class="sr-val">1080i50</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">ST 2110-20</span><span class="sr-val">4K/50</span></div>
+      <div class="status-row"><span class="dot warn"></span><span class="sr-label">SRT Stream</span><span class="sr-val">12.4 Mbps</span></div>
+      <div class="status-row"><span class="dot ok"></span><span class="sr-label">PTP Lock</span><span class="sr-val">±18ns</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">⚡</span>Workflow Mode</div>
+      <div class="wf-selector">
+        <div class="wf-opt ground" id="wf-ground" onclick="setWorkflow('ground')">
+          <div class="wo-icon">🏭</div>
+          <div class="wo-label">GROUND</div>
+          <div class="wo-desc">On-prem SDI/IP</div>
+        </div>
+        <div class="wf-opt cloud" id="wf-cloud" onclick="setWorkflow('cloud')">
+          <div class="wo-icon">☁</div>
+          <div class="wo-label">CLOUD</div>
+          <div class="wo-desc">AWS MediaLive</div>
+        </div>
+        <div class="wf-opt hybrid active" id="wf-hybrid" onclick="setWorkflow('hybrid')">
+          <div class="wo-icon">⚡</div>
+          <div class="wo-label">HYBRID</div>
+          <div class="wo-desc">Ground + Cloud</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

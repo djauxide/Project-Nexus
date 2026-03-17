@@ -4,7 +4,7 @@ const fs   = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-const HTML = path.join(__dirname, '..', '..', 'nexus-v5.html');
+const HTML = path.join(__dirname, '..', '..', 'nexus-v6.html');
 const PORT = 3000;
 
 const server = http.createServer(function(req, res) {
@@ -23,7 +23,7 @@ server.listen(PORT, '0.0.0.0', function() {
   });
 
   console.log('');
-  console.log('NEXUS v5 Demo — Local Server');
+  console.log('NEXUS v6 Demo — Local Server');
   console.log('============================');
   ips.forEach(function(ip) {
     console.log('  http://' + ip + ':' + PORT);

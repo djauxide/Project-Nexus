@@ -757,22 +757,281 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
     </div>
     <!-- VIEW: ORCHESTRATE -->
     <div id="view-orchestrate" class="view">
-      <div class="g2">
-        <div class="card">
-          <div class="card-hd"><span class="card-title">⬡ AUTOMATION WORKFLOWS</span><button class="btn btn-acc btn-sm" onclick="openModal('modal-workflow')">+ NEW</button></div>
-          <div style="display:flex;flex-direction:column;gap:4px" id="workflow-list">
-            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">SHOW-START</span><span class="rack-type">TRIGGER: MANUAL</span><button class="btn btn-acc btn-xs" onclick="toast('Workflow executed','ok')">RUN</button></div>
-            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">BREAK-SEQUENCE</span><span class="rack-type">TRIGGER: RUNDOWN</span><button class="btn btn-acc btn-xs" onclick="toast('Workflow executed','ok')">RUN</button></div>
-            <div class="rack-unit"><div class="rack-led" style="background:var(--warn)"></div><span class="rack-name">FAILOVER-AUTO</span><span class="rack-type">TRIGGER: ALARM</span><button class="btn btn-warn btn-xs" onclick="toast('Failover armed','warn')">ARM</button></div>
-            <div class="rack-unit"><div class="rack-led" style="background:var(--b2)"></div><span class="rack-name">SHOW-END</span><span class="rack-type">TRIGGER: MANUAL</span><button class="btn btn-ghost btn-xs" onclick="toast('Workflow executed','ok')">RUN</button></div>
+      <style>
+        /* ORCHESTRATE STYLES */
+        .orch-tabs{display:flex;gap:3px;margin-bottom:12px;border-bottom:1px solid var(--b1);padding-bottom:8px}
+        .orch-tab{background:transparent;color:var(--txt2);font-size:.7rem;font-weight:600;letter-spacing:.08em;
+          padding:5px 12px;border-radius:var(--r) var(--r) 0 0;border:1px solid transparent}
+        .orch-tab:hover{color:var(--acc)}
+        .orch-tab.active{background:var(--b1);color:var(--acc);border-color:var(--b2);border-bottom-color:var(--b1)}
+        .orch-pane{display:none}.orch-pane.active{display:block}
+        .wf-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--r);
+          background:var(--bg4);border:1px solid var(--b2);margin-bottom:4px;cursor:pointer;transition:var(--trans)}
+        .wf-row:hover{border-color:var(--b3);background:var(--bg5)}
+        .wf-row.selected{border-color:var(--acc);background:var(--bg5)}
+        .wf-row.running{border-color:var(--pvw);animation:wfpulse 1.2s ease-in-out infinite}
+        .wf-row.armed{border-color:var(--warn)}
+        @keyframes wfpulse{0%,100%{box-shadow:0 0 0 0 rgba(0,216,112,0)}50%{box-shadow:0 0 0 3px rgba(0,216,112,.2)}}
+        .wf-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        .wf-name{font-size:.78rem;font-weight:600;flex:1}
+        .wf-trigger{font-size:.62rem;color:var(--txt2);letter-spacing:.06em;flex-shrink:0}
+        .wf-last{font-size:.6rem;color:var(--txt2);font-family:'JetBrains Mono',monospace;flex-shrink:0;width:80px;text-align:right}
+        /* STEP EDITOR */
+        .step-row{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:var(--r);
+          background:var(--bg4);border:1px solid var(--b2);margin-bottom:3px;font-size:.72rem}
+        .step-row.step-active{border-color:var(--acc);background:var(--bg5)}
+        .step-row.step-done{border-color:var(--pvw);opacity:.65}
+        .step-row.step-err{border-color:var(--pgm)}
+        .step-num{width:20px;height:20px;border-radius:50%;background:var(--b2);display:flex;align-items:center;
+          justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+        .step-num.done{background:var(--pvw);color:#000}
+        .step-num.active{background:var(--acc);color:#000}
+        .step-num.err{background:var(--pgm);color:#fff}
+        .step-cmd{flex:1;font-family:'JetBrains Mono',monospace;color:var(--acc3)}
+        .step-dur{font-size:.6rem;color:var(--txt2);flex-shrink:0;width:40px;text-align:right}
+        /* TIMELINE */
+        .tl-wrap{position:relative;height:48px;background:var(--bg4);border-radius:var(--r);border:1px solid var(--b2);overflow:hidden;margin-bottom:4px}
+        .tl-bar{position:absolute;top:8px;bottom:8px;border-radius:3px;transition:width .3s linear}
+        .tl-label{position:absolute;top:50%;transform:translateY(-50%);font-size:.6rem;font-weight:600;letter-spacing:.06em;padding:0 8px;white-space:nowrap}
+        .tl-cursor{position:absolute;top:0;bottom:0;width:2px;background:var(--acc);opacity:.8;transition:left .3s linear}
+        /* SCHEDULE */
+        .sched-row{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--r);
+          background:var(--bg4);border:1px solid var(--b2);margin-bottom:3px;font-size:.72rem}
+        .sched-time{font-family:'JetBrains Mono',monospace;color:var(--acc);width:70px;flex-shrink:0}
+        .sched-name{flex:1;font-weight:600}
+        .sched-days{font-size:.6rem;color:var(--txt2);flex-shrink:0}
+        /* RESOURCE MAP */
+        .res-node{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--r);
+          background:var(--bg4);border:1px solid var(--b2);margin-bottom:4px}
+        .res-bar-wrap{flex:1;height:6px;background:var(--b1);border-radius:3px;overflow:hidden}
+        .res-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+        /* EXEC LOG */
+        .exec-line{display:flex;gap:8px;padding:3px 0;border-bottom:1px solid var(--b1);font-size:.68rem}
+        .exec-ts{font-family:'JetBrains Mono',monospace;color:var(--txt2);flex-shrink:0;width:80px}
+        .exec-wf{color:var(--acc);flex-shrink:0;width:120px;font-weight:600}
+        .exec-msg{color:var(--txt);flex:1}
+        .exec-ok{color:var(--pvw2)}
+        .exec-err{color:var(--pgm2)}
+        .exec-warn{color:var(--warn2)}
+      </style>
+
+      <!-- ORCH TABS -->
+      <div class="orch-tabs">
+        <button class="orch-tab active" onclick="orchTab('workflows')">⬡ WORKFLOWS</button>
+        <button class="orch-tab" onclick="orchTab('macros')">⌘ MACROS</button>
+        <button class="orch-tab" onclick="orchTab('schedule')">⏰ SCHEDULE</button>
+        <button class="orch-tab" onclick="orchTab('resources')">◈ RESOURCES</button>
+        <button class="orch-tab" onclick="orchTab('execlog')">☰ EXEC LOG</button>
+      </div>
+
+      <!-- PANE: WORKFLOWS -->
+      <div id="orch-pane-workflows" class="orch-pane active">
+        <div style="display:grid;grid-template-columns:280px 1fr;gap:12px;height:calc(100vh - 220px)">
+          <!-- LEFT: workflow list -->
+          <div style="display:flex;flex-direction:column;gap:8px;overflow:hidden">
+            <div style="display:flex;gap:6px;align-items:center">
+              <span class="card-title" style="flex:1">WORKFLOWS</span>
+              <button class="btn btn-acc btn-xs" onclick="orchNewWorkflow()">+ NEW</button>
+            </div>
+            <div id="orch-wf-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:3px"></div>
+          </div>
+          <!-- RIGHT: workflow detail -->
+          <div style="display:flex;flex-direction:column;gap:8px;overflow:hidden">
+            <div class="card" style="flex-shrink:0">
+              <div class="card-hd">
+                <span class="card-title" id="orch-wf-title">SELECT A WORKFLOW</span>
+                <div class="row" style="gap:5px">
+                  <span id="orch-wf-status-tag" class="tag tag-acc">IDLE</span>
+                  <button class="btn btn-acc btn-sm" id="orch-run-btn" onclick="orchRunSelected()">▶ RUN</button>
+                  <button class="btn btn-warn btn-sm" id="orch-arm-btn" onclick="orchArmSelected()">ARM</button>
+                  <button class="btn btn-ghost btn-sm" onclick="orchStopSelected()">■ STOP</button>
+                </div>
+              </div>
+              <!-- EXECUTION TIMELINE -->
+              <div id="orch-timeline" style="margin-bottom:8px;display:none">
+                <div style="font-size:.62rem;color:var(--txt2);margin-bottom:4px;letter-spacing:.08em">EXECUTION TIMELINE</div>
+                <div class="tl-wrap" id="orch-tl-bar-wrap">
+                  <div class="tl-bar" id="orch-tl-fill" style="background:linear-gradient(90deg,var(--acc2),var(--acc));left:0;width:0%"></div>
+                  <div class="tl-label" id="orch-tl-label" style="left:8px;color:#000">0%</div>
+                  <div class="tl-cursor" id="orch-tl-cursor" style="left:0%"></div>
+                </div>
+                <div class="row" style="justify-content:space-between;font-size:.6rem;color:var(--txt2)">
+                  <span id="orch-tl-elapsed">0.0s</span>
+                  <span id="orch-tl-step-info">Step 0 / 0</span>
+                  <span id="orch-tl-remain">—</span>
+                </div>
+              </div>
+              <!-- TRIGGER CONFIG -->
+              <div class="row" style="gap:8px;flex-wrap:wrap">
+                <span style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em">TRIGGER:</span>
+                <span id="orch-trigger-lbl" class="tag tag-acc">MANUAL</span>
+                <span style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em;margin-left:8px">CONDITION:</span>
+                <span id="orch-cond-lbl" class="tag tag-pur">NONE</span>
+              </div>
+            </div>
+            <!-- STEP LIST -->
+            <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+              <div class="card-hd" style="flex-shrink:0">
+                <span class="card-title">STEPS</span>
+                <button class="btn btn-ghost btn-xs" onclick="orchAddStep()">+ STEP</button>
+              </div>
+              <div id="orch-step-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:2px">
+                <div style="color:var(--txt2);font-size:.72rem;padding:20px;text-align:center">Select a workflow to view steps</div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+
+      <!-- PANE: MACROS -->
+      <div id="orch-pane-macros" class="orch-pane">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">⌘ MACRO BUILDER</span><button class="btn btn-acc btn-sm" onclick="orchSaveMacro()">SAVE</button></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;gap:8px">
+                <input id="macro-name-inp" type="text" placeholder="Macro name..." style="flex:1;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem">
+                <select id="macro-trigger-sel" style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.72rem">
+                  <option value="manual">Manual</option>
+                  <option value="alarm">On Alarm</option>
+                  <option value="rundown">Rundown Cue</option>
+                  <option value="schedule">Scheduled</option>
+                </select>
+              </div>
+              <div style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em;margin-top:4px">QUICK INSERT:</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('SET PGM ')">SET PGM</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('SET PVW ')">SET PVW</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('TAKE')">TAKE</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('AUTO')">AUTO</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('WAIT 2s')">WAIT</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('LOAD GFX ')">LOAD GFX</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('ROUTE ')">ROUTE</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('MUTE CH ')">MUTE</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('UNMUTE CH ')">UNMUTE</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('CLOUD SWITCH ')">CLOUD SW</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('NOTIFY ')">NOTIFY</button>
+                <button class="btn btn-ghost btn-xs" onclick="orchInsertCmd('IF ALARM ')">IF ALARM</button>
+              </div>
+              <textarea id="macro-body-inp" placeholder="SET PGM CAM-1&#10;WAIT 1s&#10;TAKE&#10;LOAD GFX LOWER-THIRD&#10;WAIT 5s&#10;ROUTE CAM-2 > PGM" style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:8px 10px;border-radius:var(--r);font-size:.72rem;height:200px;resize:none;font-family:'JetBrains Mono',monospace;line-height:1.6"></textarea>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-acc" style="flex:1" onclick="orchSaveMacro()">SAVE MACRO</button>
+                <button class="btn btn-pvw" onclick="orchTestMacro()">▶ TEST</button>
+                <button class="btn btn-ghost" onclick="orchClearMacro()">CLEAR</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">SAVED MACROS</span></div>
+            <div id="macro-saved-list" style="display:flex;flex-direction:column;gap:4px;overflow-y:auto;max-height:420px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE: SCHEDULE -->
+      <div id="orch-pane-schedule" class="orch-pane">
+        <div style="display:grid;grid-template-columns:1fr 300px;gap:12px">
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-title">⏰ SCHEDULED EVENTS</span>
+              <button class="btn btn-acc btn-sm" onclick="orchAddSchedule()">+ ADD</button>
+            </div>
+            <div id="orch-sched-list" style="display:flex;flex-direction:column;gap:3px"></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">NEW EVENT</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div><label style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em;display:block;margin-bottom:4px">TIME</label>
+                <input id="sched-time-inp" type="time" value="09:00" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.8rem"></div>
+              <div><label style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em;display:block;margin-bottom:4px">WORKFLOW</label>
+                <select id="sched-wf-sel" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem">
+                  <option>SHOW-START</option><option>BREAK-SEQUENCE</option><option>SHOW-END</option><option>FAILOVER-AUTO</option>
+                </select></div>
+              <div><label style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em;display:block;margin-bottom:4px">DAYS</label>
+                <div style="display:flex;gap:4px">
+                  <button class="btn btn-acc btn-xs" id="sd-mon" onclick="toggleSchedDay(this)">M</button>
+                  <button class="btn btn-acc btn-xs" id="sd-tue" onclick="toggleSchedDay(this)">T</button>
+                  <button class="btn btn-acc btn-xs" id="sd-wed" onclick="toggleSchedDay(this)">W</button>
+                  <button class="btn btn-acc btn-xs" id="sd-thu" onclick="toggleSchedDay(this)">T</button>
+                  <button class="btn btn-acc btn-xs" id="sd-fri" onclick="toggleSchedDay(this)">F</button>
+                  <button class="btn btn-ghost btn-xs" id="sd-sat" onclick="toggleSchedDay(this)">S</button>
+                  <button class="btn btn-ghost btn-xs" id="sd-sun" onclick="toggleSchedDay(this)">S</button>
+                </div></div>
+              <button class="btn btn-acc" onclick="orchAddSchedule()">ADD EVENT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE: RESOURCES -->
+      <div id="orch-pane-resources" class="orch-pane">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">◈ RESOURCE ALLOCATION</span><span id="orch-cloud-mode-tag" class="tag tag-warn">HYBRID</span></div>
+            <div style="display:flex;gap:6px;margin-bottom:12px">
+              <button class="btn btn-ghost btn-sm" onclick="orchSetCloudMode('GROUND')">GROUND</button>
+              <button class="btn btn-warn btn-sm" onclick="orchSetCloudMode('HYBRID')">HYBRID</button>
+              <button class="btn btn-ghost btn-sm" onclick="orchSetCloudMode('CLOUD')">FULL CLOUD</button>
+            </div>
+            <div id="orch-res-list" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">FAILOVER POLICY</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">Primary Path</span><span class="rack-type">SDI-A → PGM</span><span class="tag tag-ok">ACTIVE</span></div>
+              <div class="rack-unit"><div class="rack-led" style="background:var(--warn)"></div><span class="rack-name">Backup Path</span><span class="rack-type">SDI-B → PGM</span><span class="tag tag-warn">STANDBY</span></div>
+              <div class="rack-unit"><div class="rack-led" style="background:var(--b2)"></div><span class="rack-name">Cloud Failover</span><span class="rack-type">ST2110 → CLOUD</span><span class="tag tag-acc">ARMED</span></div>
+              <div style="margin-top:8px">
+                <div style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em;margin-bottom:6px">FAILOVER THRESHOLD</div>
+                <div class="row" style="gap:8px">
+                  <input type="range" min="1" max="30" value="5" style="flex:1" id="fo-thresh" oninput="document.getElementById('fo-thresh-val').textContent=this.value+'s'">
+                  <span class="mono" style="font-size:.75rem;color:var(--acc);width:30px" id="fo-thresh-val">5s</span>
+                </div>
+              </div>
+              <button class="btn btn-warn" onclick="toast('Failover test triggered','warn')">TEST FAILOVER</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="card-hd"><span class="card-title">AUTOMATION RULES</span><button class="btn btn-acc btn-sm" onclick="orchAddRule()">+ RULE</button></div>
+          <div id="orch-rules-list" style="display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+      </div>
+
+      <!-- PANE: EXEC LOG -->
+      <div id="orch-pane-execlog" class="orch-pane">
         <div class="card">
-          <div class="card-hd"><span class="card-title">MACRO BUILDER</span></div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <input type="text" placeholder="Macro name..." style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem">
-            <textarea placeholder="Step 1: SET PGM CAM-1&#10;Step 2: WAIT 2s&#10;Step 3: TAKE&#10;Step 4: LOAD GFX LOWER-THIRD" style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:8px 10px;border-radius:var(--r);font-size:.72rem;height:120px;resize:none;font-family:'JetBrains Mono',monospace"></textarea>
-            <button class="btn btn-acc" onclick="toast('Macro saved','ok')">SAVE MACRO</button>
+          <div class="card-hd">
+            <span class="card-title">☰ EXECUTION LOG</span>
+            <div class="row" style="gap:6px">
+              <select id="orch-log-filter" style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:4px 8px;border-radius:var(--r);font-size:.68rem" onchange="orchFilterLog()">
+                <option value="all">ALL</option><option value="ok">OK</option><option value="warn">WARN</option><option value="err">ERROR</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="orchClearLog()">CLEAR</button>
+            </div>
+          </div>
+          <div id="orch-exec-log" style="overflow-y:auto;max-height:calc(100vh - 260px);display:flex;flex-direction:column;gap:1px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: NEW WORKFLOW -->
+    <div id="modal-new-workflow" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-hd"><span class="modal-title">NEW WORKFLOW</span><button class="modal-close" onclick="closeModal('modal-new-workflow')">✕</button></div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div><label style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em;display:block;margin-bottom:4px">NAME</label>
+            <input id="new-wf-name" type="text" placeholder="WORKFLOW-NAME" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:8px 10px;border-radius:var(--r);font-size:.8rem"></div>
+          <div><label style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em;display:block;margin-bottom:4px">TRIGGER</label>
+            <select id="new-wf-trigger" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:8px 10px;border-radius:var(--r);font-size:.8rem">
+              <option value="manual">Manual</option><option value="alarm">On Alarm</option>
+              <option value="rundown">Rundown Cue</option><option value="schedule">Scheduled</option>
+            </select></div>
+          <div><label style="font-size:.62rem;color:var(--txt2);letter-spacing:.08em;display:block;margin-bottom:4px">CONDITION (optional)</label>
+            <input id="new-wf-cond" type="text" placeholder="e.g. ALARM:SDI-LOSS or RUNDOWN:CUE-3" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:8px 10px;border-radius:var(--r);font-size:.75rem"></div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn btn-acc" style="flex:1" onclick="orchCreateWorkflow()">CREATE</button>
+            <button class="btn btn-ghost" onclick="closeModal('modal-new-workflow')">CANCEL</button>
           </div>
         </div>
       </div>
@@ -2108,11 +2367,474 @@ if(tdur) tdur.addEventListener('input', function(){ var v=document.getElementByI
 
 // ── INIT TRAINING ON LOAD ─────────────────────────────────────────────────────
 window.addEventListener('load', function(){
-  // Training will be initialized when the view is first opened
-  // Pre-load default module
   S.trainSteps = TRAINING_MODULES.operator.basics;
   S.trainStep = 0;
 });
+
+// ── ORCHESTRATE ENGINE ────────────────────────────────────────────────────────
+var ORCH = {
+  selectedWf: null,
+  runTimer: null,
+  runStep: 0,
+  runStart: 0,
+  workflows: [
+    { id:'wf1', name:'SHOW-START', trigger:'manual', condition:'', status:'idle', lastRun:'—',
+      steps:[
+        {cmd:'SET PVW CAM-2', dur:0.2},
+        {cmd:'SET PGM BLACK', dur:0.2},
+        {cmd:'WAIT 2s', dur:2},
+        {cmd:'LOAD GFX LOWER-THIRD', dur:0.5},
+        {cmd:'SET PGM CAM-1', dur:0.2},
+        {cmd:'TAKE', dur:0.5},
+        {cmd:'NOTIFY "Show started"', dur:0.1}
+      ]
+    },
+    { id:'wf2', name:'BREAK-SEQUENCE', trigger:'rundown', condition:'RUNDOWN:BREAK', status:'idle', lastRun:'—',
+      steps:[
+        {cmd:'SET PVW GFX-1', dur:0.2},
+        {cmd:'AUTO', dur:1.5},
+        {cmd:'WAIT 1s', dur:1},
+        {cmd:'MUTE CH 1', dur:0.1},
+        {cmd:'MUTE CH 2', dur:0.1},
+        {cmd:'ROUTE GFX-1 > PGM', dur:0.3},
+        {cmd:'NOTIFY "Break active"', dur:0.1}
+      ]
+    },
+    { id:'wf3', name:'FAILOVER-AUTO', trigger:'alarm', condition:'ALARM:SDI-LOSS', status:'armed', lastRun:'—',
+      steps:[
+        {cmd:'IF ALARM SDI-A-LOSS', dur:0.1},
+        {cmd:'ROUTE SDI-B > PGM', dur:0.3},
+        {cmd:'NOTIFY "FAILOVER: SDI-B active"', dur:0.1},
+        {cmd:'CLOUD SWITCH HYBRID', dur:1.5},
+        {cmd:'WAIT 3s', dur:3},
+        {cmd:'NOTIFY "Failover complete"', dur:0.1}
+      ]
+    },
+    { id:'wf4', name:'SHOW-END', trigger:'manual', condition:'', status:'idle', lastRun:'—',
+      steps:[
+        {cmd:'SET PVW BLACK', dur:0.2},
+        {cmd:'AUTO', dur:1.5},
+        {cmd:'MUTE CH 1', dur:0.1},
+        {cmd:'MUTE CH 2', dur:0.1},
+        {cmd:'WAIT 2s', dur:2},
+        {cmd:'NOTIFY "Show ended"', dur:0.1}
+      ]
+    },
+    { id:'wf5', name:'CLOUD-BURST', trigger:'schedule', condition:'', status:'idle', lastRun:'—',
+      steps:[
+        {cmd:'CLOUD SWITCH HYBRID', dur:1},
+        {cmd:'ROUTE ST2110 > CLOUD-ENC', dur:0.5},
+        {cmd:'WAIT 5s', dur:5},
+        {cmd:'NOTIFY "Cloud burst active"', dur:0.1}
+      ]
+    }
+  ],
+  macros: [
+    {name:'QUICK-TAKE', trigger:'manual', body:'SET PVW CAM-2\nTAKE'},
+    {name:'GFX-LOWER', trigger:'manual', body:'LOAD GFX LOWER-THIRD\nWAIT 5s\nCLEAR GFX'},
+    {name:'EMERGENCY-BLACK', trigger:'alarm', body:'SET PGM BLACK\nMUTE CH 1\nMUTE CH 2\nNOTIFY "EMERGENCY BLACK"'}
+  ],
+  schedule: [
+    {time:'08:30', wf:'SHOW-START', days:'M T W T F', enabled:true},
+    {time:'12:00', wf:'BREAK-SEQUENCE', days:'M T W T F', enabled:true},
+    {time:'18:00', wf:'SHOW-END', days:'M T W T F', enabled:true},
+    {time:'02:00', wf:'CLOUD-BURST', days:'S S', enabled:false}
+  ],
+  rules: [
+    {trigger:'ALARM:SDI-LOSS', action:'RUN FAILOVER-AUTO', enabled:true},
+    {trigger:'ALARM:AUDIO-LOSS', action:'MUTE CH 1; MUTE CH 2', enabled:true},
+    {trigger:'RUNDOWN:BREAK', action:'RUN BREAK-SEQUENCE', enabled:false}
+  ],
+  execLog: [],
+  cloudMode: 'HYBRID'
+};
+
+function orchTab(name){
+  document.querySelectorAll('.orch-tab').forEach(function(b,i){
+    var names=['workflows','macros','schedule','resources','execlog'];
+    b.classList.toggle('active', names[i]===name);
+  });
+  document.querySelectorAll('.orch-pane').forEach(function(p){
+    p.classList.toggle('active', p.id==='orch-pane-'+name);
+  });
+  if(name==='workflows') orchRenderWorkflows();
+  if(name==='macros') orchRenderMacros();
+  if(name==='schedule') orchRenderSchedule();
+  if(name==='resources') orchRenderResources();
+  if(name==='execlog') orchRenderLog();
+}
+
+function orchRenderWorkflows(){
+  var list = document.getElementById('orch-wf-list'); if(!list) return;
+  list.innerHTML = ORCH.workflows.map(function(wf){
+    var col = wf.status==='running'?'var(--pvw)':wf.status==='armed'?'var(--warn)':wf.status==='error'?'var(--pgm)':'var(--b3)';
+    var sel = ORCH.selectedWf && ORCH.selectedWf.id===wf.id ? ' selected' : '';
+    var run = wf.status==='running' ? ' running' : wf.status==='armed' ? ' armed' : '';
+    return '<div class="wf-row'+sel+run+'" onclick="orchSelectWf(\''+wf.id+'\')">'
+      +'<div class="wf-status" style="background:'+col+'"></div>'
+      +'<span class="wf-name">'+wf.name+'</span>'
+      +'<span class="wf-trigger">'+wf.trigger.toUpperCase()+'</span>'
+      +'<span class="wf-last">'+wf.lastRun+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+function orchSelectWf(id){
+  ORCH.selectedWf = ORCH.workflows.find(function(w){return w.id===id;});
+  orchRenderWorkflows();
+  orchRenderDetail();
+}
+
+function orchRenderDetail(){
+  var wf = ORCH.selectedWf; if(!wf) return;
+  var title = document.getElementById('orch-wf-title');
+  if(title) title.textContent = wf.name;
+  var stag = document.getElementById('orch-wf-status-tag');
+  if(stag){
+    var cls = wf.status==='running'?'tag-ok':wf.status==='armed'?'tag-warn':wf.status==='error'?'tag-err':'tag-acc';
+    stag.className = 'tag '+cls;
+    stag.textContent = wf.status.toUpperCase();
+  }
+  var trig = document.getElementById('orch-trigger-lbl');
+  if(trig) trig.textContent = wf.trigger.toUpperCase();
+  var cond = document.getElementById('orch-cond-lbl');
+  if(cond){ cond.textContent = wf.condition || 'NONE'; }
+  orchRenderSteps();
+}
+
+function orchRenderSteps(){
+  var wf = ORCH.selectedWf; if(!wf) return;
+  var list = document.getElementById('orch-step-list'); if(!list) return;
+  var cur = wf.status==='running' ? ORCH.runStep : -1;
+  list.innerHTML = wf.steps.map(function(s,i){
+    var cls = i<cur?'step-done':i===cur?'step-active':'';
+    var numCls = i<cur?'done':i===cur?'active':'';
+    return '<div class="step-row '+cls+'">'
+      +'<div class="step-num '+numCls+'">'+(i<cur?'✓':(i+1))+'</div>'
+      +'<span class="step-cmd">'+s.cmd+'</span>'
+      +'<span class="step-dur">'+s.dur+'s</span>'
+      +'<button class="btn btn-ghost btn-xs" onclick="orchDeleteStep('+i+')" style="opacity:.4;padding:1px 5px">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function orchRunSelected(){
+  var wf = ORCH.selectedWf; if(!wf) return;
+  if(wf.status==='running'){ toast('Already running','warn'); return; }
+  wf.status='running';
+  ORCH.runStep=0;
+  ORCH.runStart=Date.now();
+  orchRenderWorkflows();
+  orchRenderDetail();
+  var tl = document.getElementById('orch-timeline');
+  if(tl) tl.style.display='block';
+  orchLogEntry(wf.name,'RUN started','ok');
+  orchExecuteStep(wf);
+}
+
+function orchExecuteStep(wf){
+  if(!wf || wf.status!=='running') return;
+  var step = wf.steps[ORCH.runStep];
+  if(!step){
+    wf.status='idle';
+    wf.lastRun = new Date().toLocaleTimeString();
+    orchRenderWorkflows();
+    orchRenderDetail();
+    orchUpdateTimeline(wf, 100);
+    orchLogEntry(wf.name,'Completed OK','ok');
+    toast(wf.name+' complete','ok');
+    return;
+  }
+  orchRenderSteps();
+  orchLogEntry(wf.name,'Step '+(ORCH.runStep+1)+': '+step.cmd,'ok');
+  var pct = Math.round((ORCH.runStep/wf.steps.length)*100);
+  orchUpdateTimeline(wf, pct);
+  ORCH.runTimer = setTimeout(function(){
+    ORCH.runStep++;
+    orchExecuteStep(wf);
+  }, step.dur*1000);
+}
+
+function orchUpdateTimeline(wf, pct){
+  var fill = document.getElementById('orch-tl-fill');
+  var lbl = document.getElementById('orch-tl-label');
+  var cursor = document.getElementById('orch-tl-cursor');
+  var elapsed = document.getElementById('orch-tl-elapsed');
+  var stepInfo = document.getElementById('orch-tl-step-info');
+  var remain = document.getElementById('orch-tl-remain');
+  if(fill) fill.style.width = pct+'%';
+  if(lbl){ lbl.textContent = pct+'%'; lbl.style.left = Math.max(8, pct-4)+'%'; lbl.style.color = pct>40?'#000':'var(--acc)'; }
+  if(cursor) cursor.style.left = pct+'%';
+  var el = ((Date.now()-ORCH.runStart)/1000).toFixed(1);
+  if(elapsed) elapsed.textContent = el+'s';
+  if(stepInfo) stepInfo.textContent = 'Step '+ORCH.runStep+' / '+wf.steps.length;
+  var totalDur = wf.steps.reduce(function(a,s){return a+s.dur;},0);
+  var rem = Math.max(0, totalDur - parseFloat(el));
+  if(remain) remain.textContent = rem.toFixed(1)+'s left';
+}
+
+function orchArmSelected(){
+  var wf = ORCH.selectedWf; if(!wf) return;
+  wf.status = wf.status==='armed' ? 'idle' : 'armed';
+  orchRenderWorkflows();
+  orchRenderDetail();
+  orchLogEntry(wf.name, wf.status==='armed'?'ARMED':'DISARMED', 'warn');
+  toast(wf.name+' '+wf.status.toUpperCase(),'warn');
+}
+
+function orchStopSelected(){
+  var wf = ORCH.selectedWf; if(!wf) return;
+  if(ORCH.runTimer) clearTimeout(ORCH.runTimer);
+  wf.status='idle';
+  ORCH.runStep=0;
+  orchRenderWorkflows();
+  orchRenderDetail();
+  var tl = document.getElementById('orch-timeline');
+  if(tl) tl.style.display='none';
+  orchLogEntry(wf.name,'STOPPED','warn');
+  toast(wf.name+' stopped','warn');
+}
+
+function orchAddStep(){
+  var wf = ORCH.selectedWf; if(!wf){ toast('Select a workflow first','warn'); return; }
+  var cmd = prompt('Step command:','WAIT 1s');
+  if(!cmd) return;
+  var dur = parseFloat(prompt('Duration (seconds):','1')) || 1;
+  wf.steps.push({cmd:cmd, dur:dur});
+  orchRenderSteps();
+  orchLogEntry(wf.name,'Step added: '+cmd,'ok');
+}
+
+function orchDeleteStep(idx){
+  var wf = ORCH.selectedWf; if(!wf) return;
+  wf.steps.splice(idx,1);
+  orchRenderSteps();
+}
+
+function orchNewWorkflow(){
+  openModal('modal-new-workflow');
+}
+
+function orchCreateWorkflow(){
+  var name = document.getElementById('new-wf-name').value.trim().toUpperCase();
+  var trigger = document.getElementById('new-wf-trigger').value;
+  var cond = document.getElementById('new-wf-cond').value.trim();
+  if(!name){ toast('Enter a name','err'); return; }
+  var wf = {id:'wf'+Date.now(), name:name, trigger:trigger, condition:cond, status:'idle', lastRun:'—', steps:[]};
+  ORCH.workflows.push(wf);
+  closeModal('modal-new-workflow');
+  orchRenderWorkflows();
+  orchSelectWf(wf.id);
+  orchLogEntry(name,'Created','ok');
+  toast('Workflow created','ok');
+}
+
+// MACROS
+function orchRenderMacros(){
+  var list = document.getElementById('macro-saved-list'); if(!list) return;
+  list.innerHTML = ORCH.macros.map(function(m,i){
+    return '<div class="rack-unit">'
+      +'<div class="rack-led" style="background:var(--acc2)"></div>'
+      +'<span class="rack-name">'+m.name+'</span>'
+      +'<span class="rack-type">'+m.trigger.toUpperCase()+'</span>'
+      +'<button class="btn btn-acc btn-xs" onclick="orchRunMacro('+i+')">▶ RUN</button>'
+      +'<button class="btn btn-ghost btn-xs" onclick="orchLoadMacro('+i+')">EDIT</button>'
+      +'<button class="btn btn-ghost btn-xs" onclick="orchDeleteMacro('+i+')" style="color:var(--pgm2)">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function orchSaveMacro(){
+  var name = document.getElementById('macro-name-inp').value.trim().toUpperCase();
+  var trigger = document.getElementById('macro-trigger-sel').value;
+  var body = document.getElementById('macro-body-inp').value.trim();
+  if(!name||!body){ toast('Name and body required','err'); return; }
+  var existing = ORCH.macros.findIndex(function(m){return m.name===name;});
+  if(existing>=0) ORCH.macros[existing]={name:name,trigger:trigger,body:body};
+  else ORCH.macros.push({name:name,trigger:trigger,body:body});
+  orchRenderMacros();
+  orchLogEntry(name,'Macro saved','ok');
+  toast('Macro saved','ok');
+}
+
+function orchTestMacro(){
+  var name = document.getElementById('macro-name-inp').value.trim()||'TEST';
+  var body = document.getElementById('macro-body-inp').value.trim();
+  if(!body){ toast('No steps to run','warn'); return; }
+  var lines = body.split('\n').filter(function(l){return l.trim();});
+  orchLogEntry(name,'TEST RUN ('+lines.length+' steps)','ok');
+  lines.forEach(function(l,i){
+    setTimeout(function(){ orchLogEntry(name,'Step '+(i+1)+': '+l.trim(),'ok'); }, i*400);
+  });
+  setTimeout(function(){ toast(name+' test complete','ok'); }, lines.length*400+200);
+}
+
+function orchClearMacro(){
+  document.getElementById('macro-name-inp').value='';
+  document.getElementById('macro-body-inp').value='';
+}
+
+function orchRunMacro(i){
+  var m = ORCH.macros[i]; if(!m) return;
+  var lines = m.body.split('\n').filter(function(l){return l.trim();});
+  orchLogEntry(m.name,'RUN started','ok');
+  lines.forEach(function(l,j){
+    setTimeout(function(){ orchLogEntry(m.name,'Step '+(j+1)+': '+l.trim(),'ok'); }, j*300);
+  });
+  setTimeout(function(){ toast(m.name+' complete','ok'); orchLogEntry(m.name,'Completed','ok'); }, lines.length*300+200);
+}
+
+function orchLoadMacro(i){
+  var m = ORCH.macros[i]; if(!m) return;
+  document.getElementById('macro-name-inp').value=m.name;
+  document.getElementById('macro-trigger-sel').value=m.trigger;
+  document.getElementById('macro-body-inp').value=m.body;
+}
+
+function orchDeleteMacro(i){
+  ORCH.macros.splice(i,1);
+  orchRenderMacros();
+}
+
+function orchInsertCmd(cmd){
+  var ta = document.getElementById('macro-body-inp'); if(!ta) return;
+  var pos = ta.selectionStart;
+  var val = ta.value;
+  ta.value = val.slice(0,pos)+(val.length&&pos>0&&val[pos-1]!=='\n'?'\n':'')+cmd+val.slice(pos);
+  ta.focus();
+}
+
+// SCHEDULE
+function orchRenderSchedule(){
+  var list = document.getElementById('orch-sched-list'); if(!list) return;
+  list.innerHTML = ORCH.schedule.map(function(s,i){
+    return '<div class="sched-row">'
+      +'<span class="sched-time">'+s.time+'</span>'
+      +'<span class="sched-name">'+s.wf+'</span>'
+      +'<span class="sched-days">'+s.days+'</span>'
+      +'<span class="tag '+(s.enabled?'tag-ok':'tag-acc')+'" style="cursor:pointer" onclick="orchToggleSched('+i+')">'+(s.enabled?'ON':'OFF')+'</span>'
+      +'<button class="btn btn-ghost btn-xs" onclick="orchDeleteSched('+i+')" style="color:var(--pgm2)">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function orchAddSchedule(){
+  var time = document.getElementById('sched-time-inp').value;
+  var wf = document.getElementById('sched-wf-sel').value;
+  var days = ['M','T','W','T','F','S','S'].filter(function(_,i){
+    var ids=['sd-mon','sd-tue','sd-wed','sd-thu','sd-fri','sd-sat','sd-sun'];
+    var el=document.getElementById(ids[i]);
+    return el && el.classList.contains('btn-acc');
+  }).join(' ');
+  ORCH.schedule.push({time:time, wf:wf, days:days||'M T W T F', enabled:true});
+  orchRenderSchedule();
+  orchLogEntry('SCHEDULE','Added '+wf+' at '+time,'ok');
+  toast('Schedule added','ok');
+}
+
+function orchToggleSched(i){ ORCH.schedule[i].enabled=!ORCH.schedule[i].enabled; orchRenderSchedule(); }
+function orchDeleteSched(i){ ORCH.schedule.splice(i,1); orchRenderSchedule(); }
+function toggleSchedDay(btn){ btn.classList.toggle('btn-acc'); btn.classList.toggle('btn-ghost'); }
+
+// RESOURCES
+function orchRenderResources(){
+  var list = document.getElementById('orch-res-list'); if(!list) return;
+  var resources = [
+    {name:'CPU (Encode)', used:62, total:100, unit:'%', color:'var(--acc)'},
+    {name:'GPU (Graphics)', used:38, total:100, unit:'%', color:'var(--pur2)'},
+    {name:'Network (ST2110)', used:7.4, total:10, unit:'Gbps', color:'var(--pvw2)'},
+    {name:'Storage (NVMe)', used:1.2, total:4, unit:'TB', color:'var(--warn2)'},
+    {name:'Cloud Bandwidth', used:420, total:1000, unit:'Mbps', color:'var(--acc3)'}
+  ];
+  list.innerHTML = resources.map(function(r){
+    var pct = Math.round((r.used/r.total)*100);
+    var col = pct>85?'var(--pgm)':pct>65?'var(--warn)':r.color;
+    return '<div class="res-node">'
+      +'<span style="font-size:.72rem;font-weight:600;width:160px;flex-shrink:0">'+r.name+'</span>'
+      +'<div class="res-bar-wrap"><div class="res-bar-fill" style="width:'+pct+'%;background:'+col+'"></div></div>'
+      +'<span class="mono" style="font-size:.68rem;color:'+col+';width:80px;text-align:right;flex-shrink:0">'+r.used+'/'+r.total+' '+r.unit+'</span>'
+      +'<span class="tag '+(pct>85?'tag-err':pct>65?'tag-warn':'tag-ok')+'" style="flex-shrink:0">'+pct+'%</span>'
+      +'</div>';
+  }).join('');
+  var tag = document.getElementById('orch-cloud-mode-tag');
+  if(tag){ tag.textContent=ORCH.cloudMode; tag.className='tag '+(ORCH.cloudMode==='CLOUD'?'tag-acc':ORCH.cloudMode==='HYBRID'?'tag-warn':'tag-ok'); }
+  var rules = document.getElementById('orch-rules-list'); if(!rules) return;
+  rules.innerHTML = ORCH.rules.map(function(r,i){
+    return '<div class="rack-unit">'
+      +'<div class="rack-led" style="background:'+(r.enabled?'var(--pvw)':'var(--b2)')+'"></div>'
+      +'<span class="rack-name" style="font-size:.7rem">IF '+r.trigger+'</span>'
+      +'<span class="rack-type">→ '+r.action+'</span>'
+      +'<span class="tag '+(r.enabled?'tag-ok':'tag-acc')+'" style="cursor:pointer" onclick="orchToggleRule('+i+')">'+(r.enabled?'ON':'OFF')+'</span>'
+      +'<button class="btn btn-ghost btn-xs" onclick="orchDeleteRule('+i+')" style="color:var(--pgm2)">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function orchSetCloudMode(mode){
+  ORCH.cloudMode=mode;
+  orchRenderResources();
+  orchLogEntry('CLOUD','Mode set to '+mode,'ok');
+  toast('Cloud mode: '+mode,'ok');
+}
+
+function orchToggleRule(i){ ORCH.rules[i].enabled=!ORCH.rules[i].enabled; orchRenderResources(); }
+function orchDeleteRule(i){ ORCH.rules.splice(i,1); orchRenderResources(); }
+
+function orchAddRule(){
+  var trigger = prompt('Trigger (e.g. ALARM:SDI-LOSS):','ALARM:');
+  if(!trigger) return;
+  var action = prompt('Action (e.g. RUN FAILOVER-AUTO):','RUN ');
+  if(!action) return;
+  ORCH.rules.push({trigger:trigger, action:action, enabled:true});
+  orchRenderResources();
+  toast('Rule added','ok');
+}
+
+// EXEC LOG
+function orchLogEntry(wf, msg, type){
+  var now = new Date();
+  var ts = now.toLocaleTimeString('en-GB',{hour12:false})+'.'+String(now.getMilliseconds()).padStart(3,'0');
+  ORCH.execLog.unshift({ts:ts, wf:wf, msg:msg, type:type||'ok'});
+  if(ORCH.execLog.length>200) ORCH.execLog.pop();
+  // live update if log pane visible
+  var pane = document.getElementById('orch-pane-execlog');
+  if(pane && pane.classList.contains('active')) orchRenderLog();
+}
+
+function orchRenderLog(){
+  var list = document.getElementById('orch-exec-log'); if(!list) return;
+  var filter = document.getElementById('orch-log-filter');
+  var f = filter ? filter.value : 'all';
+  var entries = f==='all' ? ORCH.execLog : ORCH.execLog.filter(function(e){return e.type===f;});
+  list.innerHTML = entries.map(function(e){
+    return '<div class="exec-line">'
+      +'<span class="exec-ts">'+e.ts+'</span>'
+      +'<span class="exec-wf">'+e.wf+'</span>'
+      +'<span class="exec-msg exec-'+e.type+'">'+e.msg+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+function orchFilterLog(){ orchRenderLog(); }
+function orchClearLog(){ ORCH.execLog=[]; orchRenderLog(); }
+
+// Init orchestrate when view is opened
+var _origNav = typeof nav === 'function' ? nav : null;
+(function(){
+  var _nav = window.nav;
+  window.nav = function(view){
+    if(_nav) _nav(view);
+    if(view==='orchestrate'){
+      setTimeout(function(){
+        orchRenderWorkflows();
+        orchRenderMacros();
+        orchRenderSchedule();
+        orchRenderResources();
+        orchLogEntry('SYSTEM','Orchestrate view opened','ok');
+      }, 50);
+    }
+  };
+})();
 </script>
 </body>
 </html>

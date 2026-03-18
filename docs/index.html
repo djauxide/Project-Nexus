@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NEXUS v7 — Broadcast Orchestration Platform</title>
+<title>NEXUS v6 — Broadcast Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -31,29 +31,6 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);
   animation:scan 8s linear infinite}
 @keyframes scan{0%{background-position:0 0}100%{background-position:0 100px}}
-/* MOBILE RESPONSIVE */
-@media(max-width:768px){
-  #topnav{padding:0 6px;gap:2px}
-  .nav-brand{font-size:.75rem;letter-spacing:.1em}
-  #nav-groups{gap:1px}
-  .nav-group-btn{font-size:.62rem;padding:4px 6px}
-  #statusbar{font-size:.6rem;gap:6px;padding:0 6px}
-  .sb-item{display:none}
-  .sb-item.sb-always{display:flex}
-  .view{padding:8px}
-  .panel{padding:10px}
-  .sw-bus-row{gap:4px}
-  .sw-src-btn{min-width:44px;font-size:.65rem;padding:6px 4px}
-  .router-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}
-  .dd-panel{min-width:140px}
-  .login-box{width:95vw;padding:28px 20px}
-}
-@media(max-width:480px){
-  .nav-brand span{display:none}
-  #nav-groups .nav-group-btn:nth-child(n+4){display:none}
-  .sw-me-tabs{flex-wrap:wrap}
-}
-
 /* LOGIN */
 #login-page{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1000;
   background:radial-gradient(ellipse at 50% 40%,#0d0d2a 0%,#02020a 70%)}
@@ -86,13 +63,18 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 <!-- LOGIN PAGE -->
 <div id="login-page">
   <div class="login-box">
-    <div class="nexus-logo"><h1>NEXUS</h1><p>BROADCAST ORCHESTRATION PLATFORM v7</p></div>
-    <div class="login-field"><label>Username</label><input type="text" id="user-input" placeholder="engineer / operator / trainer / viewer" value="engineer"></div>
-    <div class="login-field"><label>Password</label><input type="password" id="pw-input" placeholder="nexus2024"></div>
-    <div class="login-field"><label>API Endpoint (optional)</label><input type="text" id="api-input" placeholder="http://localhost:8080" value=""></div>
+    <div class="nexus-logo"><h1>NEXUS</h1><p>BROADCAST PLATFORM v6</p></div>
+    <div class="login-field"><label>Password</label><input type="password" id="pw-input" placeholder="Enter password"></div>
+    <div class="login-field"><label>Role</label>
+      <select id="role-sel">
+        <option value="ENGINEER">ENGINEER</option>
+        <option value="OPERATOR">OPERATOR</option>
+        <option value="TRAINER">TRAINER</option>
+        <option value="VIEWER">VIEWER</option>
+      </select>
+    </div>
     <button class="btn-login" onclick="doLogin()">SIGN IN</button>
     <div id="login-err"></div>
-    <div style="margin-top:12px;font-size:.68rem;color:var(--txt2);text-align:center">Demo: any username + password <strong style="color:var(--acc)">nexus2024</strong></div>
   </div>
 </div>
 <!-- MAIN APP -->
@@ -760,9 +742,6 @@ var _alarmFilter='ALL';
 var _tc=0; // frames at 25fps
 var _wsConn=null;
 var _wsOk=false;
-var _tallies={};
-var _ptpOffset=0;
-var _ptpLocked=true;
 var _mosaicLayout='2x2';
 var _mosaicTiles=[];
 var _mosaicPresets={};
@@ -873,62 +852,17 @@ function canOp(viewId){
 // ============================================================
 // LOGIN
 // ============================================================
-var _jwtToken = '';
-var _apiBase = '';
-
 function doLogin(){
-  var username = (document.getElementById('user-input')||{value:'engineer'}).value.trim() || 'engineer';
-  var pw = document.getElementById('pw-input').value;
-  var apiInput = document.getElementById('api-input');
-  _apiBase = (apiInput ? apiInput.value.trim() : '') || '';
-  var errEl = document.getElementById('login-err');
-  errEl.textContent = '';
-
-  if(!pw){errEl.textContent='Enter password';return;}
-
-  // Try real API first if endpoint configured
-  if(_apiBase){
-    fetch(_apiBase+'/api/v1/auth/login',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({username:username,password:pw})
-    }).then(function(r){return r.json();}).then(function(data){
-      if(data.token){
-        _jwtToken=data.token;
-        ROLE=data.role||'VIEWER';
-        _launchApp();
-      } else {
-        errEl.textContent=data.error||'Login failed';
-      }
-    }).catch(function(){
-      // API unreachable — fall back to demo mode
-      _demoLogin(username,pw,errEl);
-    });
-  } else {
-    _demoLogin(username,pw,errEl);
-  }
-}
-
-function _demoLogin(username,pw,errEl){
-  if(pw!=='nexus2024'){errEl.textContent='Invalid password';return;}
-  var roleMap={engineer:'ENGINEER',operator:'OPERATOR',trainer:'TRAINER',viewer:'VIEWER'};
-  ROLE=roleMap[username.toLowerCase()]||'VIEWER';
-  _jwtToken='demo-token';
-  _launchApp();
-}
-
-function _launchApp(){
+  var pw=document.getElementById('pw-input').value;
+  var role=document.getElementById('role-sel').value;
+  if(pw!==PW){document.getElementById('login-err').textContent='Invalid password';return;}
+  ROLE=role;
   document.getElementById('login-page').style.display='none';
   var app=document.getElementById('app');
   app.style.display='flex';
   initApp();
 }
-
-document.addEventListener('DOMContentLoaded',function(){
-  var pwEl=document.getElementById('pw-input');
-  if(pwEl)pwEl.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-});
-
+document.getElementById('pw-input').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 function openSwitchUser(){
   document.getElementById('su-modal').style.display='flex';
   document.getElementById('su-pw').value='';
@@ -938,10 +872,7 @@ function closeSwitchUser(){document.getElementById('su-modal').style.display='no
 function doSwitchUser(){
   var pw=document.getElementById('su-pw').value;
   var role=document.getElementById('su-role').value;
-  if(_apiBase && _jwtToken && _jwtToken!=='demo-token'){
-    // Re-auth with new role not supported via API — just update locally
-  }
-  if(pw!=='nexus2024'){document.getElementById('su-err').textContent='Invalid password';return;}
+  if(pw!==PW){document.getElementById('su-err').textContent='Invalid password';return;}
   ROLE=role;
   closeSwitchUser();
   document.getElementById('role-badge').textContent=ROLE;
@@ -1090,188 +1021,28 @@ function onViewActivated(vid){
   if(vid==='mosaic')renderMosaic();
 }
 // ============================================================
-// WEBSOCKET — JWT authenticated, real backend integration
+// WEBSOCKET
 // ============================================================
-var _wsReconnectTimer=null;
-var _wsReconnectDelay=2000;
-
 function initWS(){
-  if(_wsReconnectTimer){clearTimeout(_wsReconnectTimer);_wsReconnectTimer=null;}
-  var wsBase=_apiBase?_apiBase.replace(/^http/,'ws'):'ws://localhost:8080';
-  var url=wsBase+'/ws/control?token='+encodeURIComponent(_jwtToken||'demo-token');
   try{
-    _wsConn=new WebSocket(url);
-    _wsConn.onopen=function(){
-      _wsOk=true;
-      _wsReconnectDelay=2000;
-      updateWSStatus();
-      // Request full state on connect
-      _wsSend({type:'GET_STATE'});
-      addAlarm('OK','WebSocket connected to NEXUS API');
-    };
-    _wsConn.onclose=function(e){
-      _wsOk=false;
-      updateWSStatus();
-      if(e.code!==1000){
-        _wsReconnectTimer=setTimeout(function(){
-          _wsReconnectDelay=Math.min(_wsReconnectDelay*1.5,30000);
-          initWS();
-        },_wsReconnectDelay);
-      }
-    };
+    _wsConn=new WebSocket('ws://localhost:8080/ws/control');
+    _wsConn.onopen=function(){_wsOk=true;updateWSStatus();};
+    _wsConn.onclose=function(){_wsOk=false;updateWSStatus();setTimeout(initWS,5000);};
     _wsConn.onerror=function(){_wsOk=false;updateWSStatus();};
-    _wsConn.onmessage=function(e){
-      try{handleWS(JSON.parse(e.data));}catch(ex){}
-    };
+    _wsConn.onmessage=function(e){handleWS(JSON.parse(e.data));};
   }catch(ex){_wsOk=false;updateWSStatus();}
 }
-
-function _wsSend(msg){
-  if(_wsConn&&_wsConn.readyState===1){
-    _wsConn.send(JSON.stringify(msg));
-  }
-}
-
 function updateWSStatus(){
   var dot=document.getElementById('sb-ws');
   if(dot)dot.style.background=_wsOk?'var(--ok)':'var(--warn)';
-  var lbl=document.getElementById('sb-ws-lbl');
-  if(lbl)lbl.textContent=_wsOk?'LIVE':'OFFLINE';
 }
-
 function handleWS(msg){
   if(!msg||!msg.type)return;
-  switch(msg.type){
-    case 'INIT':
-      addAlarm('OK','Session established — Role: '+msg.role);
-      break;
-    case 'FULL_STATE':
-      if(msg.state){
-        // Sync ME banks
-        if(msg.state.me&&Array.isArray(msg.state.me)){
-          msg.state.me.forEach(function(me,i){
-            if(SW.me[i]){SW.me[i].pgm=me.pgm;SW.me[i].pvw=me.pvw;}
-          });
-          if(_activeView==='switch')renderSwitcher();
-          updateSBPGM();
-        }
-        // Sync router
-        if(msg.state.router&&Array.isArray(msg.state.router)){
-          msg.state.router.forEach(function(r){ROUTER[r.dst]=r.src;});
-          if(_activeView==='router')renderRouter();
-        }
-        // Sync alarms
-        if(msg.state.alarms&&Array.isArray(msg.state.alarms)){
-          msg.state.alarms.slice(0,20).forEach(function(a){
-            addAlarm(a.severity?a.severity.toUpperCase():'INFO',a.message||'');
-          });
-        }
-        // Sync timecode
-        if(msg.state.timecode){
-          var el=document.getElementById('nav-tc');if(el)el.textContent=msg.state.timecode;
-        }
-      }
-      break;
-    case 'TC_UPDATE':
-      if(msg.timecode){
-        var el=document.getElementById('nav-tc');if(el)el.textContent=msg.timecode;
-        var sb=document.getElementById('sb-tc');if(sb)sb.textContent=msg.timecode;
-      }
-      break;
-    case 'PTP_UPDATE':
-      if(msg.offset!=null){
-        var el=document.getElementById('sb-ptp');if(el)el.textContent=msg.offset+'ns';
-        _ptpOffset=msg.offset;
-        _ptpLocked=msg.locked;
-      }
-      break;
-    case 'SWITCHER_CUT':
-    case 'SWITCHER_SYNC':
-      if(msg.me!=null&&SW.me[msg.me]){
-        SW.me[msg.me].pgm=msg.pgm;
-        SW.me[msg.me].pvw=msg.pvw;
-        if(_activeView==='switch')renderSwitcher();
-        updateSBPGM();
-        addAlarm('INFO','ME'+(msg.me+1)+' CUT → SRC '+msg.pgm+(msg.source?' ['+msg.source+']':''));
-      }
-      break;
-    case 'SWITCHER_PVW':
-      if(msg.me!=null&&SW.me[msg.me]){
-        SW.me[msg.me].pvw=msg.pvw;
-        if(_activeView==='switch')renderSwitcher();
-      }
-      break;
-    case 'SWITCHER_TRANS_PROGRESS':
-      if(msg.me!=null){
-        var bar=document.getElementById('tbar-fill-'+msg.me);
-        if(bar)bar.style.height=Math.round(msg.progress*100)+'%';
-      }
-      break;
-    case 'ROUTER_ROUTE':
-      if(msg.dst!=null&&msg.src!=null){
-        ROUTER[msg.dst]=msg.src;
-        if(_activeView==='router')renderRouter();
-        _saveState();
-      }
-      break;
-    case 'ROUTER_LOCK':
-      if(_activeView==='router')renderRouter();
-      break;
-    case 'TALLY_UPDATE':
-      if(msg.tallies&&Array.isArray(msg.tallies)){
-        _tallies={};
-        msg.tallies.forEach(function(t){
-          if(t.pgm)_tallies['pgm_'+t.source]=true;
-          if(t.pvw)_tallies['pvw_'+t.source]=true;
-        });
-        if(_activeView==='switch')renderSwitcher();
-      }
-      break;
-    case 'ALARM':
-      if(msg.alarm){
-        addAlarm((msg.alarm.severity||'info').toUpperCase(),msg.alarm.message||'');
-      }
-      break;
-    case 'ALARM_ACK':
-      break;
-    case 'CEREBRUM_ROUTE':
-      if(msg.dst&&msg.src){ROUTER[msg.dst]=msg.src;if(_activeView==='router')renderRouter();}
-      break;
-    case 'CEREBRUM_TALLY':
-      addAlarm('INFO','Tally: '+msg.source+' → '+msg.state+' ['+msg.bus+']');
-      break;
-    case 'CEREBRUM_MACRO_RUN':
-      addAlarm('INFO','Macro executed: '+msg.macroId);
-      break;
-    case 'EMBER_SYNC':
-      addAlarm('INFO','Ember+ sync: '+msg.path+' = '+JSON.stringify(msg.value));
-      break;
-    case 'NMOS_EVENT':
-      addAlarm('INFO','NMOS: '+msg.event);
-      break;
-    case 'RACK_SLOT_ADDED':
-    case 'RACK_SLOT_REMOVED':
-    case 'RACK_LINK_ACTIVATED':
-      if(_activeView==='cloud')renderCloud();
-      break;
-    case 'MV_UPDATE':
-      if(_activeView==='mosaic')renderMosaic();
-      break;
-    case 'ERROR':
-      addAlarm('WARN','WS Error: '+msg.message);
-      break;
-  }
-}
-
-// API helper — REST calls with JWT
-function _apiCall(method,path,body){
-  var headers={'Content-Type':'application/json'};
-  if(_jwtToken&&_jwtToken!=='demo-token')headers['Authorization']='Bearer '+_jwtToken;
-  return fetch((_apiBase||'http://localhost:8080')+path,{
-    method:method,
-    headers:headers,
-    body:body?JSON.stringify(body):undefined
-  }).then(function(r){return r.json();}).catch(function(){return null;});
+  if(msg.type==='TC_UPDATE'&&msg.tc)_tc=msg.tc;
+  if(msg.type==='PTP_UPDATE'&&msg.offset){var el=document.getElementById('sb-ptp');if(el)el.textContent=msg.offset;}
+  if(msg.type==='SWITCHER_CUT'&&msg.me!=null){SW.me[msg.me].pgm=msg.src;updateSBPGM();}
+  if(msg.type==='ALARM'&&msg.sev&&msg.msg)addAlarm(msg.sev,msg.msg);
+  if(msg.type==='ROUTER_ROUTE'&&msg.dst!=null&&msg.src!=null){ROUTER[msg.dst]=msg.src;_saveState();}
 }
 </script>
 <script>
@@ -1763,8 +1534,6 @@ function meCut(mi,src,bus){
   renderMEBanks();buildSourceList();buildQuickTake();
   addEvent(SW.me[mi].name+' '+bus.toUpperCase()+' → '+src);
   _saveState();
-  // Send PVW selection to backend
-  if(bus==='pvw')_wsSend({type:'SWITCHER_PVW',payload:{me:mi,source:src}});
 }
 function meDoCut(mi){
   var tmp=SW.me[mi].pgm;SW.me[mi].pgm=SW.me[mi].pvw;SW.me[mi].pvw=tmp;
@@ -1774,8 +1543,6 @@ function meDoCut(mi){
   addEvent(SW.me[mi].name+' CUT → '+SW.me[mi].pgm);
   addAlarm('INFO',SW.me[mi].name+' CUT executed');
   _saveState();
-  // Send to backend
-  _wsSend({type:'SWITCHER_CUT',payload:{me:mi,pvw:SW.me[mi].pvw}});
 }
 function meAutoTrans(mi){
   if(SW.me[mi].running)return;
@@ -1793,7 +1560,6 @@ function meAutoTrans(mi){
       renderMEBanks();buildSourceList();buildQuickTake();
       addEvent(SW.me[mi].name+' AUTO TRANS → '+SW.me[mi].pgm);
       _saveState();
-      _wsSend({type:'SWITCHER_AUTO',payload:{me:mi}});
     }
   },40);
   _ivs.push(iv);
@@ -1920,10 +1686,7 @@ function toggleSalvo(){
   renderRouter();
 }
 function executeSalvo(){
-  _salvoSel.forEach(function(s){
-    ROUTER[s.dst]=s.src;
-    _wsSend({type:'ROUTER_CONNECT',payload:{level:_routerLevel,dst:String(s.dst),src:String(s.src)}});
-  });
+  _salvoSel.forEach(function(s){ROUTER[s.dst]=s.src;});
   _salvoSel=[];_salvoMode=false;
   var btn=document.getElementById('salvo-btn');if(btn)btn.textContent='OFF';
   var exec=document.getElementById('exec-salvo');if(exec)exec.style.display='none';
@@ -1972,7 +1735,6 @@ function renderRouter(){
           _salvoSel.push({dst:di,src:si});
         }else{
           ROUTER[di]=si;addAlarm('INFO',d+' → '+s+' ['+_routerLevel+']');_saveState();
-          _wsSend({type:'ROUTER_CONNECT',payload:{level:_routerLevel,dst:String(di),src:String(si)}});
         }
         renderRouter();
       };
@@ -2875,7 +2637,7 @@ function initApp(){
   initLive();
   initWS();
   // Seed alarms
-  addAlarm('OK','System initialized — NEXUS v7');
+  addAlarm('OK','System initialized — NEXUS v6');
   addAlarm('INFO','PTP locked to grandmaster 00:1A:2B:3C:4D:5E');
   addAlarm('WARN','Encoder B CPU at 91%');
   addAlarm('INFO','NMOS registry: 7 nodes registered');

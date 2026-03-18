@@ -705,10 +705,12 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
     <div class="panel">
       <div class="panel-title">ABOUT</div>
       <div style="font-size:.78rem;display:flex;flex-direction:column;gap:6px;color:var(--txt2)">
-        <div>Version: <span style="color:var(--acc)">6.0.0</span></div>
-        <div>Build: <span style="color:var(--acc)">2025-01-15</span></div>
+        <div>Version: <span style="color:var(--acc)">7.0.0</span></div>
+        <div>Build: <span style="color:var(--acc)">2026-03-18</span></div>
         <div>License: <span style="color:var(--ok)">ENTERPRISE</span></div>
-        <div>Platform: <span style="color:var(--txt)">NEXUS Broadcast Platform</span></div>
+        <div>Platform: <span style="color:var(--txt)">NEXUS Broadcast Orchestration Platform</span></div>
+        <div>Backend: <span style="color:var(--txt)">Fastify + PostgreSQL + Redis</span></div>
+        <div>Protocols: <span style="color:var(--txt)">NMOS IS-04/05/07/08 · Ember+ · ST2110 · AES67 · SRT</span></div>
       </div>
     </div>
   </div>
@@ -981,21 +983,21 @@ function tickTC(){
 // ============================================================
 function _saveState(){
   try{
-    localStorage.setItem('nx6_router',JSON.stringify(ROUTER));
-    localStorage.setItem('nx6_mosaic_presets',JSON.stringify(_mosaicPresets));
-    localStorage.setItem('nx6_rundown',JSON.stringify(_rdCues));
-    localStorage.setItem('nx6_sw',JSON.stringify(SW));
-    localStorage.setItem('nx6_audio',JSON.stringify(_audioMatrix));
-    localStorage.setItem('nx6_role',ROLE);
+    localStorage.setItem('nx7_router',JSON.stringify(ROUTER));
+    localStorage.setItem('nx7_mosaic_presets',JSON.stringify(_mosaicPresets));
+    localStorage.setItem('nx7_rundown',JSON.stringify(_rdCues));
+    localStorage.setItem('nx7_sw',JSON.stringify(SW));
+    localStorage.setItem('nx7_audio',JSON.stringify(_audioMatrix));
+    localStorage.setItem('nx7_role',ROLE);
   }catch(e){}
 }
 function _loadState(){
   try{
-    var r=localStorage.getItem('nx6_router');if(r)ROUTER=JSON.parse(r);
-    var mp=localStorage.getItem('nx6_mosaic_presets');if(mp)_mosaicPresets=JSON.parse(mp);
-    var rd=localStorage.getItem('nx6_rundown');if(rd)_rdCues=JSON.parse(rd);
-    var sw=localStorage.getItem('nx6_sw');if(sw)SW=JSON.parse(sw);
-    var am=localStorage.getItem('nx6_audio');if(am)_audioMatrix=JSON.parse(am);
+    var r=localStorage.getItem('nx7_router');if(r)ROUTER=JSON.parse(r);
+    var mp=localStorage.getItem('nx7_mosaic_presets');if(mp)_mosaicPresets=JSON.parse(mp);
+    var rd=localStorage.getItem('nx7_rundown');if(rd)_rdCues=JSON.parse(rd);
+    var sw=localStorage.getItem('nx7_sw');if(sw)SW=JSON.parse(sw);
+    var am=localStorage.getItem('nx7_audio');if(am)_audioMatrix=JSON.parse(am);
   }catch(e){}
 }
 </script>
@@ -2661,8 +2663,8 @@ function renderSettings(){
   var tbody=document.getElementById('users-tbody');
   if(!tbody)return;
   var users=[
-    {name:'admin',role:'ENGINEER',last:'2025-01-15 09:00',enabled:true},
-    {name:'operator1',role:'OPERATOR',last:'2025-01-15 08:30',enabled:true},
+    {name:'admin',role:'ENGINEER',last:'2026-03-18 09:00',enabled:true},
+    {name:'operator1',role:'OPERATOR',last:'2026-03-18 08:30',enabled:true},
     {name:'trainer1',role:'TRAINER',last:'2025-01-14 16:00',enabled:true},
     {name:'viewer1',role:'VIEWER',last:'2025-01-13 12:00',enabled:false}
   ];
@@ -2689,7 +2691,7 @@ function restoreConfig(){showToast('Restore: select a backup file');}
 // ============================================================
 var TRAIN_MODULES=[
   {title:'Platform Overview',view:'live',steps:[
-    {title:'Introduction',content:'NEXUS v6 is a software-defined broadcast platform supporting ST 2110, NMOS IS-04/05, SRT, and hybrid cloud workflows.<br><br><b>Key capabilities:</b><ul><li>Multi-ME software switcher</li><li>16×16 IP router</li><li>Cloud MCR with virtual rack</li><li>PTP/ST 2059-2 synchronization</li></ul>'},
+    {title:'Introduction',content:'NEXUS v7 is a software-defined broadcast platform supporting ST 2110, NMOS IS-04/05, SRT, and hybrid cloud workflows.<br><br><b>Key capabilities:</b><ul><li>Multi-ME software switcher</li><li>16×16 IP router</li><li>Cloud MCR with virtual rack</li><li>PTP/ST 2059-2 synchronization</li></ul>'},
     {title:'Architecture',content:'The platform runs on commodity hardware with a microservices architecture.<br><br><b>Core services:</b><ul><li>Switcher engine (Go)</li><li>IP Router (Rust)</li><li>NMOS Registry (Python)</li><li>API Gateway (Node.js)</li></ul>'},
     {title:'Signal Flow',content:'Signals flow from physical SDI inputs through an SDI bridge into the IP fabric.<br><br>The IP fabric distributes ST 2110 streams to all processing nodes using multicast.<br><br>Outputs are encoded and delivered via SRT or cloud links.'},
     {title:'Getting Started',content:'1. Log in with your assigned role<br>2. Navigate to LIVE view to monitor program output<br>3. Use MOSAIC for multi-source monitoring<br>4. Access SWITCHER for production control<br><br><b>Default password:</b> nexus2024'}

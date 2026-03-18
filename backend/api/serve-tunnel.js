@@ -1,7 +1,7 @@
 'use strict';
 /**
- * NEXUS v7 — Public Tunnel Server
- * Serves nexus-v7.html locally on port 3000
+ * NEXUS v8 — Public Tunnel Server
+ * Serves nexus-v8.html locally on port 3000
  * Creates a public Cloudflare Quick Tunnel (no account needed)
  * cloudflared.exe is auto-downloaded on first run and reused
  */
@@ -11,14 +11,14 @@ const path   = require('path');
 const https  = require('https');
 const { spawn } = require('child_process');
 
-const HTML      = path.join(__dirname, '..', '..', 'nexus-v7.html');
+const HTML      = path.join(__dirname, '..', '..', 'nexus-v8.html');
 const PORT      = 3000;
 const CF_EXE    = path.join(__dirname, '..', '..', 'cloudflared.exe');
 const CF_URL    = 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe';
 
 // ── Verify HTML exists ────────────────────────────────────────────────────────
 if (!fs.existsSync(HTML)) {
-  console.error('ERROR: nexus-v7.html not found at', HTML);
+  console.error('ERROR: nexus-v8.html not found at', HTML);
   process.exit(1);
 }
 
@@ -40,7 +40,7 @@ server.listen(PORT, '0.0.0.0', function() {
 
   console.log('');
   console.log('  ╔══════════════════════════════════════════╗');
-  console.log('  ║   NEXUS v7 — Broadcast Orchestration     ║');
+  console.log('  ║   NEXUS v8 — Broadcast Orchestration     ║');
   console.log('  ╚══════════════════════════════════════════╝');
   console.log('');
   console.log('  LOCAL LINKS:');

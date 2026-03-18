@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXUS v8 — Broadcast Orchestration Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#010108;--bg2:#05050f;--bg3:#0a0a1a;--bg4:#0f0f24;--bg5:#14142e;
+  --b1:#1c1c3a;--b2:#262650;--b3:#303068;
+  --acc:#00c8f0;--acc2:#0090b8;--acc3:#00e8ff;
+  --pgm:#f01030;--pgm2:#ff2040;
+  --pvw:#00d870;--pvw2:#00ff88;
+  --warn:#f0a000;--warn2:#ffb800;
+  --ok:#00d870;--err:#f01030;
+  --pur:#9040e8;--pur2:#b060ff;
+  --gold:#e8a000;--gold2:#ffb800;
+  --ember:#ff6820;
+  --txt:#d8d8f0;--txt2:#7878a0;
+  --r:5px;--r2:8px;--r3:12px;
+  --sh:0 4px 24px rgba(0,0,0,.6);
+  --trans:.15s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);font-size:13px;line-height:1.4}
+.mono{font-family:'JetBrains Mono',monospace}
+button{cursor:pointer;font-family:'Inter',sans-serif;border:none;outline:none;transition:var(--trans)}
+input,select,textarea{font-family:'Inter',sans-serif;outline:none;transition:var(--trans)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.05) 3px,rgba(0,0,0,.05) 4px)}
+/* LOGIN */
+#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1000;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%,#0a0a28 0%,#010108 100%)}
+#login-screen::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(0,200,240,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,240,.03) 1px,transparent 1px);
+  background-size:48px 48px;animation:gridpan 30s linear infinite}
+@keyframes gridpan{to{background-position:48px 48px}}
+.login-card{position:relative;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r3);
+  padding:48px 40px;width:420px;box-shadow:0 0 80px rgba(0,200,240,.1),var(--sh)}
+.nx-logo{text-align:center;margin-bottom:36px}
+.nx-logo-mark{font-size:3rem;font-weight:800;letter-spacing:.25em;
+  background:linear-gradient(135deg,#00e8ff 0%,#00c8f0 40%,#b060ff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:logopulse 3s ease-in-out infinite}
+@keyframes logopulse{0%,100%{filter:drop-shadow(0 0 12px rgba(0,200,240,.4))}50%{filter:drop-shadow(0 0 32px rgba(0,200,240,.9))}}
+.nx-logo-sub{color:var(--txt2);font-size:.68rem;letter-spacing:.35em;margin-top:6px}
+.lf{margin-bottom:14px}
+.lf label{display:block;font-size:.68rem;font-weight:600;color:var(--txt2);letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px}
+.lf input,.lf select{width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:10px 13px;border-radius:var(--r);font-size:.88rem}
+.lf input:focus,.lf select:focus{border-color:var(--acc);box-shadow:0 0 0 2px rgba(0,200,240,.12)}
+.lf select option{background:var(--bg4)}
+.btn-signin{width:100%;padding:12px;margin-top:6px;background:linear-gradient(135deg,var(--acc2),var(--acc));
+  color:#000;font-weight:700;font-size:.9rem;letter-spacing:.1em;border-radius:var(--r)}
+.btn-signin:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,200,240,.35)}
+#login-err{min-height:18px;font-size:.75rem;color:var(--pgm2);text-align:center;margin-top:10px}
+/* APP SHELL */
+#app{display:none;flex-direction:column;height:100vh}
+/* TOPNAV */
+#topnav{height:50px;background:var(--bg3);border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;padding:0 14px;gap:5px;position:relative;z-index:600;flex-shrink:0}
+.nav-brand{display:flex;align-items:center;gap:7px;margin-right:8px;flex-shrink:0}
+.nav-brand-logo{font-size:.95rem;font-weight:800;letter-spacing:.18em;
+  background:linear-gradient(135deg,#00e8ff,#00c8f0);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-brand-ver{font-size:.6rem;color:var(--txt2);background:var(--b2);padding:2px 6px;border-radius:3px;font-weight:600;letter-spacing:.06em}
+.nav-sep{width:1px;height:22px;background:var(--b2);flex-shrink:0;margin:0 4px}
+#nav-menu{display:flex;gap:2px;flex:1;overflow:hidden}
+.nav-btn{background:transparent;color:var(--txt2);font-size:.72rem;font-weight:600;letter-spacing:.07em;
+  padding:6px 10px;border-radius:var(--r);border:1px solid transparent;white-space:nowrap}
+.nav-btn:hover{background:var(--b1);color:var(--txt);border-color:var(--b1)}
+.nav-btn.open,.nav-btn.cur{background:var(--b1);color:var(--acc);border-color:var(--b2)}
+.nav-arr{font-size:.5rem;margin-left:3px;opacity:.5}
+/* DROPDOWN */
+.nav-dd{position:fixed;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r2);
+  padding:6px;min-width:180px;z-index:700;box-shadow:0 12px 40px rgba(0,0,0,.7);
+  display:none;flex-direction:column;gap:1px}
+.nav-dd.show{display:flex}
+.nav-dd-item{background:transparent;color:var(--txt2);font-size:.75rem;font-weight:500;
+  padding:8px 12px;border-radius:var(--r);text-align:left;border:none;white-space:nowrap;
+  display:flex;align-items:center;gap:8px}
+.nav-dd-item:hover{background:var(--b1);color:var(--txt)}
+.nav-dd-item.cur{color:var(--acc);background:var(--b1)}
+.nav-dd-item .dd-icon{font-size:.85rem;width:16px;text-align:center;opacity:.7}
+.nav-dd-sep{height:1px;background:var(--b1);margin:4px 0}
+/* STATUS BAR */
+#statusbar{height:26px;background:var(--bg2);border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;padding:0 14px;gap:16px;flex-shrink:0;overflow:hidden}
+.sb-item{display:flex;align-items:center;gap:5px;font-size:.65rem;font-weight:600;letter-spacing:.06em;color:var(--txt2);white-space:nowrap}
+.sb-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sb-dot.ok{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.sb-dot.warn{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+.sb-dot.err{background:var(--err);box-shadow:0 0 6px var(--err)}
+.sb-dot.off{background:var(--txt2)}
+.sb-val{color:var(--txt);font-family:'JetBrains Mono',monospace}
+#sb-clock{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--acc);letter-spacing:.08em}
+/* ROLE BADGE */
+.role-badge{font-size:.6rem;font-weight:700;letter-spacing:.1em;padding:2px 8px;border-radius:3px;text-transform:uppercase}
+.role-badge.eng{background:rgba(144,64,232,.25);color:var(--pur2);border:1px solid rgba(144,64,232,.4)}
+.role-badge.ops{background:rgba(0,200,240,.15);color:var(--acc);border:1px solid rgba(0,200,240,.3)}
+.role-badge.prod{background:rgba(240,160,0,.15);color:var(--warn2);border:1px solid rgba(240,160,0,.3)}
+/* MAIN CONTENT */
+#main{flex:1;overflow:hidden;position:relative}
+.view{display:none;height:100%;overflow-y:auto;padding:18px}
+.view.active{display:flex;flex-direction:column;gap:14px}
+/* CARDS */
+.card{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r2);padding:14px}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-title{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--txt2)}
+.card-title span{color:var(--acc)}
+/* GRID HELPERS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.g6{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.row{display:flex;gap:10px;align-items:center}
+.col{display:flex;flex-direction:column;gap:8px}
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:var(--r);font-size:.75rem;font-weight:600;letter-spacing:.06em;border:1px solid transparent}
+.btn-acc{background:var(--acc2);color:#000;border-color:var(--acc)}
+.btn-acc:hover{background:var(--acc);box-shadow:0 0 12px rgba(0,200,240,.3)}
+.btn-pgm{background:rgba(240,16,48,.2);color:var(--pgm2);border-color:var(--pgm)}
+.btn-pgm:hover{background:var(--pgm);color:#fff}
+.btn-pvw{background:rgba(0,216,112,.15);color:var(--pvw2);border-color:var(--pvw)}
+.btn-pvw:hover{background:var(--pvw);color:#000}
+.btn-ghost{background:transparent;color:var(--txt2);border-color:var(--b2)}
+.btn-ghost:hover{background:var(--b1);color:var(--txt)}
+.btn-warn{background:rgba(240,160,0,.15);color:var(--warn2);border-color:var(--warn)}
+.btn-warn:hover{background:var(--warn);color:#000}
+.btn-sm{padding:4px 10px;font-size:.68rem}
+.btn-xs{padding:2px 7px;font-size:.62rem}
+/* TAGS / PILLS */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:3px;font-size:.62rem;font-weight:600;letter-spacing:.06em}
+.tag-ok{background:rgba(0,216,112,.15);color:var(--pvw2);border:1px solid rgba(0,216,112,.3)}
+.tag-err{background:rgba(240,16,48,.15);color:var(--pgm2);border:1px solid rgba(240,16,48,.3)}
+.tag-warn{background:rgba(240,160,0,.15);color:var(--warn2);border:1px solid rgba(240,160,0,.3)}
+.tag-acc{background:rgba(0,200,240,.12);color:var(--acc);border:1px solid rgba(0,200,240,.25)}
+.tag-pur{background:rgba(144,64,232,.15);color:var(--pur2);border:1px solid rgba(144,64,232,.3)}
+/* SWITCHER */
+.sw-bus-row{display:flex;gap:4px;margin-bottom:6px}
+.sw-src-btn{flex:1;min-width:0;padding:8px 4px;border-radius:var(--r);font-size:.65rem;font-weight:700;
+  letter-spacing:.04em;text-align:center;background:var(--bg4);color:var(--txt2);border:1px solid var(--b2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sw-src-btn:hover{background:var(--b1);color:var(--txt)}
+.sw-src-btn.pgm{background:var(--pgm);color:#fff;border-color:var(--pgm2);box-shadow:0 0 10px rgba(240,16,48,.5)}
+.sw-src-btn.pvw{background:var(--pvw);color:#000;border-color:var(--pvw2);box-shadow:0 0 10px rgba(0,216,112,.4)}
+.sw-bus-label{width:52px;font-size:.62rem;font-weight:700;letter-spacing:.1em;color:var(--txt2);
+  display:flex;align-items:center;flex-shrink:0}
+.sw-bus-label.pgm-lbl{color:var(--pgm2)}
+.sw-bus-label.pvw-lbl{color:var(--pvw2)}
+.sw-cut-btn{padding:10px 18px;background:var(--pgm);color:#fff;font-weight:800;font-size:.8rem;
+  letter-spacing:.12em;border-radius:var(--r);border:2px solid var(--pgm2)}
+.sw-cut-btn:hover{background:var(--pgm2);box-shadow:0 0 20px rgba(240,16,48,.6)}
+.sw-auto-btn{padding:10px 18px;background:var(--pvw);color:#000;font-weight:800;font-size:.8rem;
+  letter-spacing:.12em;border-radius:var(--r);border:2px solid var(--pvw2)}
+.sw-auto-btn:hover{background:var(--pvw2);box-shadow:0 0 20px rgba(0,216,112,.5)}
+/* KEYER */
+.keyer-panel{background:var(--bg4);border:1px solid var(--b2);border-radius:var(--r);padding:10px}
+.keyer-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.keyer-name{font-size:.65rem;font-weight:700;letter-spacing:.1em;color:var(--acc)}
+.keyer-on{width:36px;height:18px;border-radius:9px;background:var(--b2);border:none;position:relative;cursor:pointer;transition:var(--trans)}
+.keyer-on.active{background:var(--acc2)}
+.keyer-on::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:var(--trans)}
+.keyer-on.active::after{left:20px}
+.keyer-row{display:flex;gap:6px;margin-bottom:5px;align-items:center}
+.keyer-lbl{font-size:.6rem;color:var(--txt2);width:28px;flex-shrink:0}
+.keyer-sel{flex:1;background:var(--bg3);border:1px solid var(--b2);color:var(--txt);padding:4px 6px;border-radius:3px;font-size:.68rem}
+/* MOSAIC */
+.mosaic-grid{display:grid;gap:4px;height:100%}
+.mosaic-cell{background:#000;border-radius:var(--r);overflow:hidden;position:relative;border:1px solid var(--b2)}
+.mosaic-cell.pgm-border{border-color:var(--pgm);box-shadow:0 0 0 1px var(--pgm)}
+.mosaic-cell.pvw-border{border-color:var(--pvw);box-shadow:0 0 0 1px var(--pvw)}
+.mosaic-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.75);
+  padding:3px 7px;font-size:.62rem;font-weight:700;letter-spacing:.06em;display:flex;justify-content:space-between}
+.mosaic-feed{width:100%;height:100%;object-fit:cover;opacity:.85}
+.mosaic-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--bg4),var(--bg3));color:var(--txt2);font-size:.7rem;font-weight:600}
+/* ROUTER MATRIX */
+.matrix-wrap{overflow:auto;max-height:420px}
+.matrix-table{border-collapse:collapse;font-size:.62rem}
+.matrix-table th{background:var(--bg4);color:var(--txt2);padding:5px 8px;font-weight:600;letter-spacing:.06em;
+  position:sticky;top:0;z-index:2;white-space:nowrap;border:1px solid var(--b2)}
+.matrix-table td{padding:3px;border:1px solid var(--b1)}
+.matrix-cell{width:22px;height:22px;border-radius:3px;background:var(--bg4);border:1px solid var(--b2);cursor:pointer}
+.matrix-cell:hover{background:var(--b2)}
+.matrix-cell.active{background:var(--acc2);border-color:var(--acc);box-shadow:0 0 6px rgba(0,200,240,.4)}
+.matrix-row-lbl{background:var(--bg4);color:var(--txt2);padding:3px 8px;font-weight:600;white-space:nowrap;
+  position:sticky;left:0;z-index:1;border:1px solid var(--b2)}
+/* SIGNAL FLOW SVG */
+#flow-canvas{width:100%;height:320px;background:var(--bg4);border-radius:var(--r2);border:1px solid var(--b2)}
+.flow-node{cursor:pointer}
+.flow-node rect{rx:6;transition:fill .2s}
+.flow-node:hover rect{filter:brightness(1.3)}
+.flow-link{stroke:var(--acc2);stroke-width:1.5;fill:none;opacity:.6}
+.flow-link.active{stroke:var(--acc3);stroke-width:2.5;opacity:1;filter:drop-shadow(0 0 4px var(--acc))}
+/* AUDIO */
+.vu-wrap{display:flex;gap:3px;align-items:flex-end;height:80px}
+.vu-bar{width:14px;border-radius:2px 2px 0 0;background:linear-gradient(to top,var(--pvw),var(--warn),var(--pgm));
+  transition:height .08s ease;min-height:2px}
+.vu-label{font-size:.55rem;color:var(--txt2);text-align:center;margin-top:3px}
+.fader-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.fader{-webkit-appearance:none;appearance:none;writing-mode:vertical-lr;direction:rtl;
+  width:24px;height:120px;background:var(--b2);border-radius:12px;outline:none;cursor:pointer}
+.fader::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:12px;border-radius:4px;background:var(--acc);cursor:pointer}
+/* SCOPES */
+.scope-canvas{width:100%;height:160px;background:#000;border-radius:var(--r);border:1px solid var(--b2)}
+/* CLOUD MCR */
+.rack-unit{background:var(--bg4);border:1px solid var(--b2);border-radius:var(--r);padding:8px 12px;
+  display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.rack-unit:hover{border-color:var(--b3);background:var(--bg5)}
+.rack-led{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rack-name{font-size:.75rem;font-weight:600;flex:1}
+.rack-type{font-size:.6rem;color:var(--txt2);letter-spacing:.06em}
+.cloud-mode-btn{padding:8px 16px;border-radius:var(--r);font-size:.72rem;font-weight:700;letter-spacing:.08em;
+  border:1px solid var(--b2);background:var(--bg4);color:var(--txt2)}
+.cloud-mode-btn.active{background:var(--acc2);color:#000;border-color:var(--acc)}
+/* ALARMS */
+.alarm-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--r);
+  background:var(--bg4);border:1px solid var(--b2);margin-bottom:4px}
+.alarm-row.crit{border-left:3px solid var(--pgm)}
+.alarm-row.warn{border-left:3px solid var(--warn)}
+.alarm-row.info{border-left:3px solid var(--acc)}
+.alarm-time{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--txt2);flex-shrink:0;width:80px}
+.alarm-msg{font-size:.75rem;flex:1}
+/* TRAINING */
+.train-step{background:var(--bg4);border:1px solid var(--b2);border-radius:var(--r2);padding:16px;margin-bottom:10px}
+.train-step.active{border-color:var(--acc);background:var(--bg5)}
+.train-step.done{border-color:var(--pvw);opacity:.7}
+.train-num{width:28px;height:28px;border-radius:50%;background:var(--b2);display:flex;align-items:center;
+  justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+.train-num.active{background:var(--acc2);color:#000}
+.train-num.done{background:var(--pvw);color:#000}
+/* PREFLIGHT */
+.pf-check{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--r);
+  background:var(--bg4);border:1px solid var(--b2);margin-bottom:4px}
+.pf-icon{font-size:1rem;flex-shrink:0;width:20px;text-align:center}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:800;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r3);padding:24px;min-width:360px;max-width:560px;width:90%}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-title{font-size:.85rem;font-weight:700;letter-spacing:.08em}
+.modal-close{background:transparent;color:var(--txt2);font-size:1.2rem;padding:0 4px}
+.modal-close:hover{color:var(--txt)}
+/* TOAST */
+#toast-wrap{position:fixed;bottom:20px;right:20px;z-index:900;display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r2);padding:10px 16px;
+  font-size:.75rem;min-width:220px;box-shadow:var(--sh);animation:toastin .2s ease;display:flex;align-items:center;gap:8px}
+.toast.ok{border-left:3px solid var(--pvw)}
+.toast.err{border-left:3px solid var(--pgm)}
+.toast.warn{border-left:3px solid var(--warn)}
+@keyframes toastin{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+/* SCROLLABLE PANEL */
+.scroll-panel{overflow-y:auto;max-height:calc(100vh - 200px)}
+/* LOCK OVERLAY */
+.lock-overlay{position:absolute;inset:0;background:rgba(1,1,8,.85);z-index:10;
+  display:flex;align-items:center;justify-content:center;border-radius:var(--r2);flex-direction:column;gap:8px}
+.lock-icon{font-size:2rem;opacity:.4}
+.lock-msg{font-size:.72rem;color:var(--txt2);letter-spacing:.08em}
+/* RESPONSIVE */
+@media(max-width:900px){
+  .g3{grid-template-columns:1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr}
+  .g6{grid-template-columns:repeat(3,1fr)}
+  #nav-menu .nav-btn span.nav-label{display:none}
+}
+@media(max-width:600px){
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .view{padding:10px}
+}
+</style>
+</head>
+<body>
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="nx-logo">
+      <div class="nx-logo-mark">NEXUS</div>
+      <div class="nx-logo-sub">BROADCAST ORCHESTRATION PLATFORM · v8</div>
+    </div>
+    <div class="lf"><label>Username</label><input id="li-user" type="text" value="admin" autocomplete="off"></div>
+    <div class="lf"><label>Password</label><input id="li-pass" type="password" value="nexus2024"></div>
+    <div class="lf">
+      <label>Role</label>
+      <select id="li-role">
+        <option value="engineer">Engineer (Full Access)</option>
+        <option value="operator">Operator</option>
+        <option value="production">Production</option>
+      </select>
+    </div>
+    <button class="btn-signin" onclick="doLogin()">SIGN IN</button>
+    <div id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app">
+  <!-- TOP NAV -->
+  <nav id="topnav">
+    <div class="nav-brand">
+      <span class="nav-brand-logo">NEXUS</span>
+      <span class="nav-brand-ver">v8</span>
+    </div>
+    <div class="nav-sep"></div>
+    <div id="nav-menu">
+      <button class="nav-btn cur" onclick="nav('live')">⬤ LIVE</button>
+      <button class="nav-btn" onclick="nav('mosaic')">⊞ MOSAIC</button>
+      <button class="nav-btn" onclick="toggleDD('dd-switcher',this)">⧉ SWITCHER <span class="nav-arr">▾</span></button>
+      <button class="nav-btn" onclick="toggleDD('dd-routing',this)">⇄ ROUTING <span class="nav-arr">▾</span></button>
+      <button class="nav-btn" onclick="toggleDD('dd-media',this)">◈ MEDIA <span class="nav-arr">▾</span></button>
+      <button class="nav-btn" onclick="toggleDD('dd-cloud',this)">☁ CLOUD <span class="nav-arr">▾</span></button>
+      <button class="nav-btn" onclick="toggleDD('dd-infra',this)">⬡ INFRA <span class="nav-arr">▾</span></button>
+      <button class="nav-btn" onclick="toggleDD('dd-ops',this)">⚙ OPS <span class="nav-arr">▾</span></button>
+    </div>
+    <div class="nav-sep"></div>
+    <span id="nav-role-badge" class="role-badge eng">ENGINEER</span>
+    <div class="nav-sep"></div>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">LOGOUT</button>
+  </nav>
+
+  <!-- DROPDOWNS -->
+  <div id="dd-switcher" class="nav-dd">
+    <button class="nav-dd-item" onclick="nav('switcher')"><span class="dd-icon">⧉</span>ME-1 Switcher</button>
+    <button class="nav-dd-item" onclick="nav('keyers')"><span class="dd-icon">◧</span>Keyer Control</button>
+    <button class="nav-dd-item" onclick="nav('transitions')"><span class="dd-icon">⇌</span>Transitions</button>
+  </div>
+  <div id="dd-routing" class="nav-dd">
+    <button class="nav-dd-item" onclick="nav('router')"><span class="dd-icon">⇄</span>Signal Router</button>
+    <button class="nav-dd-item" onclick="nav('flow')"><span class="dd-icon">⤳</span>Visual Flow</button>
+    <button class="nav-dd-item" onclick="nav('nmos')"><span class="dd-icon">⬡</span>NMOS / IS-04</button>
+    <button class="nav-dd-item" onclick="nav('srt')"><span class="dd-icon">⇡</span>SRT Streams</button>
+  </div>
+  <div id="dd-media" class="nav-dd">
+    <button class="nav-dd-item" onclick="nav('audio')"><span class="dd-icon">♫</span>Audio Mixer</button>
+    <button class="nav-dd-item" onclick="nav('scopes')"><span class="dd-icon">◎</span>Scopes</button>
+    <button class="nav-dd-item" onclick="nav('rundown')"><span class="dd-icon">☰</span>Rundown</button>
+    <button class="nav-dd-item" onclick="nav('playout')"><span class="dd-icon">▶</span>Playout</button>
+  </div>
+  <div id="dd-cloud" class="nav-dd">
+    <button class="nav-dd-item" onclick="nav('cloud')"><span class="dd-icon">☁</span>Cloud MCR</button>
+    <button class="nav-dd-item" onclick="nav('rack')"><span class="dd-icon">▤</span>Virtual Rack</button>
+    <button class="nav-dd-item" onclick="nav('orchestrate')"><span class="dd-icon">⬡</span>Orchestrate</button>
+  </div>
+  <div id="dd-infra" class="nav-dd">
+    <button class="nav-dd-item" onclick="nav('network')"><span class="dd-icon">⬡</span>Network / SDN</button>
+    <button class="nav-dd-item" onclick="nav('ptp')"><span class="dd-icon">⏱</span>Sync / PTP</button>
+    <button class="nav-dd-item" onclick="nav('devices')"><span class="dd-icon">⬛</span>Devices</button>
+    <button class="nav-dd-item" onclick="nav('ember')"><span class="dd-icon">🔥</span>Ember+</button>
+  </div>
+  <div id="dd-ops" class="nav-dd">
+    <button class="nav-dd-item" onclick="nav('alarms')"><span class="dd-icon">⚠</span>Alarms</button>
+    <button class="nav-dd-item" onclick="nav('preflight')"><span class="dd-icon">✓</span>Pre-Flight</button>
+    <button class="nav-dd-item" onclick="nav('training')"><span class="dd-icon">◉</span>Training</button>
+    <button class="nav-dd-item" onclick="nav('settings')"><span class="dd-icon">⚙</span>Settings</button>
+    <div class="nav-dd-sep"></div>
+    <button class="nav-dd-item" onclick="nav('compat')"><span class="dd-icon">⊕</span>Compatibility</button>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div id="statusbar">
+    <div class="sb-item"><div class="sb-dot ok" id="sb-ws"></div><span>WS</span><span class="sb-val" id="sb-ws-lbl">DEMO</span></div>
+    <div class="sb-item"><div class="sb-dot ok"></div><span>PGM</span><span class="sb-val" id="sb-pgm">CAM-1</span></div>
+    <div class="sb-item"><div class="sb-dot pvw" style="background:var(--pvw)"></div><span>PVW</span><span class="sb-val" id="sb-pvw">CAM-2</span></div>
+    <div class="sb-item"><div class="sb-dot ok" id="sb-ptp-dot"></div><span>PTP</span><span class="sb-val mono" id="sb-ptp">±12ns</span></div>
+    <div class="sb-item"><div class="sb-dot ok"></div><span>NMOS</span><span class="sb-val">IS-04</span></div>
+    <div class="sb-item"><div class="sb-dot warn" id="sb-cloud-dot"></div><span>CLOUD</span><span class="sb-val" id="sb-cloud">HYBRID</span></div>
+    <div class="sb-item"><div class="sb-dot ok"></div><span>ALARMS</span><span class="sb-val" id="sb-alarms">2 WARN</span></div>
+    <div id="sb-clock" class="mono">00:00:00:00</div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <!-- VIEW: LIVE -->
+    <div id="view-live" class="view active">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">⬤ ON AIR — <span>PROGRAM</span></span><span class="tag tag-err">LIVE</span></div>
+          <div style="background:#000;border-radius:var(--r);height:180px;display:flex;align-items:center;justify-content:center;position:relative;border:2px solid var(--pgm);box-shadow:0 0 20px rgba(240,16,48,.3)">
+            <div style="text-align:center"><div style="font-size:2.5rem;opacity:.15">▶</div><div style="font-size:.7rem;color:var(--txt2);margin-top:6px">CAM-1 · PROGRAM</div></div>
+            <div style="position:absolute;top:8px;left:8px;background:var(--pgm);color:#fff;font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:3px;letter-spacing:.1em">PGM</div>
+            <div style="position:absolute;top:8px;right:8px" class="mono" id="live-tc" style="font-size:.7rem;color:var(--warn2)">00:00:00:00</div>
+          </div>
+          <div class="row" style="margin-top:10px;justify-content:space-between">
+            <span class="tag tag-err">● REC</span>
+            <span class="tag tag-ok">SDI-A OK</span>
+            <span class="tag tag-ok">SDI-B OK</span>
+            <span class="tag tag-acc">ST2110</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">◎ PREVIEW</span><span class="tag tag-pvw" style="background:rgba(0,216,112,.15);color:var(--pvw2);border:1px solid rgba(0,216,112,.3)">READY</span></div>
+          <div style="background:#000;border-radius:var(--r);height:180px;display:flex;align-items:center;justify-content:center;position:relative;border:2px solid var(--pvw)">
+            <div style="text-align:center"><div style="font-size:2.5rem;opacity:.15">▶</div><div style="font-size:.7rem;color:var(--txt2);margin-top:6px">CAM-2 · PREVIEW</div></div>
+            <div style="position:absolute;top:8px;left:8px;background:var(--pvw);color:#000;font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:3px;letter-spacing:.1em">PVW</div>
+          </div>
+          <div class="row" style="margin-top:10px;justify-content:space-between">
+            <span class="tag tag-ok">CLEAN</span>
+            <span class="tag tag-acc">NEXT: GRAPHIC</span>
+            <button class="btn btn-pvw btn-sm" onclick="doTake()">TAKE</button>
+          </div>
+        </div>
+      </div>
+      <div class="g3">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">QUICK SOURCES</span></div>
+          <div class="g4" style="gap:5px">
+            <button class="sw-src-btn pgm" onclick="setPgm(this,'CAM-1')">CAM-1</button>
+            <button class="sw-src-btn pvw" onclick="setPvw(this,'CAM-2')">CAM-2</button>
+            <button class="sw-src-btn" onclick="setPgm(this,'CAM-3')">CAM-3</button>
+            <button class="sw-src-btn" onclick="setPgm(this,'CAM-4')">CAM-4</button>
+            <button class="sw-src-btn" onclick="setPgm(this,'GFX-1')">GFX-1</button>
+            <button class="sw-src-btn" onclick="setPgm(this,'VT-1')">VT-1</button>
+            <button class="sw-src-btn" onclick="setPgm(this,'REMOTE')">REMOTE</button>
+            <button class="sw-src-btn" onclick="setPgm(this,'BLACK')">BLACK</button>
+          </div>
+          <div class="row" style="margin-top:10px;gap:6px">
+            <button class="sw-cut-btn" onclick="doTake()">CUT</button>
+            <button class="sw-auto-btn" onclick="doAuto()">AUTO</button>
+            <select style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:6px 8px;border-radius:var(--r);font-size:.72rem;flex:1" id="trans-sel">
+              <option>MIX 25f</option><option>WIPE H</option><option>WIPE V</option><option>DIP BLACK</option><option>STINGER</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">TALLY / UMD</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px" id="tally-list">
+            <div class="row"><div style="width:10px;height:10px;border-radius:50%;background:var(--pgm);box-shadow:0 0 8px var(--pgm)"></div><span style="font-size:.72rem;flex:1">CAM-1</span><span class="tag tag-err">PGM</span></div>
+            <div class="row"><div style="width:10px;height:10px;border-radius:50%;background:var(--pvw)"></div><span style="font-size:.72rem;flex:1">CAM-2</span><span class="tag tag-ok">PVW</span></div>
+            <div class="row"><div style="width:10px;height:10px;border-radius:50%;background:var(--b2)"></div><span style="font-size:.72rem;flex:1">CAM-3</span><span class="tag tag-acc">IDLE</span></div>
+            <div class="row"><div style="width:10px;height:10px;border-radius:50%;background:var(--b2)"></div><span style="font-size:.72rem;flex:1">CAM-4</span><span class="tag tag-acc">IDLE</span></div>
+            <div class="row"><div style="width:10px;height:10px;border-radius:50%;background:var(--warn)"></div><span style="font-size:.72rem;flex:1">GFX-1</span><span class="tag tag-warn">NEXT</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">SYSTEM HEALTH</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">CPU</span><div style="flex:2;height:6px;background:var(--b2);border-radius:3px"><div style="width:34%;height:100%;background:var(--pvw);border-radius:3px"></div></div><span class="mono" style="font-size:.65rem;color:var(--txt2);width:32px;text-align:right">34%</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">GPU</span><div style="flex:2;height:6px;background:var(--b2);border-radius:3px"><div style="width:61%;height:100%;background:var(--acc2);border-radius:3px"></div></div><span class="mono" style="font-size:.65rem;color:var(--txt2);width:32px;text-align:right">61%</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">MEM</span><div style="flex:2;height:6px;background:var(--b2);border-radius:3px"><div style="width:48%;height:100%;background:var(--pur);border-radius:3px"></div></div><span class="mono" style="font-size:.65rem;color:var(--txt2);width:32px;text-align:right">48%</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">NET</span><div style="flex:2;height:6px;background:var(--b2);border-radius:3px"><div style="width:22%;height:100%;background:var(--gold);border-radius:3px"></div></div><span class="mono" style="font-size:.65rem;color:var(--txt2);width:32px;text-align:right">22%</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">TEMP</span><span class="mono" style="font-size:.68rem;color:var(--pvw2)">42°C</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">UPTIME</span><span class="mono" style="font-size:.68rem;color:var(--txt)" id="uptime-val">00:00:00</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- VIEW: MOSAIC -->
+    <div id="view-mosaic" class="view">
+      <div class="card" style="flex-shrink:0">
+        <div class="card-hd">
+          <span class="card-title">⊞ MULTIVIEWER — <span>MOSAIC</span></span>
+          <div class="row" style="gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="setLayout(4)" id="lay-4">2×2</button>
+            <button class="btn btn-acc btn-sm" onclick="setLayout(9)" id="lay-9">3×3</button>
+            <button class="btn btn-ghost btn-sm" onclick="setLayout(16)" id="lay-16">4×4</button>
+            <button class="btn btn-ghost btn-sm" onclick="setLayout(1)" id="lay-1">FULL</button>
+          </div>
+        </div>
+      </div>
+      <div id="mosaic-grid" class="mosaic-grid" style="flex:1;min-height:0"></div>
+    </div>
+
+    <!-- VIEW: SWITCHER -->
+    <div id="view-switcher" class="view">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">⧉ ME-1 — <span>MAIN SWITCHER</span></span><span class="tag tag-acc">ATEM 4K</span></div>
+        <div style="margin-bottom:8px">
+          <div class="sw-bus-row"><span class="sw-bus-label pgm-lbl">PGM</span><div id="pgm-row" class="row" style="flex:1;gap:4px"></div></div>
+          <div class="sw-bus-row"><span class="sw-bus-label pvw-lbl">PVW</span><div id="pvw-row" class="row" style="flex:1;gap:4px"></div></div>
+        </div>
+        <div class="row" style="gap:8px;margin-top:10px">
+          <button class="sw-cut-btn" onclick="doTake()">CUT</button>
+          <button class="sw-auto-btn" onclick="doAuto()">AUTO</button>
+          <select id="sw-trans" style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:8px 10px;border-radius:var(--r);font-size:.75rem">
+            <option>MIX 25f</option><option>MIX 50f</option><option>WIPE H 25f</option><option>WIPE V 25f</option><option>DIP BLACK</option><option>STINGER</option>
+          </select>
+          <div style="flex:1"></div>
+          <label style="font-size:.68rem;color:var(--txt2);display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="sw-protect"> PROTECT
+          </label>
+          <label style="font-size:.68rem;color:var(--txt2);display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="sw-ftb"> FTB
+          </label>
+        </div>
+      </div>
+      <!-- KEYERS -->
+      <div class="card">
+        <div class="card-hd"><span class="card-title">◧ KEYERS — <span>UPSTREAM</span></span></div>
+        <div class="g3" id="upstream-keyers"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">◨ KEYERS — <span>DOWNSTREAM</span></span></div>
+        <div class="g3" id="downstream-keyers"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: KEYERS (standalone) -->
+    <div id="view-keyers" class="view">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">◧ FULL KEYER CONTROL</span></div>
+        <div class="g2">
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--acc);letter-spacing:.1em;margin-bottom:8px">UPSTREAM KEYERS</div>
+            <div id="keyers-up-full"></div>
+          </div>
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--pur2);letter-spacing:.1em;margin-bottom:8px">DOWNSTREAM KEYERS</div>
+            <div id="keyers-dn-full"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: TRANSITIONS -->
+    <div id="view-transitions" class="view">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">⇌ TRANSITION STYLE</span></div>
+          <div class="g2" style="gap:6px">
+            <button class="btn btn-acc" onclick="setTrans(this,'MIX')">MIX</button>
+            <button class="btn btn-ghost" onclick="setTrans(this,'WIPE')">WIPE</button>
+            <button class="btn btn-ghost" onclick="setTrans(this,'DIP')">DIP</button>
+            <button class="btn btn-ghost" onclick="setTrans(this,'STINGER')">STINGER</button>
+          </div>
+          <div style="margin-top:12px">
+            <label style="font-size:.68rem;color:var(--txt2)">DURATION (frames)</label>
+            <input type="range" min="1" max="100" value="25" style="width:100%;margin-top:6px" id="trans-dur">
+            <div style="font-size:.72rem;color:var(--acc);text-align:center;margin-top:4px" id="trans-dur-val">25f</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">WIPE PATTERN</span></div>
+          <div class="g4" style="gap:6px">
+            <button class="btn btn-ghost btn-sm">H →</button>
+            <button class="btn btn-ghost btn-sm">← H</button>
+            <button class="btn btn-ghost btn-sm">V ↓</button>
+            <button class="btn btn-ghost btn-sm">↑ V</button>
+            <button class="btn btn-ghost btn-sm">BOX</button>
+            <button class="btn btn-ghost btn-sm">IRIS</button>
+            <button class="btn btn-ghost btn-sm">CLOCK</button>
+            <button class="btn btn-ghost btn-sm">SPLIT</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- VIEW: ROUTER -->
+    <div id="view-router" class="view">
+      <div class="card" style="flex-shrink:0">
+        <div class="card-hd">
+          <span class="card-title">⇄ SIGNAL ROUTER — <span>CROSSPOINT MATRIX</span></span>
+          <div class="row" style="gap:6px">
+            <input type="text" placeholder="Search source..." style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:5px 10px;border-radius:var(--r);font-size:.72rem;width:160px">
+            <button class="btn btn-acc btn-sm" onclick="toast('Preset saved','ok')">SAVE PRESET</button>
+            <button class="btn btn-ghost btn-sm" onclick="toast('Preset loaded','ok')">LOAD PRESET</button>
+          </div>
+        </div>
+        <div class="matrix-wrap" id="router-matrix"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: VISUAL FLOW -->
+    <div id="view-flow" class="view">
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">⤳ VISUAL SIGNAL FLOW</span>
+          <div class="row" style="gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="flowZoom(1.2)">＋</button>
+            <button class="btn btn-ghost btn-sm" onclick="flowZoom(0.8)">－</button>
+            <button class="btn btn-acc btn-sm" onclick="flowReset()">RESET</button>
+          </div>
+        </div>
+        <svg id="flow-canvas" viewBox="0 0 900 320"></svg>
+        <div style="margin-top:8px;display:flex;gap:12px;font-size:.62rem;color:var(--txt2)">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:20px;height:2px;background:var(--acc3);display:inline-block"></span>Active</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:20px;height:2px;background:var(--b3);display:inline-block"></span>Inactive</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:20px;height:2px;background:var(--pgm);display:inline-block"></span>PGM Path</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:20px;height:2px;background:var(--pvw);display:inline-block"></span>PVW Path</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: NMOS -->
+    <div id="view-nmos" class="view">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">⬡ NMOS IS-04 — <span>REGISTRY</span></span><span class="tag tag-ok">CONNECTED</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px" id="nmos-nodes"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">IS-05 — <span>CONNECTION MGMT</span></span></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="row">
+              <select style="flex:1;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:6px;border-radius:var(--r);font-size:.72rem" id="nmos-sender">
+                <option>CAM-1 / SDI-A</option><option>CAM-2 / SDI-B</option><option>GFX-1 / ST2110</option>
+              </select>
+              <span style="color:var(--txt2);font-size:.8rem">→</span>
+              <select style="flex:1;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:6px;border-radius:var(--r);font-size:.72rem" id="nmos-recv">
+                <option>SWITCHER IN-1</option><option>SWITCHER IN-2</option><option>MONITOR-A</option>
+              </select>
+            </div>
+            <button class="btn btn-acc" onclick="toast('NMOS connection activated','ok')">CONNECT</button>
+            <button class="btn btn-ghost" onclick="toast('NMOS connection removed','warn')">DISCONNECT</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">IS-07 — <span>EVENTS</span></span></div>
+        <div id="nmos-events" style="display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: SRT -->
+    <div id="view-srt" class="view">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">⇡ SRT STREAMS</span><button class="btn btn-acc btn-sm" onclick="openModal('modal-srt')">+ ADD STREAM</button></div>
+        <div id="srt-list" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: AUDIO -->
+    <div id="view-audio" class="view">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">♫ AUDIO MIXER — <span>16 CHANNEL</span></span></div>
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px" id="audio-channels"></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">VU METERS</span></div>
+          <div style="display:flex;gap:6px;align-items:flex-end;height:100px" id="vu-meters"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">LOUDNESS</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);width:60px">LUFS-I</span><span class="mono" style="color:var(--pvw2)" id="lufs-i">-23.1</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);width:60px">LUFS-S</span><span class="mono" style="color:var(--acc)" id="lufs-s">-22.8</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);width:60px">LRA</span><span class="mono" style="color:var(--txt)" id="lufs-lra">4.2</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);width:60px">TRUE PK</span><span class="mono" style="color:var(--warn2)" id="lufs-pk">-1.8</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);width:60px">TARGET</span><span class="mono" style="color:var(--txt2)">-23 LUFS</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- VIEW: SCOPES -->
+    <div id="view-scopes" class="view">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">WAVEFORM</span><span class="tag tag-acc">Y</span></div>
+          <canvas id="scope-wfm" class="scope-canvas"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">VECTORSCOPE</span></div>
+          <canvas id="scope-vec" class="scope-canvas"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">HISTOGRAM</span></div>
+          <canvas id="scope-hist" class="scope-canvas"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">PARADE (RGB)</span></div>
+          <canvas id="scope-parade" class="scope-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: RUNDOWN -->
+    <div id="view-rundown" class="view">
+      <div class="card" style="flex-shrink:0">
+        <div class="card-hd">
+          <span class="card-title">☰ RUNDOWN — <span>SHOW A</span></span>
+          <div class="row" style="gap:6px">
+            <button class="btn btn-acc btn-sm" onclick="openModal('modal-rundown')">+ ADD ITEM</button>
+            <button class="btn btn-ghost btn-sm" onclick="toast('Rundown saved','ok')">SAVE</button>
+          </div>
+        </div>
+        <div id="rundown-list" style="display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: PLAYOUT -->
+    <div id="view-playout" class="view">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">▶ PLAYOUT ENGINE</span><span class="tag tag-ok">READY</span></div>
+          <div style="background:#000;border-radius:var(--r);height:160px;display:flex;align-items:center;justify-content:center;border:1px solid var(--b2)">
+            <div style="text-align:center;color:var(--txt2)"><div style="font-size:2rem;opacity:.2">▶</div><div style="font-size:.7rem;margin-top:6px">VT-1 · STANDBY</div></div>
+          </div>
+          <div class="row" style="margin-top:10px;gap:6px">
+            <button class="btn btn-pvw btn-sm" onclick="toast('Cued','ok')">CUE</button>
+            <button class="btn btn-acc btn-sm" onclick="toast('Playing','ok')">▶ PLAY</button>
+            <button class="btn btn-ghost btn-sm" onclick="toast('Paused','warn')">⏸ PAUSE</button>
+            <button class="btn btn-ghost btn-sm" onclick="toast('Stopped','warn')">⏹ STOP</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">CLIP LIBRARY</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px" id="clip-list">
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">OPENER_v3.mxf</span><span class="rack-type">00:02:34</span><button class="btn btn-ghost btn-xs">CUE</button></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--b2)"></div><span class="rack-name">BREAK_BUMPER.mxf</span><span class="rack-type">00:00:15</span><button class="btn btn-ghost btn-xs">CUE</button></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--b2)"></div><span class="rack-name">SPONSOR_A.mp4</span><span class="rack-type">00:00:30</span><button class="btn btn-ghost btn-xs">CUE</button></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--b2)"></div><span class="rack-name">CLOSE_ROLL.mxf</span><span class="rack-type">00:01:12</span><button class="btn btn-ghost btn-xs">CUE</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: CLOUD MCR -->
+    <div id="view-cloud" class="view">
+      <div class="card" style="flex-shrink:0">
+        <div class="card-hd">
+          <span class="card-title">☁ CLOUD MCR — <span>WORKFLOW MODE</span></span>
+          <div class="row" style="gap:6px">
+            <button class="cloud-mode-btn active" id="cm-ground" onclick="setCloudMode('ground',this)">GROUND</button>
+            <button class="cloud-mode-btn" id="cm-hybrid" onclick="setCloudMode('hybrid',this)">HYBRID</button>
+            <button class="cloud-mode-btn" id="cm-cloud" onclick="setCloudMode('cloud',this)">FULL CLOUD</button>
+          </div>
+        </div>
+      </div>
+      <div class="g3">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">AWS MEDIACONNECT</span><span class="tag tag-ok">ACTIVE</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">FLOW-INGEST-A</span><span class="rack-type">ST2110-20</span></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">FLOW-INGEST-B</span><span class="rack-type">SRT</span></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--warn)"></div><span class="rack-name">FLOW-OUTPUT-A</span><span class="rack-type">ZIXI</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">VIRTUAL INSTANCES</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px" id="cloud-instances">
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">vSWITCHER-01</span><span class="rack-type">c5.4xlarge</span><button class="btn btn-ghost btn-xs">STOP</button></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">vGFX-01</span><span class="rack-type">g4dn.xlarge</span><button class="btn btn-ghost btn-xs">STOP</button></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--b2)"></div><span class="rack-name">vENCODER-01</span><span class="rack-type">STOPPED</span><button class="btn btn-acc btn-xs">START</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">CLOUD COSTS</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">COMPUTE/hr</span><span class="mono" style="color:var(--warn2)">$4.82</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">EGRESS/GB</span><span class="mono" style="color:var(--txt)">$0.09</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">TODAY TOTAL</span><span class="mono" style="color:var(--pvw2)">$38.44</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">MONTH EST.</span><span class="mono" style="color:var(--acc)">$1,152</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: VIRTUAL RACK -->
+    <div id="view-rack" class="view">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">▤ VIRTUAL RACK — <span>EQUIPMENT</span></span><button class="btn btn-acc btn-sm" onclick="openModal('modal-rack')">+ ADD UNIT</button></div>
+        <div id="rack-units" style="display:flex;flex-direction:column;gap:3px"></div>
+      </div>
+    </div>
+    <!-- VIEW: ORCHESTRATE -->
+    <div id="view-orchestrate" class="view">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">⬡ AUTOMATION WORKFLOWS</span><button class="btn btn-acc btn-sm" onclick="openModal('modal-workflow')">+ NEW</button></div>
+          <div style="display:flex;flex-direction:column;gap:4px" id="workflow-list">
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">SHOW-START</span><span class="rack-type">TRIGGER: MANUAL</span><button class="btn btn-acc btn-xs" onclick="toast('Workflow executed','ok')">RUN</button></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">BREAK-SEQUENCE</span><span class="rack-type">TRIGGER: RUNDOWN</span><button class="btn btn-acc btn-xs" onclick="toast('Workflow executed','ok')">RUN</button></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--warn)"></div><span class="rack-name">FAILOVER-AUTO</span><span class="rack-type">TRIGGER: ALARM</span><button class="btn btn-warn btn-xs" onclick="toast('Failover armed','warn')">ARM</button></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--b2)"></div><span class="rack-name">SHOW-END</span><span class="rack-type">TRIGGER: MANUAL</span><button class="btn btn-ghost btn-xs" onclick="toast('Workflow executed','ok')">RUN</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">MACRO BUILDER</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <input type="text" placeholder="Macro name..." style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem">
+            <textarea placeholder="Step 1: SET PGM CAM-1&#10;Step 2: WAIT 2s&#10;Step 3: TAKE&#10;Step 4: LOAD GFX LOWER-THIRD" style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:8px 10px;border-radius:var(--r);font-size:.72rem;height:120px;resize:none;font-family:'JetBrains Mono',monospace"></textarea>
+            <button class="btn btn-acc" onclick="toast('Macro saved','ok')">SAVE MACRO</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: NETWORK -->
+    <div id="view-network" class="view">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">⬡ SDN TOPOLOGY</span><span class="tag tag-ok">LIVE</span></div>
+          <svg viewBox="0 0 400 260" style="width:100%;background:var(--bg4);border-radius:var(--r);border:1px solid var(--b2)" id="sdn-svg"></svg>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">INTERFACES</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px" id="net-ifaces">
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">eth0 · 10GbE</span><span class="rack-type mono">192.168.10.1</span><span class="tag tag-ok">UP</span></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">eth1 · 10GbE</span><span class="rack-type mono">192.168.10.2</span><span class="tag tag-ok">UP</span></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--pvw)"></div><span class="rack-name">eth2 · 25GbE</span><span class="rack-type mono">10.0.0.1</span><span class="tag tag-ok">UP</span></div>
+            <div class="rack-unit"><div class="rack-led" style="background:var(--b2)"></div><span class="rack-name">eth3 · 25GbE</span><span class="rack-type mono">STANDBY</span><span class="tag tag-warn">STANDBY</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">BANDWIDTH UTILISATION</span></div>
+        <canvas id="net-bw-canvas" style="width:100%;height:80px;background:var(--bg4);border-radius:var(--r);border:1px solid var(--b2)"></canvas>
+      </div>
+    </div>
+
+    <!-- VIEW: PTP -->
+    <div id="view-ptp" class="view">
+      <div class="g3">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">⏱ PTP GRANDMASTER</span><span class="tag tag-ok">LOCKED</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">OFFSET</span><span class="mono" style="color:var(--pvw2)" id="ptp-offset">+12 ns</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">DELAY</span><span class="mono" style="color:var(--txt)" id="ptp-delay">234 ns</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">JITTER</span><span class="mono" style="color:var(--txt)" id="ptp-jitter">3 ns</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">DOMAIN</span><span class="mono" style="color:var(--acc)">0</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">PROFILE</span><span class="mono" style="color:var(--txt)">AES67</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">GENLOCK</span><span class="tag tag-ok">LOCKED</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">REF</span><span class="mono" style="color:var(--acc)">BLACK BURST</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">STANDARD</span><span class="mono" style="color:var(--txt)">1080i/50</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">H-PHASE</span><span class="mono" style="color:var(--pvw2)">0.0 μs</span></div>
+            <div class="row"><span style="font-size:.68rem;color:var(--txt2);flex:1">V-PHASE</span><span class="mono" style="color:var(--pvw2)">0 lines</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">TIMECODE</span></div>
+          <div style="text-align:center;padding:10px 0">
+            <div class="mono" style="font-size:1.8rem;color:var(--acc);letter-spacing:.1em" id="tc-display">00:00:00:00</div>
+            <div style="font-size:.62rem;color:var(--txt2);margin-top:4px">LTC · 25fps · FREE RUN</div>
+          </div>
+          <div class="row" style="gap:6px;justify-content:center">
+            <button class="btn btn-acc btn-sm" onclick="toast('TC reset','ok')">RESET</button>
+            <button class="btn btn-ghost btn-sm" onclick="toast('TC jammed','ok')">JAM</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: DEVICES -->
+    <div id="view-devices" class="view">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">⬛ CONNECTED DEVICES</span><button class="btn btn-acc btn-sm" onclick="toast('Scanning...','ok')">SCAN</button></div>
+        <div id="device-list" style="display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: EMBER+ -->
+    <div id="view-ember" class="view">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title" style="color:var(--ember)">🔥 EMBER+ TREE</span><span class="tag tag-ok">CONNECTED</span></div>
+          <div id="ember-tree" style="font-family:'JetBrains Mono',monospace;font-size:.68rem;display:flex;flex-direction:column;gap:2px"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">PARAMETER EDITOR</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="lf"><label>Path</label><input type="text" value="/Lawo/MC2/Fader/CH01/Level" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+            <div class="lf"><label>Value</label><input type="number" value="-6" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+            <button class="btn btn-acc" onclick="toast('Ember+ value set','ok')">SET VALUE</button>
+            <button class="btn btn-ghost" onclick="toast('Subscribed to path','ok')">SUBSCRIBE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- VIEW: ALARMS -->
+    <div id="view-alarms" class="view">
+      <div class="card" style="flex-shrink:0">
+        <div class="card-hd">
+          <span class="card-title">⚠ ALARMS — <span>ACTIVE</span></span>
+          <div class="row" style="gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="ackAllAlarms()">ACK ALL</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearAlarms()">CLEAR</button>
+          </div>
+        </div>
+        <div id="alarm-list" style="display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: PRE-FLIGHT -->
+    <div id="view-preflight" class="view">
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">✓ PRE-FLIGHT CHECKLIST</span>
+          <button class="btn btn-acc btn-sm" onclick="runPreflight()">RUN ALL CHECKS</button>
+        </div>
+        <div id="pf-list" style="display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: TRAINING -->
+    <div id="view-training" class="view">
+      <div class="card" style="flex-shrink:0">
+        <div class="card-hd">
+          <span class="card-title">◉ INTERACTIVE TRAINING</span>
+          <div class="row" style="gap:6px">
+            <select id="train-role-sel" style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:5px 8px;border-radius:var(--r);font-size:.72rem" onchange="loadTraining()">
+              <option value="operator">Operator Track</option>
+              <option value="engineer">Engineer Track</option>
+              <option value="production">Production Track</option>
+            </select>
+            <select id="train-module-sel" style="background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:5px 8px;border-radius:var(--r);font-size:.72rem" onchange="loadTraining()">
+              <option value="basics">Platform Basics</option>
+              <option value="switcher">Switcher Operations</option>
+              <option value="routing">Signal Routing</option>
+              <option value="cloud">Cloud Workflows</option>
+              <option value="emergency">Emergency Procedures</option>
+            </select>
+          </div>
+        </div>
+        <div id="train-progress-bar" style="height:4px;background:var(--b2);border-radius:2px;margin-bottom:12px">
+          <div id="train-progress-fill" style="height:100%;background:var(--acc);border-radius:2px;width:0%;transition:width .4s ease"></div>
+        </div>
+      </div>
+      <div id="train-steps" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="row" style="gap:8px;margin-top:4px">
+        <button class="btn btn-ghost" onclick="trainPrev()">← PREV</button>
+        <button class="btn btn-acc" onclick="trainNext()">NEXT →</button>
+        <div style="flex:1"></div>
+        <span id="train-step-counter" style="font-size:.68rem;color:var(--txt2)">Step 1 of 5</span>
+      </div>
+    </div>
+
+    <!-- VIEW: SETTINGS -->
+    <div id="view-settings" class="view">
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">⚙ SYSTEM SETTINGS</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="lf"><label>System Name</label><input type="text" value="NEXUS-MCR-01" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+            <div class="lf"><label>Video Standard</label>
+              <select style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem">
+                <option>1080i/50 (HD)</option><option>1080p/50 (HD)</option><option>2160p/50 (4K)</option><option>720p/50</option>
+              </select>
+            </div>
+            <div class="lf"><label>Frame Rate</label>
+              <select style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem">
+                <option>25 fps</option><option>29.97 fps</option><option>50 fps</option><option>59.94 fps</option>
+              </select>
+            </div>
+            <div class="lf"><label>API Endpoint</label><input type="text" id="api-endpoint" value="ws://localhost:3001" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+            <button class="btn btn-acc" onclick="saveSettings()">SAVE SETTINGS</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">USER MANAGEMENT</span><span id="settings-role-lock"></span></div>
+          <div id="user-mgmt-panel">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="rack-unit"><span class="rack-name">admin</span><span class="role-badge eng">ENGINEER</span><button class="btn btn-ghost btn-xs">EDIT</button></div>
+              <div class="rack-unit"><span class="rack-name">operator1</span><span class="role-badge ops">OPERATOR</span><button class="btn btn-ghost btn-xs">EDIT</button></div>
+              <div class="rack-unit"><span class="rack-name">prod1</span><span class="role-badge prod">PRODUCTION</span><button class="btn btn-ghost btn-xs">EDIT</button></div>
+            </div>
+            <button class="btn btn-acc btn-sm" style="margin-top:10px" onclick="openModal('modal-adduser')">+ ADD USER</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: COMPAT -->
+    <div id="view-compat" class="view">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">⊕ HARDWARE COMPATIBILITY</span></div>
+        <div style="display:flex;flex-direction:column;gap:4px" id="compat-list">
+          <div class="pf-check"><span class="pf-icon">✅</span><span style="font-size:.75rem;flex:1">Blackmagic ATEM 4K</span><span class="tag tag-ok">SUPPORTED</span></div>
+          <div class="pf-check"><span class="pf-icon">✅</span><span style="font-size:.75rem;flex:1">Lawo mc²56 (Ember+)</span><span class="tag tag-ok">SUPPORTED</span></div>
+          <div class="pf-check"><span class="pf-icon">✅</span><span style="font-size:.75rem;flex:1">Ross Carbonite Black</span><span class="tag tag-ok">SUPPORTED</span></div>
+          <div class="pf-check"><span class="pf-icon">✅</span><span style="font-size:.75rem;flex:1">GV Kahuna 9600</span><span class="tag tag-ok">SUPPORTED</span></div>
+          <div class="pf-check"><span class="pf-icon">✅</span><span style="font-size:.75rem;flex:1">EVS XT-VIA</span><span class="tag tag-ok">SUPPORTED</span></div>
+          <div class="pf-check"><span class="pf-icon">✅</span><span style="font-size:.75rem;flex:1">Evertz 7700 Router</span><span class="tag tag-ok">SUPPORTED</span></div>
+          <div class="pf-check"><span class="pf-icon">⚠️</span><span style="font-size:.75rem;flex:1">Grass Valley Kula</span><span class="tag tag-warn">PARTIAL</span></div>
+          <div class="pf-check"><span class="pf-icon">✅</span><span style="font-size:.75rem;flex:1">Calrec Apollo (Ember+)</span><span class="tag tag-ok">SUPPORTED</span></div>
+          <div class="pf-check"><span class="pf-icon">✅</span><span style="font-size:.75rem;flex:1">Riedel Artist (NMOS)</span><span class="tag tag-ok">SUPPORTED</span></div>
+          <div class="pf-check"><span class="pf-icon">🔲</span><span style="font-size:.75rem;flex:1">Sony XVS-9000</span><span class="tag tag-acc">PLANNED</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+<!-- MODALS -->
+<div id="modal-srt" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">ADD SRT STREAM</span><button class="modal-close" onclick="closeModal('modal-srt')">✕</button></div>
+    <div class="lf"><label>Name</label><input type="text" placeholder="REMOTE-FEED-1" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+    <div class="lf"><label>Host</label><input type="text" placeholder="192.168.1.100" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+    <div class="lf"><label>Port</label><input type="number" value="9000" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+    <div class="lf"><label>Mode</label><select style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"><option>CALLER</option><option>LISTENER</option><option>RENDEZVOUS</option></select></div>
+    <div class="row" style="gap:8px;margin-top:12px">
+      <button class="btn btn-acc" style="flex:1" onclick="addSRT()">ADD STREAM</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-srt')">CANCEL</button>
+    </div>
+  </div>
+</div>
+<div id="modal-rundown" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">ADD RUNDOWN ITEM</span><button class="modal-close" onclick="closeModal('modal-rundown')">✕</button></div>
+    <div class="lf"><label>Title</label><input type="text" id="rd-title" placeholder="OPENING SEGMENT" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+    <div class="lf"><label>Duration</label><input type="text" id="rd-dur" placeholder="00:05:00" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+    <div class="lf"><label>Type</label><select id="rd-type" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"><option>LIVE</option><option>VT</option><option>GRAPHIC</option><option>BREAK</option><option>REMOTE</option></select></div>
+    <div class="row" style="gap:8px;margin-top:12px">
+      <button class="btn btn-acc" style="flex:1" onclick="addRundownItem()">ADD</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-rundown')">CANCEL</button>
+    </div>
+  </div>
+</div>
+<div id="modal-rack" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">ADD RACK UNIT</span><button class="modal-close" onclick="closeModal('modal-rack')">✕</button></div>
+    <div class="lf"><label>Name</label><input type="text" id="rack-name-in" placeholder="ENCODER-02" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+    <div class="lf"><label>Type</label><select id="rack-type-in" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"><option>ENCODER</option><option>DECODER</option><option>SWITCHER</option><option>ROUTER</option><option>AUDIO MIXER</option><option>MONITOR</option><option>RECORDER</option></select></div>
+    <div class="row" style="gap:8px;margin-top:12px">
+      <button class="btn btn-acc" style="flex:1" onclick="addRackUnit()">ADD</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-rack')">CANCEL</button>
+    </div>
+  </div>
+</div>
+<div id="modal-adduser" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">ADD USER</span><button class="modal-close" onclick="closeModal('modal-adduser')">✕</button></div>
+    <div class="lf"><label>Username</label><input type="text" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+    <div class="lf"><label>Role</label><select style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"><option>operator</option><option>production</option><option>engineer</option></select></div>
+    <div class="row" style="gap:8px;margin-top:12px">
+      <button class="btn btn-acc" style="flex:1" onclick="toast('User added','ok');closeModal('modal-adduser')">ADD USER</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-adduser')">CANCEL</button>
+    </div>
+  </div>
+</div>
+<div id="modal-workflow" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">NEW WORKFLOW</span><button class="modal-close" onclick="closeModal('modal-workflow')">✕</button></div>
+    <div class="lf"><label>Name</label><input type="text" placeholder="MY-WORKFLOW" style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"></div>
+    <div class="lf"><label>Trigger</label><select style="width:100%;background:var(--bg4);border:1px solid var(--b2);color:var(--txt);padding:7px 10px;border-radius:var(--r);font-size:.75rem"><option>MANUAL</option><option>RUNDOWN</option><option>ALARM</option><option>SCHEDULE</option></select></div>
+    <div class="row" style="gap:8px;margin-top:12px">
+      <button class="btn btn-acc" style="flex:1" onclick="toast('Workflow created','ok');closeModal('modal-workflow')">CREATE</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-workflow')">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-wrap"></div>
+<script>
+'use strict';
+// ── STATE ─────────────────────────────────────────────────────────────────────
+var S = {
+  role: 'engineer',
+  user: 'admin',
+  pgm: 'CAM-1',
+  pvw: 'CAM-2',
+  ws: null,
+  wsConnected: false,
+  mosaicLayout: 9,
+  cloudMode: 'ground',
+  trainStep: 0,
+  trainSteps: [],
+  alarms: [],
+  rundown: [],
+  srtStreams: [],
+  rackUnits: [],
+  crosspoints: {},
+  keyers: { up: [], dn: [] },
+  startTime: Date.now(),
+  frameCount: 0,
+  tcBase: 0,
+  fps: 25
+};
+
+var SOURCES = ['CAM-1','CAM-2','CAM-3','CAM-4','CAM-5','CAM-6','GFX-1','GFX-2','VT-1','VT-2','REMOTE','BLACK','BARS','STILL-1'];
+var DESTS   = ['MON-A','MON-B','MON-C','SWITCHER-IN1','SWITCHER-IN2','SWITCHER-IN3','RECORD-A','STREAM-A'];
+
+// ── ROLE PERMISSIONS ──────────────────────────────────────────────────────────
+var PERMS = {
+  engineer:   { router:true, switcher:true, keyers:true, cloud:true, settings:true, devices:true, ember:true, orchestrate:true, network:true },
+  operator:   { router:true, switcher:true, keyers:true, cloud:false, settings:false, devices:false, ember:false, orchestrate:false, network:false },
+  production: { router:false, switcher:false, keyers:false, cloud:false, settings:false, devices:false, ember:false, orchestrate:false, network:false }
+};
+
+function can(perm){ return !!(PERMS[S.role] && PERMS[S.role][perm]); }
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+function doLogin(){
+  var u = document.getElementById('li-user').value.trim();
+  var p = document.getElementById('li-pass').value;
+  var r = document.getElementById('li-role').value;
+  var err = document.getElementById('login-err');
+  if(p !== 'nexus2024'){ err.textContent = 'Invalid credentials'; return; }
+  err.textContent = '';
+  S.role = r; S.user = u;
+  localStorage.setItem('nx8_role', r);
+  localStorage.setItem('nx8_user', u);
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  var badge = document.getElementById('nav-role-badge');
+  badge.textContent = r.toUpperCase();
+  badge.className = 'role-badge ' + (r==='engineer'?'eng':r==='operator'?'ops':'prod');
+  initApp();
+}
+
+function doLogout(){
+  localStorage.removeItem('nx8_role');
+  localStorage.removeItem('nx8_user');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  if(S.ws){ try{S.ws.close();}catch(e){} S.ws=null; }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function initApp(){
+  loadState();
+  buildSwitcherRows();
+  buildKeyers();
+  buildMosaic(S.mosaicLayout);
+  buildRouterMatrix();
+  buildFlowSVG();
+  buildSDNSvg();
+  buildAudioChannels();
+  buildVUMeters();
+  buildNMOSNodes();
+  buildNMOSEvents();
+  buildEmberTree();
+  buildDeviceList();
+  buildRundown();
+  buildSRTList();
+  buildRackUnits();
+  buildAlarms();
+  buildPreflight();
+  buildTraining();
+  drawScopes();
+  startClock();
+  startAnimations();
+  initWS();
+  applyRoleRestrictions();
+  nav('live');
+  toast('Welcome, ' + S.user + ' · ' + S.role.toUpperCase(), 'ok');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function nav(id){
+  closeAllDD();
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  var v = document.getElementById('view-'+id);
+  if(v) v.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('cur'); });
+  // update status bar pgm/pvw
+  document.getElementById('sb-pgm').textContent = S.pgm;
+  document.getElementById('sb-pvw').textContent = S.pvw;
+}
+
+function toggleDD(id, btn){
+  var dd = document.getElementById(id);
+  var isOpen = dd.classList.contains('show');
+  closeAllDD();
+  if(!isOpen){
+    var r = btn.getBoundingClientRect();
+    dd.style.top = (r.bottom+2)+'px';
+    dd.style.left = r.left+'px';
+    dd.classList.add('show');
+    btn.classList.add('open');
+  }
+}
+
+function closeAllDD(){
+  document.querySelectorAll('.nav-dd').forEach(function(d){ d.classList.remove('show'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('open'); });
+}
+
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#topnav')) closeAllDD();
+});
+</script>
+<script>
+// ── SWITCHER ──────────────────────────────────────────────────────────────────
+function buildSwitcherRows(){
+  ['pgm-row','pvw-row'].forEach(function(id,idx){
+    var row = document.getElementById(id);
+    if(!row) return;
+    row.innerHTML = '';
+    SOURCES.forEach(function(s){
+      var b = document.createElement('button');
+      b.className = 'sw-src-btn' + (idx===0 && s===S.pgm?' pgm':idx===1 && s===S.pvw?' pvw':'');
+      b.textContent = s;
+      b.onclick = idx===0 ? function(){ setPgm(b,s); } : function(){ setPvw(b,s); };
+      row.appendChild(b);
+    });
+  });
+}
+
+function setPgm(btn, src){
+  S.pgm = src;
+  document.querySelectorAll('#pgm-row .sw-src-btn').forEach(function(b){ b.classList.remove('pgm'); });
+  if(btn && btn.closest && btn.closest('#pgm-row')) btn.classList.add('pgm');
+  document.getElementById('sb-pgm').textContent = src;
+  updateTally();
+  saveState();
+  wsSend({type:'pgm',src:src});
+}
+
+function setPvw(btn, src){
+  S.pvw = src;
+  document.querySelectorAll('#pvw-row .sw-src-btn').forEach(function(b){ b.classList.remove('pvw'); });
+  if(btn && btn.closest && btn.closest('#pvw-row')) btn.classList.add('pvw');
+  document.getElementById('sb-pvw').textContent = src;
+  updateTally();
+  saveState();
+  wsSend({type:'pvw',src:src});
+}
+
+function doTake(){
+  if(!can('switcher')){ toast('Access denied — Operator+ required','err'); return; }
+  var tmp = S.pgm; S.pgm = S.pvw; S.pvw = tmp;
+  buildSwitcherRows();
+  updateTally();
+  saveState();
+  wsSend({type:'take'});
+  toast('CUT: ' + S.pgm + ' → PGM','ok');
+}
+
+function doAuto(){
+  if(!can('switcher')){ toast('Access denied','err'); return; }
+  var sel = document.getElementById('sw-trans') || document.getElementById('trans-sel');
+  var trans = sel ? sel.value : 'MIX 25f';
+  var tmp = S.pgm; S.pgm = S.pvw; S.pvw = tmp;
+  buildSwitcherRows();
+  updateTally();
+  saveState();
+  wsSend({type:'auto',transition:trans});
+  toast('AUTO: ' + trans + ' → ' + S.pgm,'ok');
+}
+
+function updateTally(){
+  var tl = document.getElementById('tally-list');
+  if(!tl) return;
+  tl.innerHTML = '';
+  SOURCES.slice(0,6).forEach(function(s){
+    var isPgm = s===S.pgm, isPvw = s===S.pvw;
+    var color = isPgm?'var(--pgm)':isPvw?'var(--pvw)':'var(--b2)';
+    var tag = isPgm?'<span class="tag tag-err">PGM</span>':isPvw?'<span class="tag tag-ok">PVW</span>':'<span class="tag tag-acc">IDLE</span>';
+    tl.innerHTML += '<div class="row"><div style="width:10px;height:10px;border-radius:50%;background:'+color+'"></div><span style="font-size:.72rem;flex:1">'+s+'</span>'+tag+'</div>';
+  });
+}
+
+// ── KEYERS ────────────────────────────────────────────────────────────────────
+function buildKeyers(){
+  var keyTypes = ['LUM','CHR','LIN','PAT'];
+  var fills = ['CAM-1','CAM-2','GFX-1','GFX-2','BLACK','BARS'];
+  // init state
+  if(!S.keyers.up.length){
+    for(var i=0;i<3;i++) S.keyers.up.push({on:false,type:'LUM',fill:'GFX-1',key:'GFX-1'});
+    for(var j=0;j<3;j++) S.keyers.dn.push({on:false,type:'LUM',fill:'GFX-2',key:'GFX-2'});
+  }
+  function renderKeyer(k, idx, prefix, container){
+    var d = document.createElement('div');
+    d.className = 'keyer-panel';
+    d.id = prefix+'-keyer-'+idx;
+    d.innerHTML = '<div class="keyer-hd"><span class="keyer-name">'+(prefix==='up'?'USK':'DSK')+' '+(idx+1)+'</span>'
+      +'<button class="keyer-on'+(k.on?' active':'')+'" id="'+prefix+'-kon-'+idx+'" onclick="toggleKeyer(\''+prefix+'\','+idx+')"></button></div>'
+      +'<div class="keyer-row"><span class="keyer-lbl">TYPE</span><select class="keyer-sel" onchange="setKeyerProp(\''+prefix+'\','+idx+',\'type\',this.value)">'
+      +keyTypes.map(function(t){ return '<option'+(t===k.type?' selected':'')+'>'+t+'</option>'; }).join('')+'</select></div>'
+      +'<div class="keyer-row"><span class="keyer-lbl">FILL</span><select class="keyer-sel" onchange="setKeyerProp(\''+prefix+'\','+idx+',\'fill\',this.value)">'
+      +fills.map(function(f){ return '<option'+(f===k.fill?' selected':'')+'>'+f+'</option>'; }).join('')+'</select></div>'
+      +'<div class="keyer-row"><span class="keyer-lbl">KEY</span><select class="keyer-sel" onchange="setKeyerProp(\''+prefix+'\','+idx+',\'key\',this.value)">'
+      +fills.map(function(f){ return '<option'+(f===k.key?' selected':'')+'>'+f+'</option>'; }).join('')+'</select></div>';
+    container.appendChild(d);
+  }
+  ['upstream-keyers','keyers-up-full'].forEach(function(cid){
+    var c = document.getElementById(cid); if(!c) return; c.innerHTML = '';
+    S.keyers.up.forEach(function(k,i){ renderKeyer(k,i,'up',c); });
+  });
+  ['downstream-keyers','keyers-dn-full'].forEach(function(cid){
+    var c = document.getElementById(cid); if(!c) return; c.innerHTML = '';
+    S.keyers.dn.forEach(function(k,i){ renderKeyer(k,i,'dn',c); });
+  });
+}
+
+function toggleKeyer(prefix, idx){
+  if(!can('keyers')){ toast('Access denied','err'); return; }
+  var arr = prefix==='up'?S.keyers.up:S.keyers.dn;
+  arr[idx].on = !arr[idx].on;
+  var btn = document.getElementById(prefix+'-kon-'+idx);
+  if(btn) btn.classList.toggle('active', arr[idx].on);
+  saveState();
+  toast((prefix==='up'?'USK':'DSK')+' '+(idx+1)+' '+(arr[idx].on?'ON':'OFF'), arr[idx].on?'ok':'warn');
+}
+
+function setKeyerProp(prefix, idx, prop, val){
+  var arr = prefix==='up'?S.keyers.up:S.keyers.dn;
+  arr[idx][prop] = val;
+  saveState();
+}
+
+function setTrans(btn, type){
+  document.querySelectorAll('#view-transitions .btn').forEach(function(b){ b.className='btn btn-ghost'; });
+  btn.className = 'btn btn-acc';
+}
+</script>
+<script>
+// ── MOSAIC ────────────────────────────────────────────────────────────────────
+function buildMosaic(n){
+  S.mosaicLayout = n;
+  var grid = document.getElementById('mosaic-grid');
+  if(!grid) return;
+  var cols = n===1?1:n===4?2:n===9?3:4;
+  grid.style.gridTemplateColumns = 'repeat('+cols+',1fr)';
+  grid.innerHTML = '';
+  var srcs = SOURCES.slice(0, n);
+  srcs.forEach(function(s, i){
+    var cell = document.createElement('div');
+    cell.className = 'mosaic-cell' + (s===S.pgm?' pgm-border':s===S.pvw?' pvw-border':'');
+    cell.innerHTML = '<div class="mosaic-placeholder"><span>'+s+'</span></div>'
+      +'<div class="mosaic-label"><span>'+s+'</span>'+(s===S.pgm?'<span style="color:var(--pgm2)">PGM</span>':s===S.pvw?'<span style="color:var(--pvw2)">PVW</span>':'')+'</div>';
+    cell.onclick = function(){ setPvw(null, s); buildMosaic(n); };
+    grid.appendChild(cell);
+  });
+  ['lay-4','lay-9','lay-16','lay-1'].forEach(function(id){ var b=document.getElementById(id); if(b) b.className='btn btn-ghost btn-sm'; });
+  var map={4:'lay-4',9:'lay-9',16:'lay-16',1:'lay-1'};
+  var active = document.getElementById(map[n]); if(active) active.className='btn btn-acc btn-sm';
+  saveState();
+}
+
+function setLayout(n){ buildMosaic(n); }
+
+// ── ROUTER MATRIX ─────────────────────────────────────────────────────────────
+function buildRouterMatrix(){
+  var wrap = document.getElementById('router-matrix');
+  if(!wrap) return;
+  var t = document.createElement('table');
+  t.className = 'matrix-table';
+  var hdr = '<tr><th>SRC \\ DST</th>';
+  DESTS.forEach(function(d){ hdr += '<th>'+d+'</th>'; });
+  hdr += '</tr>';
+  t.innerHTML = hdr;
+  SOURCES.slice(0,10).forEach(function(s){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="matrix-row-lbl">'+s+'</td>';
+    DESTS.forEach(function(d){
+      var key = s+'→'+d;
+      var active = S.crosspoints[key] || false;
+      var td = document.createElement('td');
+      var btn = document.createElement('button');
+      btn.className = 'matrix-cell' + (active?' active':'');
+      btn.title = s+' → '+d;
+      btn.onclick = (function(k,b){ return function(){
+        if(!can('router')){ toast('Access denied — Engineer/Operator required','err'); return; }
+        S.crosspoints[k] = !S.crosspoints[k];
+        b.classList.toggle('active', S.crosspoints[k]);
+        saveState();
+        wsSend({type:'route',src:k.split('→')[0],dst:k.split('→')[1],active:S.crosspoints[k]});
+        toast((S.crosspoints[k]?'ROUTED: ':'CLEARED: ')+k, S.crosspoints[k]?'ok':'warn');
+      }; })(key, btn);
+      td.appendChild(btn);
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  wrap.innerHTML = '';
+  wrap.appendChild(t);
+}
+
+// ── VISUAL FLOW SVG ───────────────────────────────────────────────────────────
+function buildFlowSVG(){
+  var svg = document.getElementById('flow-canvas');
+  if(!svg) return;
+  var nodes = [
+    {id:'cam1',x:40,y:60,w:80,h:36,label:'CAM-1',color:'var(--b3)'},
+    {id:'cam2',x:40,y:110,w:80,h:36,label:'CAM-2',color:'var(--b3)'},
+    {id:'cam3',x:40,y:160,w:80,h:36,label:'CAM-3',color:'var(--b3)'},
+    {id:'gfx1',x:40,y:210,w:80,h:36,label:'GFX-1',color:'var(--b3)'},
+    {id:'router',x:200,y:120,w:90,h:60,label:'ROUTER',color:'var(--b2)'},
+    {id:'sw',x:370,y:100,w:90,h:50,label:'SWITCHER',color:'var(--b2)'},
+    {id:'audio',x:370,y:170,w:90,h:36,label:'AUDIO',color:'var(--b2)'},
+    {id:'pgm',x:540,y:80,w:80,h:36,label:'PGM OUT',color:'rgba(240,16,48,.3)'},
+    {id:'pvw',x:540,y:130,w:80,h:36,label:'PVW OUT',color:'rgba(0,216,112,.2)'},
+    {id:'rec',x:540,y:180,w:80,h:36,label:'RECORD',color:'var(--b3)'},
+    {id:'stream',x:540,y:230,w:80,h:36,label:'STREAM',color:'var(--b3)'},
+    {id:'cloud',x:700,y:130,w:80,h:36,label:'CLOUD',color:'rgba(0,200,240,.15)'}
+  ];
+  var links = [
+    {from:'cam1',to:'router',active:true},{from:'cam2',to:'router',active:true},
+    {from:'cam3',to:'router',active:false},{from:'gfx1',to:'router',active:false},
+    {from:'router',to:'sw',active:true},{from:'router',to:'audio',active:true},
+    {from:'sw',to:'pgm',active:true,pgm:true},{from:'sw',to:'pvw',active:true,pvw:true},
+    {from:'audio',to:'pgm',active:true},{from:'pgm',to:'rec',active:true},
+    {from:'pgm',to:'stream',active:true},{from:'stream',to:'cloud',active:true}
+  ];
+  var nodeMap = {};
+  nodes.forEach(function(n){ nodeMap[n.id]=n; });
+  var html = '<defs><marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--acc2)"/></marker>'
+    +'<marker id="arr-pgm" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--pgm)"/></marker>'
+    +'<marker id="arr-pvw" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--pvw)"/></marker></defs>';
+  links.forEach(function(l){
+    var a = nodeMap[l.from], b = nodeMap[l.to];
+    if(!a||!b) return;
+    var x1=a.x+a.w, y1=a.y+a.h/2, x2=b.x, y2=b.y+b.h/2;
+    var mx=(x1+x2)/2;
+    var stroke = l.pgm?'var(--pgm)':l.pvw?'var(--pvw)':l.active?'var(--acc3)':'var(--b3)';
+    var marker = l.pgm?'arr-pgm':l.pvw?'arr-pvw':'arr';
+    var op = l.active?1:.35;
+    html += '<path d="M'+x1+','+y1+' C'+mx+','+y1+' '+mx+','+y2+' '+x2+','+y2+'" stroke="'+stroke+'" stroke-width="'+(l.active?2:1.5)+'" fill="none" opacity="'+op+'" marker-end="url(#'+marker+')" class="flow-link'+(l.active?' active':'')+'" />';
+  });
+  nodes.forEach(function(n){
+    html += '<g class="flow-node" onclick="toast(\''+n.label+' selected\',\'ok\')">'
+      +'<rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="'+n.h+'" rx="6" fill="'+n.color+'" stroke="var(--b3)" stroke-width="1"/>'
+      +'<text x="'+(n.x+n.w/2)+'" y="'+(n.y+n.h/2+5)+'" text-anchor="middle" fill="var(--txt)" font-size="11" font-family="Inter,sans-serif" font-weight="600">'+n.label+'</text>'
+      +'</g>';
+  });
+  svg.innerHTML = html;
+}
+
+function flowZoom(f){ var vb=document.getElementById('flow-canvas').getAttribute('viewBox').split(' ').map(Number); document.getElementById('flow-canvas').setAttribute('viewBox',[vb[0],vb[1],vb[2]/f,vb[3]/f].join(' ')); }
+function flowReset(){ document.getElementById('flow-canvas').setAttribute('viewBox','0 0 900 320'); }
+</script>
+<script>
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+function buildAudioChannels(){
+  var wrap = document.getElementById('audio-channels');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  var chNames = ['CAM-1 L','CAM-1 R','CAM-2 L','CAM-2 R','GFX-1','VT-1 L','VT-1 R','MIC-1','MIC-2','MIC-3','AUX-1','AUX-2','BUS-1','BUS-2','PGM L','PGM R'];
+  chNames.forEach(function(name, i){
+    var div = document.createElement('div');
+    div.className = 'fader-wrap';
+    div.style.minWidth = '40px';
+    div.innerHTML = '<div style="font-size:.55rem;color:var(--txt2);text-align:center;margin-bottom:4px">'+name+'</div>'
+      +'<input type="range" class="fader" min="0" max="100" value="'+(i<8?80:60)+'" orient="vertical" oninput="updateFader(this,'+i+')">'
+      +'<div style="font-size:.55rem;color:var(--acc);text-align:center;margin-top:3px" id="fader-val-'+i+'">'+(i<8?'0dB':'-6dB')+'</div>'
+      +'<button style="font-size:.55rem;padding:2px 4px;border-radius:2px;background:var(--b2);color:var(--txt2);margin-top:2px;border:none;cursor:pointer" onclick="toggleMute(this,'+i+')">M</button>';
+    wrap.appendChild(div);
+  });
+}
+
+function updateFader(el, idx){
+  var v = parseInt(el.value);
+  var db = v===0?'-∞':Math.round((v/100)*18-18)+'dB';
+  var lbl = document.getElementById('fader-val-'+idx);
+  if(lbl) lbl.textContent = db;
+}
+
+function toggleMute(btn, idx){
+  btn.style.background = btn.style.background==='var(--pgm)'?'var(--b2)':'var(--pgm)';
+  btn.style.color = btn.style.color==='#fff'?'var(--txt2)':'#fff';
+}
+
+function buildVUMeters(){
+  var wrap = document.getElementById('vu-meters');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  for(var i=0;i<16;i++){
+    var d = document.createElement('div');
+    d.style.display='flex';d.style.flexDirection='column';d.style.alignItems='center';d.style.gap='2px';
+    d.innerHTML = '<div class="vu-bar" id="vu-'+i+'" style="height:40px"></div><div class="vu-label">'+(i+1)+'</div>';
+    wrap.appendChild(d);
+  }
+}
+
+// ── SCOPES ────────────────────────────────────────────────────────────────────
+function drawScopes(){
+  drawWaveform(); drawVectorscope(); drawHistogram(); drawParade();
+}
+
+function drawWaveform(){
+  var c = document.getElementById('scope-wfm'); if(!c) return;
+  c.width=c.offsetWidth||400; c.height=160;
+  var ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+  ctx.strokeStyle='#00c8f0'; ctx.lineWidth=1.5; ctx.beginPath();
+  for(var x=0;x<c.width;x++){
+    var y = c.height/2 + Math.sin(x*0.05)*40 + Math.sin(x*0.13)*20 + (Math.random()-0.5)*8;
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  // graticule
+  ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1;
+  [0,25,50,75,100].forEach(function(p){
+    var y=c.height*(1-p/100); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(c.width,y); ctx.stroke();
+  });
+}
+
+function drawVectorscope(){
+  var c = document.getElementById('scope-vec'); if(!c) return;
+  c.width=c.offsetWidth||400; c.height=160;
+  var ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+  var cx=c.width/2, cy=c.height/2, r=Math.min(cx,cy)-10;
+  ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r*0.75,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-r,cy); ctx.lineTo(cx+r,cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx,cy-r); ctx.lineTo(cx,cy+r); ctx.stroke();
+  ctx.fillStyle='rgba(0,200,240,.7)';
+  for(var i=0;i<200;i++){
+    var a=Math.random()*Math.PI*2, d=Math.random()*r*0.4;
+    ctx.beginPath(); ctx.arc(cx+Math.cos(a)*d, cy+Math.sin(a)*d, 1.5, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawHistogram(){
+  var c = document.getElementById('scope-hist'); if(!c) return;
+  c.width=c.offsetWidth||400; c.height=160;
+  var ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+  var grad=ctx.createLinearGradient(0,0,c.width,0);
+  grad.addColorStop(0,'#0040ff'); grad.addColorStop(0.33,'#00c840'); grad.addColorStop(0.66,'#f0a000'); grad.addColorStop(1,'#f01030');
+  ctx.fillStyle=grad;
+  for(var x=0;x<c.width;x+=2){
+    var h = Math.max(10, 80*Math.exp(-Math.pow((x/c.width-0.45)*4,2)) + Math.random()*20);
+    ctx.fillRect(x, c.height-h, 2, h);
+  }
+}
+
+function drawParade(){
+  var c = document.getElementById('scope-parade'); if(!c) return;
+  c.width=c.offsetWidth||400; c.height=160;
+  var ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+  var colors=['rgba(255,60,60,.8)','rgba(60,255,60,.8)','rgba(60,120,255,.8)'];
+  var w3=c.width/3;
+  colors.forEach(function(col,ci){
+    ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.beginPath();
+    for(var x=0;x<w3;x++){
+      var y=c.height/2+Math.sin((x+ci*30)*0.06)*35+Math.sin((x+ci*20)*0.15)*15+(Math.random()-0.5)*6;
+      x===0?ctx.moveTo(ci*w3+x,y):ctx.lineTo(ci*w3+x,y);
+    }
+    ctx.stroke();
+  });
+}
+</script>
+<script>
+// ── NMOS ──────────────────────────────────────────────────────────────────────
+function buildNMOSNodes(){
+  var c = document.getElementById('nmos-nodes'); if(!c) return;
+  var nodes = [
+    {id:'node-001',label:'CAM-1 NODE',type:'Camera',status:'ok'},
+    {id:'node-002',label:'CAM-2 NODE',type:'Camera',status:'ok'},
+    {id:'node-003',label:'GFX NODE',type:'Graphics',status:'ok'},
+    {id:'node-004',label:'SWITCHER NODE',type:'Switcher',status:'warn'},
+    {id:'node-005',label:'MONITOR NODE',type:'Monitor',status:'ok'}
+  ];
+  c.innerHTML = nodes.map(function(n){
+    return '<div class="rack-unit"><div class="rack-led" style="background:var(--'+(n.status==='ok'?'pvw':'warn')+')"></div>'
+      +'<span class="rack-name">'+n.label+'</span><span class="rack-type">'+n.type+'</span>'
+      +'<span class="tag tag-'+(n.status==='ok'?'ok':'warn')+'">'+n.id+'</span></div>';
+  }).join('');
+}
+
+function buildNMOSEvents(){
+  var c = document.getElementById('nmos-events'); if(!c) return;
+  var evts = [
+    {t:'12:34:01',msg:'IS-04 node registered: CAM-1'},
+    {t:'12:34:02',msg:'IS-05 connection: CAM-1 → SWITCHER-IN1'},
+    {t:'12:34:05',msg:'IS-07 event: tally PGM on CAM-1'},
+    {t:'12:34:10',msg:'IS-04 heartbeat: all nodes OK'},
+    {t:'12:34:15',msg:'IS-08 audio mapping updated'}
+  ];
+  c.innerHTML = evts.map(function(e){
+    return '<div class="row"><span class="alarm-time">'+e.t+'</span><span style="font-size:.72rem">'+e.msg+'</span></div>';
+  }).join('');
+}
+
+// ── EMBER+ ────────────────────────────────────────────────────────────────────
+function buildEmberTree(){
+  var c = document.getElementById('ember-tree'); if(!c) return;
+  var tree = [
+    {path:'/Lawo/MC2',label:'Lawo mc²56',children:[
+      {path:'/Lawo/MC2/Fader',label:'Faders',children:[
+        {path:'/Lawo/MC2/Fader/CH01',label:'CH01 Level: -6dB'},
+        {path:'/Lawo/MC2/Fader/CH02',label:'CH02 Level: -12dB'},
+        {path:'/Lawo/MC2/Fader/CH03',label:'CH03 Level: 0dB'}
+      ]},
+      {path:'/Lawo/MC2/Bus',label:'Buses',children:[
+        {path:'/Lawo/MC2/Bus/PGM',label:'PGM Bus: -6dB'}
+      ]}
+    ]},
+    {path:'/GV/Kahuna',label:'GV Kahuna 9600',children:[
+      {path:'/GV/Kahuna/ME1',label:'ME-1 PGM: CAM-1'},
+      {path:'/GV/Kahuna/ME1/PVW',label:'ME-1 PVW: CAM-2'}
+    ]}
+  ];
+  function renderNode(n, depth){
+    var pad = depth*14;
+    var html = '<div style="padding-left:'+pad+'px;padding:3px 0 3px '+pad+'px;cursor:pointer;border-radius:3px" '
+      +'onmouseover="this.style.background=\'var(--b1)\'" onmouseout="this.style.background=\'\'" '
+      +'onclick="document.querySelector(\'#view-ember input[type=text]\').value=\''+n.path+'\'">'
+      +'<span style="color:var(--txt2)">'+( n.children?'▾ ':'  ')+'</span>'
+      +'<span style="color:'+(n.children?'var(--acc)':'var(--txt)')+'">'+n.label+'</span></div>';
+    if(n.children) n.children.forEach(function(ch){ html += renderNode(ch, depth+1); });
+    return html;
+  }
+  c.innerHTML = tree.map(function(n){ return renderNode(n,0); }).join('');
+}
+
+// ── DEVICES ───────────────────────────────────────────────────────────────────
+function buildDeviceList(){
+  var c = document.getElementById('device-list'); if(!c) return;
+  var devs = [
+    {name:'ATEM 4K Production Studio',ip:'192.168.10.10',proto:'ATEM',status:'ok'},
+    {name:'Lawo mc²56',ip:'192.168.10.20',proto:'Ember+',status:'ok'},
+    {name:'Evertz 7700 Router',ip:'192.168.10.30',proto:'SNMP/Ember+',status:'ok'},
+    {name:'Riedel Artist 128',ip:'192.168.10.40',proto:'NMOS/Ember+',status:'ok'},
+    {name:'EVS XT-VIA',ip:'192.168.10.50',proto:'XFile3',status:'warn'},
+    {name:'Calrec Apollo',ip:'192.168.10.60',proto:'Ember+',status:'ok'},
+    {name:'Grass Valley Kula',ip:'192.168.10.70',proto:'GV Orbit',status:'warn'}
+  ];
+  c.innerHTML = devs.map(function(d){
+    return '<div class="rack-unit"><div class="rack-led" style="background:var(--'+(d.status==='ok'?'pvw':'warn')+')"></div>'
+      +'<span class="rack-name">'+d.name+'</span>'
+      +'<span class="rack-type mono">'+d.ip+'</span>'
+      +'<span class="tag tag-acc">'+d.proto+'</span>'
+      +'<span class="tag tag-'+(d.status==='ok'?'ok':'warn')+'">'+(d.status==='ok'?'ONLINE':'WARN')+'</span></div>';
+  }).join('');
+}
+
+// ── SRT ───────────────────────────────────────────────────────────────────────
+function buildSRTList(){
+  var c = document.getElementById('srt-list'); if(!c) return;
+  if(!S.srtStreams.length){
+    S.srtStreams = [
+      {name:'REMOTE-FEED-1',host:'203.0.113.10',port:9000,mode:'CALLER',status:'ok',bitrate:'8.4 Mbps'},
+      {name:'CONTRIB-A',host:'198.51.100.5',port:9001,mode:'LISTENER',status:'ok',bitrate:'12.1 Mbps'},
+      {name:'BACKUP-FEED',host:'192.0.2.20',port:9002,mode:'RENDEZVOUS',status:'warn',bitrate:'—'}
+    ];
+  }
+  c.innerHTML = S.srtStreams.map(function(s,i){
+    return '<div class="rack-unit"><div class="rack-led" style="background:var(--'+(s.status==='ok'?'pvw':'warn')+')"></div>'
+      +'<span class="rack-name">'+s.name+'</span>'
+      +'<span class="rack-type mono">'+s.host+':'+s.port+'</span>'
+      +'<span class="tag tag-acc">'+s.mode+'</span>'
+      +'<span class="mono" style="font-size:.65rem;color:var(--txt2)">'+s.bitrate+'</span>'
+      +'<button class="btn btn-ghost btn-xs" onclick="removeSRT('+i+')">✕</button></div>';
+  }).join('');
+}
+
+function addSRT(){
+  S.srtStreams.push({name:'NEW-STREAM',host:'0.0.0.0',port:9000,mode:'CALLER',status:'warn',bitrate:'—'});
+  buildSRTList();
+  closeModal('modal-srt');
+  toast('SRT stream added','ok');
+}
+
+function removeSRT(i){
+  S.srtStreams.splice(i,1);
+  buildSRTList();
+  toast('SRT stream removed','warn');
+}
+</script>
+<script>
+// ── RUNDOWN ───────────────────────────────────────────────────────────────────
+function buildRundown(){
+  var c = document.getElementById('rundown-list'); if(!c) return;
+  if(!S.rundown.length){
+    S.rundown = [
+      {title:'SHOW OPEN',dur:'00:02:00',type:'VT',status:'done'},
+      {title:'SEGMENT 1 — LIVE',dur:'00:08:00',type:'LIVE',status:'active'},
+      {title:'LOWER THIRD PACKAGE',dur:'00:00:30',type:'GRAPHIC',status:'next'},
+      {title:'COMMERCIAL BREAK',dur:'00:02:30',type:'BREAK',status:'pending'},
+      {title:'SEGMENT 2 — REMOTE',dur:'00:06:00',type:'REMOTE',status:'pending'},
+      {title:'SHOW CLOSE',dur:'00:01:30',type:'VT',status:'pending'}
+    ];
+  }
+  c.innerHTML = S.rundown.map(function(r,i){
+    var col = r.status==='active'?'var(--pgm)':r.status==='next'?'var(--pvw)':r.status==='done'?'var(--txt2)':'var(--b3)';
+    var tag = r.status==='active'?'<span class="tag tag-err">ON AIR</span>':r.status==='next'?'<span class="tag tag-ok">NEXT</span>':r.status==='done'?'<span class="tag" style="background:var(--b2);color:var(--txt2)">DONE</span>':'<span class="tag tag-acc">PENDING</span>';
+    return '<div class="rack-unit" style="border-left:3px solid '+col+'">'
+      +'<span style="font-size:.65rem;color:var(--txt2);width:20px;text-align:center">'+(i+1)+'</span>'
+      +'<span class="rack-name">'+r.title+'</span>'
+      +'<span class="rack-type">'+r.type+'</span>'
+      +'<span class="mono" style="font-size:.65rem;color:var(--txt2)">'+r.dur+'</span>'
+      +tag
+      +'<button class="btn btn-ghost btn-xs" onclick="removeRundownItem('+i+')">✕</button></div>';
+  }).join('');
+}
+
+function addRundownItem(){
+  var t = document.getElementById('rd-title').value || 'NEW ITEM';
+  var d = document.getElementById('rd-dur').value || '00:01:00';
+  var ty = document.getElementById('rd-type').value || 'LIVE';
+  S.rundown.push({title:t,dur:d,type:ty,status:'pending'});
+  buildRundown();
+  closeModal('modal-rundown');
+  saveState();
+  toast('Rundown item added','ok');
+}
+
+function removeRundownItem(i){
+  S.rundown.splice(i,1);
+  buildRundown();
+  saveState();
+}
+
+// ── RACK ──────────────────────────────────────────────────────────────────────
+function buildRackUnits(){
+  var c = document.getElementById('rack-units'); if(!c) return;
+  if(!S.rackUnits.length){
+    S.rackUnits = [
+      {name:'ATEM 4K PROD STUDIO',type:'SWITCHER',status:'ok'},
+      {name:'LAWO MC²56',type:'AUDIO MIXER',status:'ok'},
+      {name:'EVERTZ 7700 ROUTER',type:'ROUTER',status:'ok'},
+      {name:'EVS XT-VIA',type:'RECORDER',status:'warn'},
+      {name:'NEXUS ENCODE-01',type:'ENCODER',status:'ok'},
+      {name:'NEXUS DECODE-01',type:'DECODER',status:'ok'},
+      {name:'RIEDEL ARTIST 128',type:'INTERCOM',status:'ok'}
+    ];
+  }
+  c.innerHTML = S.rackUnits.map(function(r,i){
+    return '<div class="rack-unit"><div class="rack-led" style="background:var(--'+(r.status==='ok'?'pvw':'warn')+')"></div>'
+      +'<span class="rack-name">'+r.name+'</span>'
+      +'<span class="rack-type">'+r.type+'</span>'
+      +'<span class="tag tag-'+(r.status==='ok'?'ok':'warn')+'">'+(r.status==='ok'?'ONLINE':'WARN')+'</span>'
+      +'<button class="btn btn-ghost btn-xs" onclick="removeRackUnit('+i+')">✕</button></div>';
+  }).join('');
+}
+
+function addRackUnit(){
+  var n = document.getElementById('rack-name-in').value || 'NEW UNIT';
+  var t = document.getElementById('rack-type-in').value || 'ENCODER';
+  S.rackUnits.push({name:n,type:t,status:'ok'});
+  buildRackUnits();
+  closeModal('modal-rack');
+  saveState();
+  toast('Rack unit added','ok');
+}
+
+function removeRackUnit(i){
+  S.rackUnits.splice(i,1);
+  buildRackUnits();
+  saveState();
+}
+
+// ── ALARMS ────────────────────────────────────────────────────────────────────
+function buildAlarms(){
+  if(!S.alarms.length){
+    S.alarms = [
+      {sev:'warn',time:'12:34:01',msg:'EVS XT-VIA: disk usage >80%',ack:false},
+      {sev:'warn',time:'12:34:05',msg:'Grass Valley Kula: connection timeout',ack:false},
+      {sev:'info',time:'12:33:50',msg:'PTP offset spike: +48ns (recovered)',ack:true},
+      {sev:'info',time:'12:30:00',msg:'Cloud instance vENCODER-01 stopped',ack:true}
+    ];
+  }
+  renderAlarms();
+}
+
+function renderAlarms(){
+  var c = document.getElementById('alarm-list'); if(!c) return;
+  var active = S.alarms.filter(function(a){ return !a.ack; });
+  document.getElementById('sb-alarms').textContent = active.length + (active.length===1?' WARN':' WARN');
+  c.innerHTML = S.alarms.map(function(a,i){
+    return '<div class="alarm-row '+a.sev+'" style="opacity:'+(a.ack?.5:1)+'">'
+      +'<span class="alarm-time">'+a.time+'</span>'
+      +'<span class="alarm-msg">'+a.msg+'</span>'
+      +'<span class="tag tag-'+(a.sev==='crit'?'err':a.sev==='warn'?'warn':'acc')+'">'+a.sev.toUpperCase()+'</span>'
+      +(a.ack?'<span style="font-size:.62rem;color:var(--txt2)">ACK</span>':'<button class="btn btn-ghost btn-xs" onclick="ackAlarm('+i+')">ACK</button>')
+      +'</div>';
+  }).join('');
+}
+
+function ackAlarm(i){ S.alarms[i].ack=true; renderAlarms(); }
+function ackAllAlarms(){ S.alarms.forEach(function(a){ a.ack=true; }); renderAlarms(); toast('All alarms acknowledged','ok'); }
+function clearAlarms(){ S.alarms=S.alarms.filter(function(a){ return !a.ack; }); renderAlarms(); toast('Cleared acknowledged alarms','ok'); }
+
+// ── PREFLIGHT ─────────────────────────────────────────────────────────────────
+function buildPreflight(){
+  var c = document.getElementById('pf-list'); if(!c) return;
+  var checks = [
+    {label:'PTP lock < 100ns',status:'ok'},{label:'All cameras online',status:'ok'},
+    {label:'Audio levels nominal',status:'ok'},{label:'Switcher connected',status:'ok'},
+    {label:'Router crosspoints set',status:'ok'},{label:'Recording paths valid',status:'warn'},
+    {label:'Stream destinations reachable',status:'ok'},{label:'Backup feeds active',status:'ok'},
+    {label:'Intercom system online',status:'ok'},{label:'Graphics engine ready',status:'ok'}
+  ];
+  c.innerHTML = checks.map(function(ch){
+    return '<div class="pf-check"><span class="pf-icon">'+(ch.status==='ok'?'✅':'⚠️')+'</span>'
+      +'<span style="font-size:.75rem;flex:1">'+ch.label+'</span>'
+      +'<span class="tag tag-'+(ch.status==='ok'?'ok':'warn')+'">'+(ch.status==='ok'?'PASS':'WARN')+'</span></div>';
+  }).join('');
+}
+
+function runPreflight(){
+  toast('Running pre-flight checks...','ok');
+  setTimeout(function(){ buildPreflight(); toast('Pre-flight complete: 9/10 PASS','warn'); }, 800);
+}
+</script>
+<script>
+// ── TRAINING ──────────────────────────────────────────────────────────────────
+var TRAINING_MODULES = {
+  operator: {
+    basics: [
+      {title:'Welcome to NEXUS v8',body:'NEXUS is a unified broadcast orchestration platform. As an Operator, you control live production workflows. This training covers your core responsibilities.',action:null},
+      {title:'The Live View',body:'The LIVE view is your primary workspace. It shows Program (on-air) and Preview feeds, quick source selection, tally status, and system health.',action:'nav(\'live\')'},
+      {title:'Switching Sources',body:'Click any source button in the PGM row to cut directly to air. Use PVW row to set up your next shot. The CUT button performs an instant transition.',action:null},
+      {title:'Using AUTO Transition',body:'Select a transition type from the dropdown (MIX, WIPE, DIP, STINGER), then click AUTO to execute a timed transition from PVW to PGM.',action:'nav(\'switcher\')'},
+      {title:'Monitoring Tally',body:'Tally indicators show which sources are on PGM (red), PVW (green), or idle. These feed back to camera operators via UMD displays.',action:null}
+    ],
+    switcher: [
+      {title:'ME-1 Switcher Overview',body:'The Main Switcher (ME-1) has Program and Preview buses. Sources are assigned to each bus independently.',action:'nav(\'switcher\')'},
+      {title:'Upstream Keyers (USK)',body:'3 upstream keyers layer graphics over your program. Each has Type (LUM/CHR/LIN/PAT), Fill source, and Key source. Toggle ON/OFF with the switch.',action:null},
+      {title:'Downstream Keyers (DSK)',body:'3 downstream keyers apply after the ME output — ideal for persistent lower thirds and bugs. They are always visible regardless of ME transitions.',action:null},
+      {title:'Transition Styles',body:'MIX: cross-dissolve. WIPE: geometric wipe. DIP: dip to colour. STINGER: animated clip transition. Duration is set in frames.',action:'nav(\'transitions\')'},
+      {title:'PROTECT Mode',body:'Enable PROTECT to prevent accidental cuts. The system will warn before any on-air change. Recommended during critical live segments.',action:null}
+    ],
+    routing: [
+      {title:'Signal Router Basics',body:'The router matrix connects any source to any destination. Click a crosspoint cell to activate or deactivate a route.',action:'nav(\'router\')'},
+      {title:'Visual Flow',body:'The Visual Flow view shows your entire signal chain as an interactive diagram. Active paths are highlighted. Click any node for details.',action:'nav(\'flow\')'},
+      {title:'Saving Presets',body:'Use SAVE PRESET to store the current routing configuration. LOAD PRESET restores a saved state — useful for show changeovers.',action:null},
+      {title:'SRT Streams',body:'SRT streams bring in remote contributions. Each stream shows host, port, mode, and live bitrate. Add streams via the + button.',action:'nav(\'srt\')'}
+    ],
+    cloud: [
+      {title:'Cloud Workflow Modes',body:'NEXUS supports three modes: GROUND (all on-premise), HYBRID (mix of local and cloud), FULL CLOUD (all processing in AWS).',action:'nav(\'cloud\')'},
+      {title:'AWS MediaConnect',body:'MediaConnect flows handle ingest and distribution of broadcast-quality video over IP. Each flow shows protocol and status.',action:null},
+      {title:'Virtual Instances',body:'Cloud instances (vSWITCHER, vGFX, vENCODER) can be started/stopped on demand. Monitor costs in the Cloud MCR view.',action:null}
+    ],
+    emergency: [
+      {title:'Emergency Procedures',body:'If the primary switcher fails: 1) Activate FAILOVER-AUTO workflow in Orchestrate. 2) Switch to backup router path. 3) Notify engineering.',action:'nav(\'orchestrate\')'},
+      {title:'Signal Loss Response',body:'If a source goes black: 1) Check tally — is it still routing? 2) Check device list for offline status. 3) Switch to backup source immediately.',action:'nav(\'devices\')'},
+      {title:'Audio Emergency',body:'If audio drops: 1) Check VU meters in Audio view. 2) Verify fader levels. 3) Check mute buttons. 4) Switch to backup audio path.',action:'nav(\'audio\')'},
+      {title:'Escalation',body:'Always escalate to Engineering for hardware faults, network issues, or any situation you cannot resolve within 60 seconds on air.',action:null}
+    ]
+  }
+};
+
+function loadTraining(){
+  var role = document.getElementById('train-role-sel').value;
+  var mod = document.getElementById('train-module-sel').value;
+  var data = (TRAINING_MODULES[role] && TRAINING_MODULES[role][mod]) || TRAINING_MODULES.operator.basics;
+  S.trainSteps = data;
+  S.trainStep = 0;
+  renderTrainingStep();
+}
+
+function renderTrainingStep(){
+  var steps = S.trainSteps;
+  var c = document.getElementById('train-steps'); if(!c) return;
+  var cur = S.trainStep;
+  c.innerHTML = steps.map(function(s,i){
+    var cls = i===cur?'train-step active':i<cur?'train-step done':'train-step';
+    var numCls = i===cur?'train-num active':i<cur?'train-num done':'train-num';
+    return '<div class="'+cls+'"><div class="row" style="gap:10px;align-items:flex-start">'
+      +'<div class="'+numCls+'">'+(i<cur?'✓':(i+1))+'</div>'
+      +'<div style="flex:1"><div style="font-size:.8rem;font-weight:700;margin-bottom:6px">'+s.title+'</div>'
+      +(i===cur?'<div style="font-size:.75rem;color:var(--txt2);line-height:1.6">'+s.body+'</div>'
+        +(s.action?'<button class="btn btn-acc btn-sm" style="margin-top:10px" onclick="'+s.action+';toast(\'Navigated\',\'ok\')">TRY IT →</button>':'')
+        :'')
+      +'</div></div></div>';
+  }).join('');
+  var pct = steps.length>1 ? (cur/(steps.length-1))*100 : 0;
+  var fill = document.getElementById('train-progress-fill');
+  if(fill) fill.style.width = pct+'%';
+  var ctr = document.getElementById('train-step-counter');
+  if(ctr) ctr.textContent = 'Step '+(cur+1)+' of '+steps.length;
+}
+
+function trainNext(){
+  if(S.trainStep < S.trainSteps.length-1){ S.trainStep++; renderTrainingStep(); }
+  else { toast('Module complete! 🎉','ok'); }
+}
+
+function trainPrev(){
+  if(S.trainStep > 0){ S.trainStep--; renderTrainingStep(); }
+}
+
+// ── SDN SVG ───────────────────────────────────────────────────────────────────
+function buildSDNSvg(){
+  var svg = document.getElementById('sdn-svg'); if(!svg) return;
+  var nodes = [
+    {x:50,y:120,label:'SPINE-1',color:'var(--acc2)'},
+    {x:50,y:180,label:'SPINE-2',color:'var(--acc2)'},
+    {x:180,y:60,label:'LEAF-1',color:'var(--b3)'},
+    {x:180,y:120,label:'LEAF-2',color:'var(--b3)'},
+    {x:180,y:180,label:'LEAF-3',color:'var(--b3)'},
+    {x:180,y:240,label:'LEAF-4',color:'var(--b3)'},
+    {x:310,y:80,label:'CAM CLUSTER',color:'var(--b2)'},
+    {x:310,y:140,label:'MCR CLUSTER',color:'var(--b2)'},
+    {x:310,y:200,label:'CLOUD GW',color:'rgba(0,200,240,.2)'}
+  ];
+  var links = [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,6],[3,7],[4,7],[5,8]];
+  var html = '';
+  links.forEach(function(l){
+    var a=nodes[l[0]],b=nodes[l[1]];
+    html += '<line x1="'+(a.x+40)+'" y1="'+(a.y+14)+'" x2="'+b.x+'" y2="'+(b.y+14)+'" stroke="var(--b3)" stroke-width="1.5" opacity=".6"/>';
+  });
+  nodes.forEach(function(n){
+    html += '<rect x="'+n.x+'" y="'+n.y+'" width="80" height="28" rx="5" fill="'+n.color+'" stroke="var(--b2)" stroke-width="1"/>'
+      +'<text x="'+(n.x+40)+'" y="'+(n.y+18)+'" text-anchor="middle" fill="var(--txt)" font-size="9" font-family="Inter,sans-serif" font-weight="600">'+n.label+'</text>';
+  });
+  svg.innerHTML = html;
+}
+</script>
+<script>
+// ── CLOUD MODE ────────────────────────────────────────────────────────────────
+function setCloudMode(mode, btn){
+  if(!can('cloud')){ toast('Access denied — Engineer required','err'); return; }
+  S.cloudMode = mode;
+  document.querySelectorAll('.cloud-mode-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('sb-cloud').textContent = mode.toUpperCase();
+  var dot = document.getElementById('sb-cloud-dot');
+  dot.className = 'sb-dot ' + (mode==='cloud'?'ok':mode==='hybrid'?'warn':'ok');
+  saveState();
+  toast('Cloud mode: '+mode.toUpperCase(),'ok');
+}
+
+// ── WEBSOCKET ─────────────────────────────────────────────────────────────────
+function initWS(){
+  var ep = localStorage.getItem('nx8_endpoint') || 'ws://localhost:3001';
+  try {
+    S.ws = new WebSocket(ep);
+    S.ws.onopen = function(){
+      S.wsConnected = true;
+      document.getElementById('sb-ws').className = 'sb-dot ok';
+      document.getElementById('sb-ws-lbl').textContent = 'LIVE';
+      toast('WebSocket connected','ok');
+      S.ws.send(JSON.stringify({type:'auth',token:'demo-token',role:S.role}));
+    };
+    S.ws.onmessage = function(e){
+      try {
+        var msg = JSON.parse(e.data);
+        handleWSMessage(msg);
+      } catch(err){}
+    };
+    S.ws.onclose = function(){
+      S.wsConnected = false;
+      document.getElementById('sb-ws').className = 'sb-dot warn';
+      document.getElementById('sb-ws-lbl').textContent = 'DEMO';
+    };
+    S.ws.onerror = function(){
+      S.wsConnected = false;
+      document.getElementById('sb-ws').className = 'sb-dot warn';
+      document.getElementById('sb-ws-lbl').textContent = 'DEMO';
+    };
+  } catch(e){
+    document.getElementById('sb-ws-lbl').textContent = 'DEMO';
+  }
+}
+
+function handleWSMessage(msg){
+  if(msg.type==='pgm'){ S.pgm=msg.src; buildSwitcherRows(); updateTally(); }
+  else if(msg.type==='pvw'){ S.pvw=msg.src; buildSwitcherRows(); updateTally(); }
+  else if(msg.type==='alarm'){ S.alarms.unshift({sev:msg.sev||'warn',time:nowStr(),msg:msg.msg,ack:false}); renderAlarms(); }
+  else if(msg.type==='ptp'){ document.getElementById('ptp-offset').textContent=msg.offset; document.getElementById('sb-ptp').textContent=msg.offset; }
+}
+
+function wsSend(obj){
+  if(S.ws && S.wsConnected && S.ws.readyState===1){
+    try{ S.ws.send(JSON.stringify(obj)); }catch(e){}
+  }
+}
+
+// ── CLOCK & ANIMATIONS ────────────────────────────────────────────────────────
+function startClock(){
+  setInterval(function(){
+    var now = new Date();
+    var h=pad(now.getHours()),m=pad(now.getMinutes()),s=pad(now.getSeconds());
+    S.frameCount = Math.floor((now.getMilliseconds()/1000)*S.fps);
+    var tc = h+':'+m+':'+s+':'+pad(S.frameCount);
+    var el = document.getElementById('sb-clock'); if(el) el.textContent = tc;
+    var tc2 = document.getElementById('tc-display'); if(tc2) tc2.textContent = tc;
+    var tc3 = document.getElementById('live-tc'); if(tc3) tc3.textContent = tc;
+    // uptime
+    var up = Math.floor((Date.now()-S.startTime)/1000);
+    var uh=pad(Math.floor(up/3600)),um=pad(Math.floor((up%3600)/60)),us=pad(up%60);
+    var uv = document.getElementById('uptime-val'); if(uv) uv.textContent = uh+':'+um+':'+us;
+    // PTP jitter sim
+    var ptpOff = (Math.random()*20-10).toFixed(0);
+    var ptpEl = document.getElementById('ptp-offset'); if(ptpEl) ptpEl.textContent = (ptpOff>0?'+':'')+ptpOff+' ns';
+    var sbPtp = document.getElementById('sb-ptp'); if(sbPtp) sbPtp.textContent = '±'+Math.abs(ptpOff)+'ns';
+  }, 1000/S.fps);
+}
+
+function pad(n){ return n<10?'0'+n:String(n); }
+function nowStr(){ var n=new Date(); return pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds()); }
+
+function startAnimations(){
+  // VU meter animation
+  setInterval(function(){
+    for(var i=0;i<16;i++){
+      var bar = document.getElementById('vu-'+i);
+      if(!bar) continue;
+      var h = 10 + Math.random()*70;
+      bar.style.height = h+'px';
+    }
+    // LUFS sim
+    var li = document.getElementById('lufs-i'); if(li) li.textContent = (-23 + (Math.random()-.5)).toFixed(1);
+    var ls = document.getElementById('lufs-s'); if(ls) ls.textContent = (-22.5 + (Math.random()-.5)).toFixed(1);
+    var lp = document.getElementById('lufs-pk'); if(lp) lp.textContent = (-2 + Math.random()*.5).toFixed(1);
+  }, 100);
+  // Scope redraw
+  setInterval(function(){
+    if(document.getElementById('view-scopes') && document.getElementById('view-scopes').classList.contains('active')){
+      drawScopes();
+    }
+  }, 500);
+  // Bandwidth canvas
+  setInterval(function(){
+    var c = document.getElementById('net-bw-canvas'); if(!c) return;
+    c.width=c.offsetWidth||600; c.height=80;
+    var ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+    ctx.strokeStyle='var(--acc2)'; ctx.lineWidth=1.5; ctx.beginPath();
+    for(var x=0;x<c.width;x++){
+      var y=c.height-10-(Math.sin(x*0.04+Date.now()*0.001)*20+Math.random()*10+20);
+      x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }, 200);
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+function saveSettings(){
+  var ep = document.getElementById('api-endpoint').value;
+  localStorage.setItem('nx8_endpoint', ep);
+  toast('Settings saved','ok');
+}
+
+// ── ROLE RESTRICTIONS ─────────────────────────────────────────────────────────
+function applyRoleRestrictions(){
+  if(S.role === 'production'){
+    // Production: read-only, no switching, no routing, no settings
+    var lockViews = ['router','flow','switcher','keyers','transitions','cloud','rack','orchestrate','network','devices','ember','settings'];
+    lockViews.forEach(function(vid){
+      var v = document.getElementById('view-'+vid); if(!v) return;
+      if(!v.querySelector('.lock-overlay')){
+        var lo = document.createElement('div');
+        lo.className = 'lock-overlay';
+        lo.innerHTML = '<div class="lock-icon">🔒</div><div class="lock-msg">PRODUCTION ACCESS — VIEW ONLY</div>';
+        v.style.position='relative';
+        v.appendChild(lo);
+      }
+    });
+    // Hide engineer-only nav items
+    document.querySelectorAll('#dd-infra .nav-dd-item, #dd-cloud .nav-dd-item').forEach(function(b){ b.style.opacity='.4'; b.style.pointerEvents='none'; });
+  }
+  if(S.role === 'operator'){
+    // Operator: no settings, no devices, no ember, no cloud, no network
+    var lockOp = ['settings','devices','ember','cloud','rack','orchestrate','network'];
+    lockOp.forEach(function(vid){
+      var v = document.getElementById('view-'+vid); if(!v) return;
+      if(!v.querySelector('.lock-overlay')){
+        var lo = document.createElement('div');
+        lo.className = 'lock-overlay';
+        lo.innerHTML = '<div class="lock-icon">🔒</div><div class="lock-msg">ENGINEER ACCESS REQUIRED</div>';
+        v.style.position='relative';
+        v.appendChild(lo);
+      }
+    });
+  }
+  // Settings user management — only engineer
+  var settingsLock = document.getElementById('settings-role-lock');
+  if(settingsLock && S.role !== 'engineer'){
+    settingsLock.innerHTML = '<span class="tag tag-warn">ENGINEER ONLY</span>';
+    var umgmt = document.getElementById('user-mgmt-panel');
+    if(umgmt) umgmt.style.opacity='.4', umgmt.style.pointerEvents='none';
+  }
+}
+
+// ── STATE PERSISTENCE ─────────────────────────────────────────────────────────
+function saveState(){
+  try {
+    localStorage.setItem('nx8_state', JSON.stringify({
+      pgm:S.pgm, pvw:S.pvw, mosaicLayout:S.mosaicLayout,
+      cloudMode:S.cloudMode, crosspoints:S.crosspoints,
+      keyers:S.keyers, rundown:S.rundown, srtStreams:S.srtStreams,
+      rackUnits:S.rackUnits
+    }));
+  } catch(e){}
+}
+
+function loadState(){
+  try {
+    var raw = localStorage.getItem('nx8_state');
+    if(raw){
+      var d = JSON.parse(raw);
+      if(d.pgm) S.pgm=d.pgm;
+      if(d.pvw) S.pvw=d.pvw;
+      if(d.mosaicLayout) S.mosaicLayout=d.mosaicLayout;
+      if(d.cloudMode) S.cloudMode=d.cloudMode;
+      if(d.crosspoints) S.crosspoints=d.crosspoints;
+      if(d.keyers) S.keyers=d.keyers;
+      if(d.rundown && d.rundown.length) S.rundown=d.rundown;
+      if(d.srtStreams && d.srtStreams.length) S.srtStreams=d.srtStreams;
+      if(d.rackUnits && d.rackUnits.length) S.rackUnits=d.rackUnits;
+    }
+  } catch(e){}
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────────
+function openModal(id){ var m=document.getElementById(id); if(m) m.classList.add('show'); }
+function closeModal(id){ var m=document.getElementById(id); if(m) m.classList.remove('show'); }
+document.addEventListener('click', function(e){ if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('show'); });
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function toast(msg, type){
+  var wrap = document.getElementById('toast-wrap');
+  var t = document.createElement('div');
+  t.className = 'toast ' + (type||'ok');
+  var icon = type==='err'?'✕':type==='warn'?'⚠':type==='ok'?'✓':'ℹ';
+  t.innerHTML = '<span>'+icon+'</span><span>'+msg+'</span>';
+  wrap.appendChild(t);
+  setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 3000);
+}
+
+// ── TRANSITION DUR DISPLAY ────────────────────────────────────────────────────
+var tdur = document.getElementById('trans-dur');
+if(tdur) tdur.addEventListener('input', function(){ var v=document.getElementById('trans-dur-val'); if(v) v.textContent=this.value+'f'; });
+
+// ── AUTO-LOGIN FROM LOCALSTORAGE ──────────────────────────────────────────────
+(function(){
+  var r = localStorage.getItem('nx8_role');
+  var u = localStorage.getItem('nx8_user');
+  if(r && u){
+    S.role=r; S.user=u;
+    document.getElementById('li-role').value=r;
+    document.getElementById('li-user').value=u;
+  }
+})();
+
+// ── INIT TRAINING ON LOAD ─────────────────────────────────────────────────────
+window.addEventListener('load', function(){
+  // Training will be initialized when the view is first opened
+  // Pre-load default module
+  S.trainSteps = TRAINING_MODULES.operator.basics;
+  S.trainStep = 0;
+});
+</script>
+</body>
+</html>

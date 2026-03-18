@@ -1,4 +1,4 @@
-name: Deploy NEXUS v7 to GitHub Pages
+name: Deploy NEXUS v8 to GitHub Pages
 
 on:
   push:
@@ -22,10 +22,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Sync docs/index.html from nexus-v7.html
+      - name: Sync docs/index.html from nexus-v8.html
         run: |
-          cp nexus-v7.html docs/index.html
-          cp nexus-v7.html docs/nexus-v7.html
+          cp nexus-v8.html docs/index.html
+          cp nexus-v8.html docs/nexus-v8.html
           touch docs/.nojekyll
           touch .nojekyll
 
@@ -33,8 +33,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html docs/nexus-v7.html docs/.nojekyll .nojekyll
-          git diff --staged --quiet || git commit -m "chore: sync docs from nexus-v7.html [skip ci]"
+          git add docs/index.html docs/nexus-v8.html docs/.nojekyll .nojekyll
+          git diff --staged --quiet || git commit -m "chore: sync docs from nexus-v8.html [skip ci]"
           git push
 
       - name: Setup Pages

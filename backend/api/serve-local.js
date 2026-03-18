@@ -4,11 +4,11 @@ const fs   = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-const HTML = path.join(__dirname, '..', '..', 'nexus-v6.html');
-const PORT = 8080;
+const HTML = path.join(__dirname, '..', '..', 'nexus-v7.html');
+const PORT = 3000;
 
 if (!fs.existsSync(HTML)) {
-  console.error('ERROR: nexus-v6.html not found at', HTML);
+  console.error('ERROR: nexus-v7.html not found at', HTML);
   process.exit(1);
 }
 
@@ -38,7 +38,7 @@ server.listen(PORT, '0.0.0.0', function() {
   });
 
   console.log('');
-  console.log('  NEXUS v6 — Local Demo Server');
+  console.log('  NEXUS v7 — Local Demo Server');
   console.log('  ==============================');
   ips.forEach(function(ip) {
     console.log('  http://' + ip + ':' + PORT);

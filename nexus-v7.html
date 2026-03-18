@@ -1,0 +1,2902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXUS v7 — Broadcast Orchestration Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#02020a;--bg2:#07071a;--bg3:#0d0d22;--bg4:#12122e;
+  --b1:#1a1a3a;--b2:#242450;
+  --acc:#00d4ff;--acc2:#0099bb;
+  --pgm:#ff1a3a;--pvw:#00e87a;
+  --warn:#ffaa00;--ok:#00e87a;
+  --pur:#a855f7;--gold:#f59e0b;
+  --txt:#e0e0f0;--txt2:#8888aa;
+  --r:6px;--r2:10px;
+  --trans:all .18s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow:hidden}
+.mono{font-family:'JetBrains Mono',monospace}
+button{cursor:pointer;font-family:'Inter',sans-serif;border:none;outline:none}
+input,select{font-family:'Inter',sans-serif;outline:none}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+/* SCANLINES */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);
+  animation:scan 8s linear infinite}
+@keyframes scan{0%{background-position:0 0}100%{background-position:0 100px}}
+/* MOBILE RESPONSIVE */
+@media(max-width:768px){
+  #topnav{padding:0 6px;gap:2px}
+  .nav-brand{font-size:.75rem;letter-spacing:.1em}
+  #nav-groups{gap:1px}
+  .nav-group-btn{font-size:.62rem;padding:4px 6px}
+  #statusbar{font-size:.6rem;gap:6px;padding:0 6px}
+  .sb-item{display:none}
+  .sb-item.sb-always{display:flex}
+  .view{padding:8px}
+  .panel{padding:10px}
+  .sw-bus-row{gap:4px}
+  .sw-src-btn{min-width:44px;font-size:.65rem;padding:6px 4px}
+  .router-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}
+  .dd-panel{min-width:140px}
+  .login-box{width:95vw;padding:28px 20px}
+}
+@media(max-width:480px){
+  .nav-brand span{display:none}
+  #nav-groups .nav-group-btn:nth-child(n+4){display:none}
+  .sw-me-tabs{flex-wrap:wrap}
+}
+
+/* LOGIN */
+#login-page{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1000;
+  background:radial-gradient(ellipse at 50% 40%,#0d0d2a 0%,#02020a 70%)}
+#login-page::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);
+  background-size:40px 40px;animation:gridmove 20s linear infinite}
+@keyframes gridmove{0%{background-position:0 0}100%{background-position:40px 40px}}
+.login-box{position:relative;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r2);
+  padding:48px 40px;width:380px;box-shadow:0 0 60px rgba(0,212,255,.12)}
+.nexus-logo{text-align:center;margin-bottom:32px}
+.nexus-logo h1{font-size:2.8rem;font-weight:700;letter-spacing:.2em;
+  background:linear-gradient(135deg,var(--acc),var(--pur));-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:logopulse 2.5s ease-in-out infinite}
+@keyframes logopulse{0%,100%{filter:drop-shadow(0 0 8px rgba(0,212,255,.6))}50%{filter:drop-shadow(0 0 24px rgba(0,212,255,1))}}
+.nexus-logo p{color:var(--txt2);font-size:.75rem;letter-spacing:.3em;margin-top:4px}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-size:.72rem;color:var(--txt2);letter-spacing:.1em;margin-bottom:6px;text-transform:uppercase}
+.login-field input,.login-field select{width:100%;background:var(--bg4);border:1px solid var(--b2);
+  color:var(--txt);padding:10px 14px;border-radius:var(--r);font-size:.9rem;transition:var(--trans)}
+.login-field input:focus,.login-field select:focus{border-color:var(--acc);box-shadow:0 0 0 2px rgba(0,212,255,.15)}
+.login-field select option{background:var(--bg4)}
+.btn-login{width:100%;padding:12px;background:linear-gradient(135deg,var(--acc2),var(--acc));
+  color:#000;font-weight:700;font-size:.95rem;letter-spacing:.1em;border-radius:var(--r);
+  margin-top:8px;transition:var(--trans)}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,255,.4)}
+#login-err{color:var(--pgm);font-size:.8rem;text-align:center;margin-top:10px;min-height:18px}
+</style>
+</head>
+<body>
+<!-- LOGIN PAGE -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="nexus-logo"><h1>NEXUS</h1><p>BROADCAST ORCHESTRATION PLATFORM v7</p></div>
+    <div class="login-field"><label>Username</label><input type="text" id="user-input" placeholder="engineer / operator / trainer / viewer" value="engineer"></div>
+    <div class="login-field"><label>Password</label><input type="password" id="pw-input" placeholder="nexus2024"></div>
+    <div class="login-field"><label>API Endpoint (optional)</label><input type="text" id="api-input" placeholder="http://localhost:8080" value=""></div>
+    <button class="btn-login" onclick="doLogin()">SIGN IN</button>
+    <div id="login-err"></div>
+    <div style="margin-top:12px;font-size:.68rem;color:var(--txt2);text-align:center">Demo: any username + password <strong style="color:var(--acc)">nexus2024</strong></div>
+  </div>
+</div>
+<!-- MAIN APP -->
+<div id="app" style="display:none;flex-direction:column;height:100vh">
+<!-- TOP NAV -->
+<nav id="top-nav" style="background:var(--bg3);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;height:48px;gap:8px;position:relative;z-index:500;flex-shrink:0">
+  <div style="font-weight:700;font-size:1rem;letter-spacing:.15em;color:var(--acc);margin-right:12px;white-space:nowrap">NEXUS <span style="color:var(--txt2);font-size:.7rem">v6</span></div>
+  <div id="nav-groups" style="display:flex;gap:4px;flex:1"></div>
+  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+    <span id="role-badge" style="font-size:.68rem;font-weight:700;letter-spacing:.12em;padding:3px 8px;border-radius:3px;background:var(--b2);color:var(--acc)"></span>
+    <span id="nav-tc" class="mono" style="font-size:.8rem;color:var(--acc);letter-spacing:.05em"></span>
+    <span id="onair-dot" style="width:10px;height:10px;border-radius:50%;background:var(--pgm);animation:blink 1s step-end infinite"></span>
+    <button onclick="openSwitchUser()" style="background:var(--b1);color:var(--txt2);font-size:.72rem;padding:4px 10px;border-radius:var(--r);border:1px solid var(--b2)">SWITCH USER</button>
+  </div>
+</nav>
+<!-- DROPDOWN OVERLAY -->
+<div id="dd-overlay" onclick="closeAllDD()" style="display:none;position:fixed;inset:0;z-index:490"></div>
+<div id="dd-panels" style="position:fixed;top:48px;z-index:495"></div>
+<!-- STATUS BAR -->
+<div id="status-bar" style="background:var(--bg2);border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:16px;padding:0 16px;height:28px;font-size:.72rem;flex-shrink:0">
+  <span>TC: <span id="sb-tc" class="mono" style="color:var(--acc)">00:00:00:00</span></span>
+  <span>PGM: <span id="sb-pgm" style="color:var(--pgm);font-weight:600">CAM-01</span></span>
+  <span>PVW: <span id="sb-pvw" style="color:var(--pvw);font-weight:600">CAM-02</span></span>
+  <span>PTP: <span id="sb-ptp" class="mono" style="color:var(--ok)">+12ns</span></span>
+  <span style="display:flex;align-items:center;gap:4px">WS: <span id="sb-ws" style="width:7px;height:7px;border-radius:50%;background:var(--warn);display:inline-block"></span></span>
+  <span id="sb-onair" style="color:var(--pgm);font-weight:700;animation:blink 1s step-end infinite">● ON AIR</span>
+</div>
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+<!-- VIEWS CONTAINER -->
+<div id="views" style="flex:1;overflow:hidden;position:relative"></div>
+</div>
+<!-- SWITCH USER MODAL -->
+<div id="su-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;align-items:center;justify-content:center">
+  <div style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r2);padding:32px;width:320px">
+    <h3 style="margin-bottom:20px;color:var(--acc)">Switch User</h3>
+    <div class="login-field"><label>Password</label><input type="password" id="su-pw" placeholder="Enter password"></div>
+    <div class="login-field"><label>Role</label>
+      <select id="su-role">
+        <option value="ENGINEER">ENGINEER</option><option value="OPERATOR">OPERATOR</option>
+        <option value="TRAINER">TRAINER</option><option value="VIEWER">VIEWER</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button onclick="doSwitchUser()" style="flex:1;padding:10px;background:var(--acc);color:#000;font-weight:700;border-radius:var(--r)">SWITCH</button>
+      <button onclick="closeSwitchUser()" style="flex:1;padding:10px;background:var(--b2);color:var(--txt);border-radius:var(--r)">CANCEL</button>
+    </div>
+    <div id="su-err" style="color:var(--pgm);font-size:.8rem;margin-top:8px;text-align:center"></div>
+  </div>
+</div>
+<!-- TOAST -->
+<div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;background:var(--b2);border:1px solid var(--acc);color:var(--txt);padding:10px 18px;border-radius:var(--r);z-index:3000;font-size:.85rem"></div>
+<style>
+/* NAV DROPDOWN */
+.nav-group-btn{background:transparent;color:var(--txt2);font-size:.75rem;font-weight:600;letter-spacing:.1em;
+  padding:6px 12px;border-radius:var(--r);border:1px solid transparent;transition:var(--trans);white-space:nowrap}
+.nav-group-btn:hover,.nav-group-btn.active{background:var(--b1);color:var(--acc);border-color:var(--b2)}
+.dd-panel{position:absolute;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);
+  padding:6px;min-width:160px;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+.dd-item{display:block;width:100%;text-align:left;background:transparent;color:var(--txt2);
+  font-size:.78rem;font-weight:500;padding:7px 14px;border-radius:4px;transition:var(--trans);letter-spacing:.05em}
+.dd-item:hover{background:var(--b1);color:var(--acc)}
+.dd-item.dd-active{color:var(--acc);background:var(--b1)}
+/* VIEWS */
+.view{display:none;position:absolute;inset:0;overflow-y:auto;padding:16px;background:var(--bg)}
+.view.active{display:block}
+/* PANELS */
+.panel{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r2);padding:14px}
+.panel-title{font-size:.72rem;font-weight:700;letter-spacing:.15em;color:var(--txt2);text-transform:uppercase;margin-bottom:12px;border-bottom:1px solid var(--b1);padding-bottom:8px}
+/* BUTTONS */
+.btn{padding:6px 14px;border-radius:var(--r);font-size:.78rem;font-weight:600;letter-spacing:.06em;transition:var(--trans);border:1px solid transparent}
+.btn-acc{background:var(--acc);color:#000}.btn-acc:hover{background:var(--acc2)}
+.btn-pgm{background:var(--pgm);color:#fff}.btn-pgm:hover{filter:brightness(1.2)}
+.btn-pvw{background:var(--pvw);color:#000}.btn-pvw:hover{filter:brightness(1.2)}
+.btn-ghost{background:var(--b1);color:var(--txt2);border-color:var(--b2)}.btn-ghost:hover{color:var(--acc);border-color:var(--acc)}
+.btn-warn{background:var(--warn);color:#000}.btn-warn:hover{filter:brightness(1.1)}
+.btn-ok{background:var(--ok);color:#000}
+/* SOURCE BUTTONS */
+.src-btn{padding:5px 10px;border-radius:4px;font-size:.72rem;font-weight:600;background:var(--b1);
+  color:var(--txt2);border:1px solid var(--b2);transition:var(--trans);letter-spacing:.04em}
+.src-btn:hover{border-color:var(--acc);color:var(--acc)}
+.src-btn.pgm{background:var(--pgm);color:#fff;border-color:var(--pgm)}
+.src-btn.pvw{background:var(--pvw);color:#000;border-color:var(--pvw)}
+/* TABS */
+.tab-bar{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--b1);padding-bottom:8px}
+.tab-btn{background:transparent;color:var(--txt2);font-size:.75rem;font-weight:600;letter-spacing:.08em;
+  padding:5px 14px;border-radius:var(--r) var(--r) 0 0;border:1px solid transparent;transition:var(--trans)}
+.tab-btn:hover{color:var(--acc)}
+.tab-btn.active{background:var(--b1);color:var(--acc);border-color:var(--b2);border-bottom-color:var(--b1)}
+.tab-content{display:none}.tab-content.active{display:block}
+/* STATUS DOTS */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-ok{background:var(--ok)}.dot-warn{background:var(--warn)}.dot-err{background:var(--pgm)}.dot-idle{background:var(--txt2)}
+/* METRICS PILLS */
+.metric-pill{background:var(--bg4);border:1px solid var(--b1);border-radius:20px;padding:4px 12px;font-size:.72rem;display:flex;align-items:center;gap:6px}
+/* VU METER */
+.vu-wrap{display:flex;gap:2px;align-items:flex-end;height:60px}
+.vu-bar{width:8px;border-radius:2px 2px 0 0;transition:height .08s ease}
+/* GRID LAYOUTS */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+/* ALARM BADGES */
+.sev-crit{background:var(--pgm);color:#fff;padding:2px 7px;border-radius:3px;font-size:.68rem;font-weight:700}
+.sev-warn{background:var(--warn);color:#000;padding:2px 7px;border-radius:3px;font-size:.68rem;font-weight:700}
+.sev-info{background:var(--acc);color:#000;padding:2px 7px;border-radius:3px;font-size:.68rem;font-weight:700}
+.sev-ok{background:var(--ok);color:#000;padding:2px 7px;border-radius:3px;font-size:.68rem;font-weight:700}
+/* ROUTER MATRIX */
+.matrix-cell{width:28px;height:28px;border-radius:3px;background:var(--bg4);border:1px solid var(--b1);
+  cursor:pointer;transition:var(--trans);font-size:.6rem;color:var(--txt2)}
+.matrix-cell:hover{border-color:var(--acc);color:var(--acc)}
+.matrix-cell.routed{background:var(--acc);color:#000;border-color:var(--acc);font-weight:700}
+.matrix-cell.salvo{background:var(--warn);color:#000;border-color:var(--warn)}
+/* PROGRESS BAR */
+.prog-bar{height:6px;background:var(--b1);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .1s linear}
+/* RACK */
+.rack-unit{display:flex;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid var(--b1);font-size:.75rem}
+.rack-unit:hover{background:var(--bg4)}
+/* SIGNAL FLOW */
+.flow-node{cursor:pointer;transition:var(--trans)}
+.flow-node:hover rect,.flow-node.hl rect{filter:brightness(1.4)}
+/* TRAINING */
+.mod-item{padding:10px 14px;border-radius:var(--r);cursor:pointer;transition:var(--trans);border:1px solid transparent;margin-bottom:4px}
+.mod-item:hover{background:var(--bg4);border-color:var(--b2)}
+.mod-item.active{background:var(--b1);border-color:var(--acc);color:var(--acc)}
+.step-dot{width:10px;height:10px;border-radius:50%;background:var(--b2);cursor:pointer;transition:var(--trans)}
+.step-dot.done{background:var(--ok)}.step-dot.cur{background:var(--acc)}
+</style>
+<!-- VIEW: LIVE -->
+<div class="view" id="view-live">
+  <div style="display:grid;grid-template-columns:1fr 1fr 260px;gap:12px;height:100%">
+    <div class="panel">
+      <div class="panel-title" style="color:var(--pgm)">● PROGRAM</div>
+      <canvas id="pgm-canvas" width="480" height="270" style="width:100%;border:2px solid var(--pgm);border-radius:4px"></canvas>
+      <div style="display:flex;gap:4px;margin-top:8px" id="pgm-vu"></div>
+      <div style="margin-top:8px;font-size:.75rem;color:var(--txt2)">SRC: <span id="pgm-src-lbl" style="color:var(--pgm);font-weight:600">CAM-01</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title" style="color:var(--pvw)">◎ PREVIEW</div>
+      <canvas id="pvw-canvas" width="480" height="270" style="width:100%;border:2px solid var(--pvw);border-radius:4px"></canvas>
+      <div style="display:flex;gap:4px;margin-top:8px" id="pvw-vu"></div>
+      <div style="margin-top:8px;font-size:.75rem;color:var(--txt2)">SRC: <span id="pvw-src-lbl" style="color:var(--pvw);font-weight:600">CAM-02</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="panel" style="flex-shrink:0">
+        <div class="panel-title">METRICS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px" id="metrics-pills">
+          <div class="metric-pill"><span class="dot dot-ok"></span>CPU <span id="m-cpu" style="color:var(--acc)" class="mono">42%</span></div>
+          <div class="metric-pill"><span class="dot dot-ok"></span>MEM <span id="m-mem" style="color:var(--acc)" class="mono">61%</span></div>
+          <div class="metric-pill"><span class="dot dot-ok"></span>NET <span id="m-net" style="color:var(--acc)" class="mono">1.2G</span></div>
+          <div class="metric-pill"><span class="dot dot-ok"></span>LAT <span id="m-lat" style="color:var(--ok)" class="mono">4ms</span></div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;overflow:hidden">
+        <div class="panel-title">SOURCES</div>
+        <div id="src-list" style="display:flex;flex-direction:column;gap:4px;overflow-y:auto;max-height:200px"></div>
+      </div>
+      <div class="panel" style="flex-shrink:0">
+        <div class="panel-title">QUICK TAKE</div>
+        <div id="quick-take" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+      <div class="panel" style="flex:1;overflow:hidden">
+        <div class="panel-title">EVENTS</div>
+        <div id="events-log" style="font-size:.68rem;color:var(--txt2);overflow-y:auto;max-height:160px;display:flex;flex-direction:column;gap:2px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- VIEW: MOSAIC -->
+<div class="view" id="view-mosaic">
+  <div style="display:flex;flex-direction:column;gap:10px;height:100%">
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <span style="font-size:.75rem;color:var(--txt2);font-weight:600">LAYOUT:</span>
+      <button class="btn btn-ghost" onclick="setMosaicLayout('2x2')">2×2</button>
+      <button class="btn btn-ghost" onclick="setMosaicLayout('3x3')">3×3</button>
+      <button class="btn btn-ghost" onclick="setMosaicLayout('4x4')">4×4</button>
+      <button class="btn btn-ghost" onclick="setMosaicLayout('1+5')">1+5</button>
+      <button class="btn btn-ghost" onclick="setMosaicLayout('2+8')">2+8</button>
+      <span style="margin-left:8px;font-size:.75rem;color:var(--txt2)">PRESET:</span>
+      <button class="btn btn-ghost" onclick="saveMosaicPreset()">SAVE</button>
+      <select id="mosaic-preset-sel" onchange="loadMosaicPreset(this.value)" style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:4px 8px;font-size:.75rem"></select>
+      <button class="btn btn-ghost" onclick="deleteMosaicPreset()">DEL</button>
+    </div>
+    <div id="mosaic-grid" style="flex:1;display:grid;gap:6px;overflow:hidden"></div>
+  </div>
+  <!-- Source assign menu -->
+  <div id="mosaic-menu" style="display:none;position:fixed;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);padding:8px;z-index:600;min-width:180px;max-height:300px;overflow-y:auto"></div>
+</div>
+<!-- VIEW: SWITCHER -->
+<div class="view" id="view-switch">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="swTab('me')">ME BANKS</button>
+    <button class="tab-btn" onclick="swTab('keyers')">KEYERS</button>
+    <button class="tab-btn" onclick="swTab('tally')">TALLY/UMD</button>
+    <button class="tab-btn" onclick="swTab('macros')">MACROS</button>
+    <button class="tab-btn" onclick="swTab('alarms-sw')">ALARMS</button>
+  </div>
+  <div id="sw-tab-me" class="tab-content active">
+    <div id="me-banks" style="display:flex;flex-direction:column;gap:14px"></div>
+  </div>
+  <div id="sw-tab-keyers" class="tab-content">
+    <div id="keyers-panel" style="display:flex;flex-direction:column;gap:16px"></div>
+  </div>
+  <div id="sw-tab-tally" class="tab-content">
+    <div class="panel-title">TALLY — ALL SOURCES</div>
+    <div id="tally-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:8px"></div>
+  </div>
+  <div id="sw-tab-macros" class="tab-content">
+    <div class="panel-title">MACROS</div>
+    <div id="macros-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+  </div>
+  <div id="sw-tab-alarms-sw" class="tab-content">
+    <div id="sw-alarms-list" style="display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+</div>
+<!-- VIEW: ROUTER -->
+<div class="view" id="view-router">
+  <div style="display:flex;flex-direction:column;gap:10px;height:100%">
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <span style="font-size:.75rem;color:var(--txt2)">LEVEL:</span>
+      <button class="btn btn-ghost" onclick="setRouterLevel('VIDEO')">VIDEO</button>
+      <button class="btn btn-ghost" onclick="setRouterLevel('AUDIO-L')">AUDIO-L</button>
+      <button class="btn btn-ghost" onclick="setRouterLevel('AUDIO-R')">AUDIO-R</button>
+      <button class="btn btn-ghost" onclick="setRouterLevel('ANC')">ANC</button>
+      <span style="margin-left:12px;font-size:.75rem;color:var(--txt2)">SALVO:</span>
+      <button class="btn btn-warn" id="salvo-btn" onclick="toggleSalvo()">OFF</button>
+      <button class="btn btn-acc" onclick="executeSalvo()" id="exec-salvo" style="display:none">EXECUTE</button>
+      <button class="btn btn-ghost" onclick="clearSalvo()">CLEAR</button>
+    </div>
+    <div style="overflow:auto;flex:1">
+      <table id="router-matrix" style="border-collapse:collapse;font-size:.7rem"></table>
+    </div>
+  </div>
+</div>
+<!-- VIEW: AUDIO -->
+<div class="view" id="view-audio">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="audTab('routing')">ROUTING</button>
+    <button class="tab-btn" onclick="audTab('meters')">METERS</button>
+    <button class="tab-btn" onclick="audTab('dante')">DANTE BRIDGE</button>
+    <button class="tab-btn" onclick="audTab('config')">CONFIG</button>
+  </div>
+  <div id="aud-tab-routing" class="tab-content active">
+    <div class="panel-title">AUDIO ROUTING — 8×8</div>
+    <div style="overflow:auto;margin-top:8px"><table id="audio-matrix" style="border-collapse:collapse;font-size:.72rem"></table></div>
+  </div>
+  <div id="aud-tab-meters" class="tab-content">
+    <div class="panel-title">CHANNEL METERS — 16CH</div>
+    <canvas id="aud-meters-canvas" width="900" height="200" style="width:100%;margin-top:8px;border-radius:var(--r)"></canvas>
+  </div>
+  <div id="aud-tab-dante" class="tab-content">
+    <div class="panel-title">DANTE BRIDGE</div>
+    <div id="dante-devices" style="display:flex;flex-direction:column;gap:10px;margin-top:8px"></div>
+  </div>
+  <div id="aud-tab-config" class="tab-content">
+    <div class="grid2" style="gap:14px;margin-top:8px">
+      <div class="panel">
+        <div class="panel-title">SAMPLE RATE / BIT DEPTH</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div><label style="font-size:.72rem;color:var(--txt2)">Sample Rate</label>
+            <select style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px;width:100%;margin-top:4px">
+              <option>48kHz</option><option>96kHz</option></select></div>
+          <div><label style="font-size:.72rem;color:var(--txt2)">Bit Depth</label>
+            <select style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px;width:100%;margin-top:4px">
+              <option>24-bit</option><option>32-bit</option></select></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:.78rem">Frame Sync: <span class="dot dot-ok"></span><span style="color:var(--ok)">LOCKED</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">ST 2110-30 MULTICAST</div>
+        <div id="mc-groups" style="display:flex;flex-direction:column;gap:6px;font-size:.75rem"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- VIEW: CLOUD MCR -->
+<div class="view" id="view-cloud">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="cloudTab('rack')">VIRTUAL RACK</button>
+    <button class="tab-btn" onclick="cloudTab('flow')">SIGNAL FLOW</button>
+    <button class="tab-btn" onclick="cloudTab('links')">CLOUD LINKS</button>
+    <button class="tab-btn" onclick="cloudTab('hybrid')">HYBRID WORKFLOW</button>
+  </div>
+  <div id="cloud-tab-rack" class="tab-content active">
+    <div style="display:flex;gap:12px">
+      <div style="width:420px;background:var(--bg3);border:2px solid var(--b2);border-radius:var(--r2);overflow:hidden">
+        <div style="background:var(--b2);padding:8px 14px;font-size:.75rem;font-weight:700;letter-spacing:.1em;display:flex;justify-content:space-between">
+          <span>42U VIRTUAL RACK</span>
+          <button class="btn btn-acc" onclick="addVirtualDevice()" id="add-dev-btn" style="font-size:.68rem;padding:2px 8px">+ ADD</button>
+        </div>
+        <div id="rack-units" style="overflow-y:auto;max-height:500px"></div>
+      </div>
+      <div style="flex:1">
+        <div class="panel">
+          <div class="panel-title">DEVICE DETAILS</div>
+          <div id="rack-detail" style="font-size:.78rem;color:var(--txt2)">Select a device to view details.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="cloud-tab-flow" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">SIGNAL FLOW DIAGRAM</div>
+      <svg id="flow-svg" width="100%" height="480" style="background:var(--bg4);border-radius:var(--r)"></svg>
+    </div>
+  </div>
+  <div id="cloud-tab-links" class="tab-content">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="font-size:.75rem;color:var(--txt2)">MODE:</span>
+      <button class="btn btn-ghost" id="mode-ground" onclick="cloudSetMode('GROUND')">GROUND</button>
+      <button class="btn btn-acc" id="mode-hybrid" onclick="cloudSetMode('HYBRID')">HYBRID</button>
+      <button class="btn btn-ghost" id="mode-cloud" onclick="cloudSetMode('CLOUD')">CLOUD</button>
+    </div>
+    <div id="cloud-links-list" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+  <div id="cloud-tab-hybrid" class="tab-content">
+    <div class="grid2" style="gap:14px">
+      <div class="panel">
+        <div class="panel-title">ON-PREMISES RESOURCES</div>
+        <div id="onprem-res" style="display:flex;flex-direction:column;gap:6px;font-size:.78rem"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">CLOUD RESOURCES</div>
+        <div id="cloud-res" style="display:flex;flex-direction:column;gap:6px;font-size:.78rem"></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:12px">
+      <div class="panel-title">AUTOMATION RULES</div>
+      <div id="auto-rules" style="display:flex;flex-direction:column;gap:6px;font-size:.75rem"></div>
+    </div>
+  </div>
+</div>
+<!-- VIEW: RUNDOWN -->
+<div class="view" id="view-rundown">
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:12px;height:100%">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="panel" style="flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn btn-ok" onclick="rdGo()">GO</button>
+          <button class="btn btn-warn" onclick="rdHold()">HOLD</button>
+          <button class="btn btn-ghost" onclick="rdSkip()">SKIP</button>
+          <button class="btn btn-pgm" onclick="rdTake()">TAKE</button>
+          <span style="margin-left:auto;font-size:.75rem;color:var(--txt2)">SHOW: <span id="rd-show-clock" class="mono" style="color:var(--acc)">00:00:00</span></span>
+          <span style="font-size:.75rem;color:var(--txt2)">ELAPSED: <span id="rd-elapsed" class="mono" style="color:var(--ok)">00:00:00</span></span>
+          <span style="font-size:.75rem;color:var(--txt2)">REMAIN: <span id="rd-remain" class="mono" style="color:var(--warn)">00:00:00</span></span>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="panel-title" style="margin-bottom:0">RUNDOWN</div>
+          <button class="btn btn-ghost" onclick="showAddCue()">+ ADD CUE</button>
+        </div>
+        <div id="rundown-list" style="overflow-y:auto;max-height:400px;display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+      <div id="add-cue-form" class="panel" style="display:none;flex-shrink:0">
+        <div class="panel-title">ADD CUE</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="cue-type" style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px">
+            <option>LIVE</option><option>PKG</option><option>GFX</option><option>BREAK</option></select>
+          <input id="cue-label" placeholder="Label" style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px;flex:1">
+          <input id="cue-src" placeholder="Source" style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px;width:100px">
+          <input id="cue-dur" placeholder="00:00" style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px;width:70px">
+          <button class="btn btn-acc" onclick="addCue()">ADD</button>
+          <button class="btn btn-ghost" onclick="hideAddCue()">CANCEL</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="panel">
+        <div class="panel-title" style="color:var(--pgm)">ON AIR NOW</div>
+        <div id="rd-now" style="font-size:.85rem;color:var(--txt)">—</div>
+      </div>
+      <div class="panel">
+        <div class="panel-title" style="color:var(--pvw)">NEXT CUE</div>
+        <div id="rd-next" style="font-size:.85rem;color:var(--txt)">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- VIEW: PLAYOUT -->
+<div class="view" id="view-playout">
+  <div style="display:grid;grid-template-columns:1fr 260px;gap:12px">
+    <div class="panel">
+      <div class="panel-title">PLAYOUT CHANNELS</div>
+      <div id="playout-channels" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="panel">
+        <div class="panel-title">BANDWIDTH</div>
+        <div id="bw-summary" style="font-size:.78rem;display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">REGIONS</div>
+        <div id="regions-panel" style="font-size:.78rem;display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">FAILOVER</div>
+        <div id="failover-status" style="font-size:.78rem;display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- VIEW: SCOPES -->
+<div class="view" id="view-scopes">
+  <div class="grid2" style="gap:12px">
+    <div class="panel">
+      <div class="panel-title">WAVEFORM MONITOR</div>
+      <canvas id="wfm-canvas" width="600" height="200" style="width:100%;border-radius:4px"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">VECTORSCOPE</div>
+      <canvas id="vec-canvas" width="300" height="300" style="width:100%;max-width:300px;border-radius:50%"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">AUDIO METERS — 8CH</div>
+      <canvas id="scope-aud-canvas" width="600" height="120" style="width:100%;border-radius:4px"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">HISTOGRAM</div>
+      <canvas id="hist-canvas" width="600" height="200" style="width:100%;border-radius:4px"></canvas>
+    </div>
+  </div>
+</div>
+<!-- VIEW: SYNC (PTP) -->
+<div class="view" id="view-sync">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="panel">
+      <div class="panel-title">PTP STATUS</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.78rem" id="ptp-table">
+        <thead><tr style="color:var(--txt2);border-bottom:1px solid var(--b1)">
+          <th style="text-align:left;padding:6px">PARAMETER</th><th style="text-align:left;padding:6px">VALUE</th></tr></thead>
+        <tbody id="ptp-tbody"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="panel-title">CLOCK HIERARCHY</div>
+      <div id="ptp-hierarchy" style="font-size:.78rem;display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <div class="panel" style="grid-column:1/-1">
+      <div class="panel-title">OFFSET CHART — LAST 60 SAMPLES</div>
+      <canvas id="ptp-chart" width="900" height="120" style="width:100%;border-radius:4px"></canvas>
+    </div>
+  </div>
+</div>
+<!-- VIEW: CONNECT (NMOS) -->
+<div class="view" id="view-connect">
+  <div class="panel">
+    <div class="panel-title">NMOS NODE REGISTRY</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+      <thead><tr style="color:var(--txt2);border-bottom:1px solid var(--b1)">
+        <th style="text-align:left;padding:8px">NODE</th><th style="text-align:left;padding:8px">IP</th>
+        <th style="text-align:left;padding:8px">IS-04</th><th style="text-align:left;padding:8px">IS-05</th>
+        <th style="text-align:left;padding:8px">STATUS</th><th style="text-align:left;padding:8px">ACTION</th></tr></thead>
+      <tbody id="nmos-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<!-- VIEW: DEVICES -->
+<div class="view" id="view-devices">
+  <div class="panel">
+    <div class="panel-title">DEVICE COMPATIBILITY MATRIX</div>
+    <div style="overflow:auto"><table id="compat-table" style="border-collapse:collapse;font-size:.72rem;margin-top:8px"></table></div>
+  </div>
+</div>
+<!-- VIEW: SRT/CLOUD -->
+<div class="view" id="view-srt">
+  <div class="panel">
+    <div class="panel-title">SRT STREAMS</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+      <thead><tr style="color:var(--txt2);border-bottom:1px solid var(--b1)">
+        <th style="text-align:left;padding:8px">NAME</th><th style="text-align:left;padding:8px">DIR</th>
+        <th style="text-align:left;padding:8px">CODEC</th><th style="text-align:left;padding:8px">BITRATE</th>
+        <th style="text-align:left;padding:8px">LATENCY</th><th style="text-align:left;padding:8px">STATUS</th></tr></thead>
+      <tbody id="srt-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<!-- VIEW: ORCHESTRATE -->
+<div class="view" id="view-orchestrate">
+  <div class="grid2" style="gap:12px">
+    <div class="panel">
+      <div class="panel-title">SERVICES</div>
+      <div id="orch-services" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">DEPLOY NEW SERVICE</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div><label style="font-size:.72rem;color:var(--txt2)">Service Name</label>
+          <input id="orch-name" style="width:100%;background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:7px;margin-top:4px"></div>
+        <div><label style="font-size:.72rem;color:var(--txt2)">Image</label>
+          <input id="orch-image" style="width:100%;background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:7px;margin-top:4px"></div>
+        <div><label style="font-size:.72rem;color:var(--txt2)">Instances</label>
+          <input id="orch-inst" type="number" value="1" min="1" max="10" style="width:100%;background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:7px;margin-top:4px"></div>
+        <button class="btn btn-acc" onclick="deployService()">DEPLOY</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- VIEW: API -->
+<div class="view" id="view-api">
+  <div class="panel">
+    <div class="panel-title">REST API EXPLORER</div>
+    <div id="api-endpoints" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+  </div>
+</div>
+<!-- VIEW: PRE-FLIGHT -->
+<div class="view" id="view-preflight">
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="panel-title" style="margin-bottom:0">PRE-FLIGHT CHECKS</div>
+      <button class="btn btn-acc" onclick="runPreFlight()">RUN CHECKS</button>
+    </div>
+    <div id="preflight-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+<!-- VIEW: NETWORK -->
+<div class="view" id="view-network">
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:.75rem;color:var(--txt2)">MODE:</span>
+      <button class="btn btn-ghost" onclick="setNetMode('MULTICAST')">MULTICAST</button>
+      <button class="btn btn-acc" onclick="setNetMode('HYBRID')">HYBRID</button>
+      <button class="btn btn-ghost" onclick="setNetMode('UNICAST')">UNICAST</button>
+      <span style="margin-left:12px;font-size:.75rem;color:var(--txt2)">TRANSPORT:</span>
+      <button class="btn btn-ghost" onclick="setTransport('UDP')">UDP</button>
+      <button class="btn btn-ghost" onclick="setTransport('TCP')">TCP</button>
+    </div>
+    <div class="panel">
+      <div class="panel-title">INTERFACES</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+        <thead><tr style="color:var(--txt2);border-bottom:1px solid var(--b1)">
+          <th style="text-align:left;padding:8px">IFACE</th><th style="text-align:left;padding:8px">IP</th>
+          <th style="text-align:left;padding:8px">MASK</th><th style="text-align:left;padding:8px">SPEED</th>
+          <th style="text-align:left;padding:8px">STATUS</th><th style="text-align:left;padding:8px">ROLE</th></tr></thead>
+        <tbody id="net-iface-tbody"></tbody>
+      </table>
+    </div>
+    <div class="grid2" style="gap:12px">
+      <div class="panel">
+        <div class="panel-title">MULTICAST GROUPS</div>
+        <div id="mc-list" style="font-size:.75rem;display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">UNICAST CONNECTIONS</div>
+        <div id="uc-list" style="font-size:.75rem;display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+    </div>
+    <div class="panel" id="net-ip-form">
+      <div class="panel-title">MANUAL IP CONFIG <span style="color:var(--warn);font-size:.68rem">(ENGINEER ONLY)</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="net-iface-sel" style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px">
+          <option>eth0</option><option>eth1</option><option>eth2</option><option>eth3</option></select>
+        <input id="net-ip-val" placeholder="IP Address" style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px;width:140px">
+        <input id="net-mask-val" placeholder="Subnet Mask" style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px;width:140px">
+        <input id="net-gw-val" placeholder="Gateway" style="background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:6px;width:140px">
+        <button class="btn btn-acc" onclick="applyNetConfig()">APPLY</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- VIEW: ALARMS -->
+<div class="view" id="view-alarms">
+  <div class="panel" style="height:100%;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-shrink:0">
+      <div class="panel-title" style="margin-bottom:0">ALARM LOG</div>
+      <button class="btn btn-ghost" onclick="filterAlarms('ALL')">ALL</button>
+      <button class="btn btn-ghost" onclick="filterAlarms('CRIT')">CRIT</button>
+      <button class="btn btn-ghost" onclick="filterAlarms('WARN')">WARN</button>
+      <button class="btn btn-ghost" onclick="filterAlarms('INFO')">INFO</button>
+      <button class="btn btn-ghost" onclick="filterAlarms('OK')">OK</button>
+      <button class="btn btn-pgm" id="clear-alarms-btn" onclick="clearAlarms()" style="margin-left:auto">CLEAR ALL</button>
+    </div>
+    <div id="alarms-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+</div>
+<!-- VIEW: SETTINGS -->
+<div class="view" id="view-settings">
+  <div class="grid2" style="gap:14px">
+    <div class="panel">
+      <div class="panel-title">SYSTEM CONFIG</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div><label style="font-size:.72rem;color:var(--txt2)">Hostname</label>
+          <input id="cfg-hostname" value="nexus-mcr-01" style="width:100%;background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:7px;margin-top:4px"></div>
+        <div><label style="font-size:.72rem;color:var(--txt2)">Domain</label>
+          <input id="cfg-domain" value="broadcast.local" style="width:100%;background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:7px;margin-top:4px"></div>
+        <div><label style="font-size:.72rem;color:var(--txt2)">NTP Server</label>
+          <input id="cfg-ntp" value="192.168.1.1" style="width:100%;background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:7px;margin-top:4px"></div>
+        <div><label style="font-size:.72rem;color:var(--txt2)">Log Level</label>
+          <select id="cfg-log" style="width:100%;background:var(--bg4);color:var(--txt);border:1px solid var(--b2);border-radius:var(--r);padding:7px;margin-top:4px">
+            <option>INFO</option><option>DEBUG</option><option>WARN</option><option>ERROR</option></select></div>
+        <button class="btn btn-acc" onclick="saveSettings()">SAVE CONFIG</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">USER MANAGEMENT</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.75rem">
+        <thead><tr style="color:var(--txt2);border-bottom:1px solid var(--b1)">
+          <th style="text-align:left;padding:6px">USER</th><th style="text-align:left;padding:6px">ROLE</th>
+          <th style="text-align:left;padding:6px">LAST LOGIN</th><th style="text-align:left;padding:6px">STATUS</th></tr></thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="panel-title">BACKUP / RESTORE</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-acc" onclick="backupConfig()">BACKUP TO FILE</button>
+        <button class="btn btn-ghost" onclick="restoreConfig()">RESTORE</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">ABOUT</div>
+      <div style="font-size:.78rem;display:flex;flex-direction:column;gap:6px;color:var(--txt2)">
+        <div>Version: <span style="color:var(--acc)">6.0.0</span></div>
+        <div>Build: <span style="color:var(--acc)">2025-01-15</span></div>
+        <div>License: <span style="color:var(--ok)">ENTERPRISE</span></div>
+        <div>Platform: <span style="color:var(--txt)">NEXUS Broadcast Platform</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- VIEW: TRAINING -->
+<div class="view" id="view-training">
+  <div style="display:grid;grid-template-columns:260px 1fr;gap:14px;height:100%">
+    <div class="panel" style="overflow-y:auto">
+      <div class="panel-title">MODULES</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:.72rem;color:var(--txt2);margin-bottom:4px">OVERALL PROGRESS</div>
+        <div class="prog-bar"><div id="train-overall-bar" class="prog-fill" style="background:var(--acc);width:0%"></div></div>
+        <div id="train-overall-pct" style="font-size:.7rem;color:var(--txt2);margin-top:3px">0 / 7 modules</div>
+      </div>
+      <div id="train-mod-list"></div>
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column">
+      <div id="train-content" style="flex:1;overflow-y:auto"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px;flex-shrink:0;border-top:1px solid var(--b1);padding-top:12px">
+        <button class="btn btn-ghost" onclick="trainPrev()">◀ PREV</button>
+        <div id="train-step-dots" style="display:flex;gap:6px;flex:1;justify-content:center"></div>
+        <button class="btn btn-ghost" onclick="trainNext()">NEXT ▶</button>
+        <button class="btn btn-acc" onclick="trainComplete()">COMPLETE MODULE</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- VIEW: COMPATIBILITY -->
+<div class="view" id="view-compat">
+  <div class="panel">
+    <div class="panel-title">VENDOR COMPATIBILITY MATRIX</div>
+    <div style="overflow:auto;margin-top:8px"><table id="compat-matrix" style="border-collapse:collapse;font-size:.7rem"></table></div>
+    <div style="display:flex;gap:16px;margin-top:14px;font-size:.75rem;color:var(--txt2)">
+      <span><span style="color:var(--ok)">✓</span> Native</span>
+      <span><span style="color:var(--warn)">◎</span> Via Gateway</span>
+      <span><span style="color:var(--txt2)">—</span> Not Supported</span>
+    </div>
+  </div>
+</div>
+<script>
+// ============================================================
+// STATE
+// ============================================================
+var PW='nexus2024';
+var ROLE='VIEWER';
+var _ivs=[];
+var ALARMS=[];
+var _alarmFilter='ALL';
+var _tc=0; // frames at 25fps
+var _wsConn=null;
+var _wsOk=false;
+var _tallies={};
+var _ptpOffset=0;
+var _ptpLocked=true;
+var _mosaicLayout='2x2';
+var _mosaicTiles=[];
+var _mosaicPresets={};
+var _routerLevel='VIDEO';
+var _salvoMode=false;
+var _salvoSel=[];
+var _audioMatrix={}; // dst->src
+var _cloudMode='HYBRID';
+var _rdCues=[];
+var _rdCurrent=0;
+var _rdRunning=false;
+var _rdShowSec=0;
+var _rdElapsedSec=0;
+var _trainMod=0;
+var _trainStep=0;
+var _trainDone=[];
+var _netMode='HYBRID';
+var _transport='UDP';
+var _ptpSamples=[];
+var _scopePhase=0;
+var _vecPhase=0;
+var _histPhase=0;
+var _audPhase=0;
+var _ptpPhase=0;
+var _livePhase=0;
+var SOURCES=[
+  'CAM-01','CAM-02','CAM-03','CAM-04','CAM-05','CAM-06','CAM-07','CAM-08',
+  'GFX-01','GFX-02','VTR-01','VTR-02','VTR-03','REM-01','REM-02','REM-03',
+  'NET-01','NET-02','TST-01','TST-02','CLN-01','CLN-02','AUX-01','AUX-02'
+];
+var SW={me:[
+  {name:'ME 1',pgm:'CAM-01',pvw:'CAM-02',trans:0,running:false,rate:25,type:'MIX',
+   keyers:[
+    {id:'UK1',on:false,type:'LUMA',fill:'GFX-01',key:'GFX-01'},
+    {id:'UK2',on:false,type:'CHROMA',fill:'GFX-02',key:'GFX-02'},
+    {id:'UK3',on:false,type:'LINEAR',fill:'TST-01',key:'TST-01'},
+    {id:'DSK1',on:false,type:'LUMA',fill:'GFX-01',key:'GFX-01'},
+    {id:'DSK2',on:false,type:'LINEAR',fill:'GFX-02',key:'GFX-02'},
+    {id:'DSK3',on:false,type:'PATTERN',fill:'TST-01',key:'TST-01'}
+   ]},
+  {name:'ME 2',pgm:'CAM-03',pvw:'CAM-04',trans:0,running:false,rate:25,type:'MIX',
+   keyers:[
+    {id:'UK1',on:false,type:'LUMA',fill:'GFX-01',key:'GFX-01'},
+    {id:'UK2',on:false,type:'CHROMA',fill:'GFX-02',key:'GFX-02'},
+    {id:'UK3',on:false,type:'LINEAR',fill:'TST-01',key:'TST-01'},
+    {id:'DSK1',on:false,type:'LUMA',fill:'GFX-01',key:'GFX-01'},
+    {id:'DSK2',on:false,type:'LINEAR',fill:'GFX-02',key:'GFX-02'},
+    {id:'DSK3',on:false,type:'PATTERN',fill:'TST-01',key:'TST-01'}
+   ]},
+  {name:'ME 3',pgm:'CAM-05',pvw:'CAM-06',trans:0,running:false,rate:25,type:'MIX',
+   keyers:[
+    {id:'UK1',on:false,type:'LUMA',fill:'GFX-01',key:'GFX-01'},
+    {id:'UK2',on:false,type:'CHROMA',fill:'GFX-02',key:'GFX-02'},
+    {id:'UK3',on:false,type:'LINEAR',fill:'TST-01',key:'TST-01'},
+    {id:'DSK1',on:false,type:'LUMA',fill:'GFX-01',key:'GFX-01'},
+    {id:'DSK2',on:false,type:'LINEAR',fill:'GFX-02',key:'GFX-02'},
+    {id:'DSK3',on:false,type:'PATTERN',fill:'TST-01',key:'TST-01'}
+   ]}
+]};
+var ROUTER={};
+(function(){for(var d=0;d<16;d++){ROUTER[d]=d;}})();
+</script>
+<script>
+// ============================================================
+// ROLE-BASED ACCESS
+// ============================================================
+var ROLE_NAV={
+  ENGINEER:{
+    PRODUCTION:['live','mosaic','switch','router','rundown','playout'],
+    SIGNAL:['scopes','sync','connect','audio'],
+    INFRASTRUCTURE:['cloud','srt','orchestrate','devices'],
+    SYSTEM:['api','preflight','network','alarms','settings'],
+    TRAINING:['training','compat']
+  },
+  OPERATOR:{
+    PRODUCTION:['live','mosaic','switch','router','rundown','playout'],
+    SIGNAL:['scopes','sync','connect','audio'],
+    SYSTEM:['preflight','network','alarms'],
+    TRAINING:['training','compat']
+  },
+  TRAINER:{
+    PRODUCTION:['live','mosaic','switch','router','rundown','playout'],
+    SIGNAL:['scopes','sync','connect','audio'],
+    INFRASTRUCTURE:['cloud','srt','orchestrate','devices'],
+    SYSTEM:['api','preflight','network','alarms','settings'],
+    TRAINING:['training','compat']
+  },
+  VIEWER:{
+    PRODUCTION:['live','mosaic'],
+    SIGNAL:['scopes','sync'],
+    TRAINING:['training','compat']
+  }
+};
+var VIEW_LABELS={
+  live:'LIVE',mosaic:'MOSAIC',switch:'SWITCH',router:'ROUTER',rundown:'RUNDOWN',playout:'PLAYOUT',
+  scopes:'SCOPES',sync:'SYNC',connect:'CONNECT',audio:'AUDIO',
+  cloud:'CLOUD MCR',srt:'SRT/CLOUD',orchestrate:'ORCHESTRATE',devices:'DEVICES',
+  api:'API',preflight:'PRE-FLIGHT',network:'NETWORK',alarms:'ALARMS',settings:'SETTINGS',
+  training:'TRAINING',compat:'COMPATIBILITY'
+};
+function canEngineer(){return ROLE==='ENGINEER';}
+function canOperator(){return ROLE==='ENGINEER'||ROLE==='OPERATOR'||ROLE==='TRAINER';}
+function canOp(viewId){
+  var nav=ROLE_NAV[ROLE]||{};
+  for(var g in nav){if(nav[g].indexOf(viewId)>=0)return true;}
+  return false;
+}
+// ============================================================
+// LOGIN
+// ============================================================
+var _jwtToken = '';
+var _apiBase = '';
+
+function doLogin(){
+  var username = (document.getElementById('user-input')||{value:'engineer'}).value.trim() || 'engineer';
+  var pw = document.getElementById('pw-input').value;
+  var apiInput = document.getElementById('api-input');
+  _apiBase = (apiInput ? apiInput.value.trim() : '') || '';
+  var errEl = document.getElementById('login-err');
+  errEl.textContent = '';
+
+  if(!pw){errEl.textContent='Enter password';return;}
+
+  // Try real API first if endpoint configured
+  if(_apiBase){
+    fetch(_apiBase+'/api/v1/auth/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:username,password:pw})
+    }).then(function(r){return r.json();}).then(function(data){
+      if(data.token){
+        _jwtToken=data.token;
+        ROLE=data.role||'VIEWER';
+        _launchApp();
+      } else {
+        errEl.textContent=data.error||'Login failed';
+      }
+    }).catch(function(){
+      // API unreachable — fall back to demo mode
+      _demoLogin(username,pw,errEl);
+    });
+  } else {
+    _demoLogin(username,pw,errEl);
+  }
+}
+
+function _demoLogin(username,pw,errEl){
+  if(pw!=='nexus2024'){errEl.textContent='Invalid password';return;}
+  var roleMap={engineer:'ENGINEER',operator:'OPERATOR',trainer:'TRAINER',viewer:'VIEWER'};
+  ROLE=roleMap[username.toLowerCase()]||'VIEWER';
+  _jwtToken='demo-token';
+  _launchApp();
+}
+
+function _launchApp(){
+  document.getElementById('login-page').style.display='none';
+  var app=document.getElementById('app');
+  app.style.display='flex';
+  initApp();
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  var pwEl=document.getElementById('pw-input');
+  if(pwEl)pwEl.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+});
+
+function openSwitchUser(){
+  document.getElementById('su-modal').style.display='flex';
+  document.getElementById('su-pw').value='';
+  document.getElementById('su-err').textContent='';
+}
+function closeSwitchUser(){document.getElementById('su-modal').style.display='none';}
+function doSwitchUser(){
+  var pw=document.getElementById('su-pw').value;
+  var role=document.getElementById('su-role').value;
+  if(_apiBase && _jwtToken && _jwtToken!=='demo-token'){
+    // Re-auth with new role not supported via API — just update locally
+  }
+  if(pw!=='nexus2024'){document.getElementById('su-err').textContent='Invalid password';return;}
+  ROLE=role;
+  closeSwitchUser();
+  document.getElementById('role-badge').textContent=ROLE;
+  buildNav();
+  showToast('Switched to '+ROLE);
+  _saveState();
+}
+// ============================================================
+// TOAST
+// ============================================================
+var _toastTimer=null;
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  if(_toastTimer)clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(function(){t.style.display='none';},2800);
+}
+// ============================================================
+// TIMECODE
+// ============================================================
+function tcStr(f){
+  var fps=25;
+  var s=Math.floor(f/fps);f=f%fps;
+  var m=Math.floor(s/60);s=s%60;
+  var h=Math.floor(m/60);m=m%60;
+  return pad2(h)+':'+pad2(m)+':'+pad2(s)+':'+pad2(f);
+}
+function pad2(n){return n<10?'0'+n:String(n);}
+function tickTC(){
+  _tc=(_tc+1)%(25*60*60*24);
+  var s=tcStr(_tc);
+  var el=document.getElementById('nav-tc');if(el)el.textContent=s;
+  var sb=document.getElementById('sb-tc');if(sb)sb.textContent=s;
+}
+// ============================================================
+// LOCALSTORAGE
+// ============================================================
+function _saveState(){
+  try{
+    localStorage.setItem('nx6_router',JSON.stringify(ROUTER));
+    localStorage.setItem('nx6_mosaic_presets',JSON.stringify(_mosaicPresets));
+    localStorage.setItem('nx6_rundown',JSON.stringify(_rdCues));
+    localStorage.setItem('nx6_sw',JSON.stringify(SW));
+    localStorage.setItem('nx6_audio',JSON.stringify(_audioMatrix));
+    localStorage.setItem('nx6_role',ROLE);
+  }catch(e){}
+}
+function _loadState(){
+  try{
+    var r=localStorage.getItem('nx6_router');if(r)ROUTER=JSON.parse(r);
+    var mp=localStorage.getItem('nx6_mosaic_presets');if(mp)_mosaicPresets=JSON.parse(mp);
+    var rd=localStorage.getItem('nx6_rundown');if(rd)_rdCues=JSON.parse(rd);
+    var sw=localStorage.getItem('nx6_sw');if(sw)SW=JSON.parse(sw);
+    var am=localStorage.getItem('nx6_audio');if(am)_audioMatrix=JSON.parse(am);
+  }catch(e){}
+}
+</script>
+<script>
+// ============================================================
+// NAV / DROPDOWN
+// ============================================================
+var _activeView='live';
+var _openDD=null;
+function buildNav(){
+  var nav=ROLE_NAV[ROLE]||{};
+  var container=document.getElementById('nav-groups');
+  container.innerHTML='';
+  var ddPanels=document.getElementById('dd-panels');
+  ddPanels.innerHTML='';
+  Object.keys(nav).forEach(function(grp){
+    var views=nav[grp];
+    var btn=document.createElement('button');
+    btn.className='nav-group-btn';
+    btn.id='navbtn-'+grp;
+    btn.textContent=grp;
+    btn.onclick=function(e){e.stopPropagation();toggleDD(grp,btn);};
+    container.appendChild(btn);
+    var panel=document.createElement('div');
+    panel.className='dd-panel';
+    panel.id='dd-'+grp;
+    panel.style.display='none';
+    views.forEach(function(vid){
+      var item=document.createElement('button');
+      item.className='dd-item';
+      item.id='dditem-'+vid;
+      item.textContent=VIEW_LABELS[vid]||vid.toUpperCase();
+      item.onclick=function(){navigateTo(vid);closeAllDD();};
+      panel.appendChild(item);
+    });
+    ddPanels.appendChild(panel);
+  });
+  // highlight active
+  highlightNav();
+}
+function toggleDD(grp,btn){
+  var panel=document.getElementById('dd-'+grp);
+  if(!panel)return;
+  var isOpen=panel.style.display!=='none';
+  closeAllDD();
+  if(!isOpen){
+    var rect=btn.getBoundingClientRect();
+    panel.style.left=rect.left+'px';
+    panel.style.display='block';
+    document.getElementById('dd-overlay').style.display='block';
+    _openDD=grp;
+    document.getElementById('navbtn-'+grp).classList.add('active');
+  }
+}
+function closeAllDD(){
+  document.querySelectorAll('.dd-panel').forEach(function(p){p.style.display='none';});
+  document.getElementById('dd-overlay').style.display='none';
+  document.querySelectorAll('.nav-group-btn').forEach(function(b){b.classList.remove('active');});
+  _openDD=null;
+}
+function highlightNav(){
+  document.querySelectorAll('.dd-item').forEach(function(el){el.classList.remove('dd-active');});
+  var el=document.getElementById('dditem-'+_activeView);
+  if(el)el.classList.add('dd-active');
+}
+function navigateTo(vid){
+  if(!canOp(vid)){showToast('Access denied for role: '+ROLE);return;}
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var v=document.getElementById('view-'+vid);
+  if(v){v.classList.add('active');_activeView=vid;highlightNav();}
+  onViewActivated(vid);
+}
+function onViewActivated(vid){
+  if(vid==='switch')renderSwitcher();
+  if(vid==='router')renderRouter();
+  if(vid==='audio')renderAudio();
+  if(vid==='cloud')renderCloud();
+  if(vid==='rundown')renderRundown();
+  if(vid==='playout')renderPlayout();
+  if(vid==='connect')renderNMOS();
+  if(vid==='devices')renderDevices();
+  if(vid==='srt')renderSRT();
+  if(vid==='orchestrate')renderOrchestrate();
+  if(vid==='api')renderAPI();
+  if(vid==='preflight')renderPreFlight();
+  if(vid==='network')renderNetwork();
+  if(vid==='alarms')renderAlarms();
+  if(vid==='settings')renderSettings();
+  if(vid==='training')renderTraining();
+  if(vid==='compat')renderCompat();
+  if(vid==='sync')renderSync();
+  if(vid==='mosaic')renderMosaic();
+}
+// ============================================================
+// WEBSOCKET — JWT authenticated, real backend integration
+// ============================================================
+var _wsReconnectTimer=null;
+var _wsReconnectDelay=2000;
+
+function initWS(){
+  if(_wsReconnectTimer){clearTimeout(_wsReconnectTimer);_wsReconnectTimer=null;}
+  var wsBase=_apiBase?_apiBase.replace(/^http/,'ws'):'ws://localhost:8080';
+  var url=wsBase+'/ws/control?token='+encodeURIComponent(_jwtToken||'demo-token');
+  try{
+    _wsConn=new WebSocket(url);
+    _wsConn.onopen=function(){
+      _wsOk=true;
+      _wsReconnectDelay=2000;
+      updateWSStatus();
+      // Request full state on connect
+      _wsSend({type:'GET_STATE'});
+      addAlarm('OK','WebSocket connected to NEXUS API');
+    };
+    _wsConn.onclose=function(e){
+      _wsOk=false;
+      updateWSStatus();
+      if(e.code!==1000){
+        _wsReconnectTimer=setTimeout(function(){
+          _wsReconnectDelay=Math.min(_wsReconnectDelay*1.5,30000);
+          initWS();
+        },_wsReconnectDelay);
+      }
+    };
+    _wsConn.onerror=function(){_wsOk=false;updateWSStatus();};
+    _wsConn.onmessage=function(e){
+      try{handleWS(JSON.parse(e.data));}catch(ex){}
+    };
+  }catch(ex){_wsOk=false;updateWSStatus();}
+}
+
+function _wsSend(msg){
+  if(_wsConn&&_wsConn.readyState===1){
+    _wsConn.send(JSON.stringify(msg));
+  }
+}
+
+function updateWSStatus(){
+  var dot=document.getElementById('sb-ws');
+  if(dot)dot.style.background=_wsOk?'var(--ok)':'var(--warn)';
+  var lbl=document.getElementById('sb-ws-lbl');
+  if(lbl)lbl.textContent=_wsOk?'LIVE':'OFFLINE';
+}
+
+function handleWS(msg){
+  if(!msg||!msg.type)return;
+  switch(msg.type){
+    case 'INIT':
+      addAlarm('OK','Session established — Role: '+msg.role);
+      break;
+    case 'FULL_STATE':
+      if(msg.state){
+        // Sync ME banks
+        if(msg.state.me&&Array.isArray(msg.state.me)){
+          msg.state.me.forEach(function(me,i){
+            if(SW.me[i]){SW.me[i].pgm=me.pgm;SW.me[i].pvw=me.pvw;}
+          });
+          if(_activeView==='switch')renderSwitcher();
+          updateSBPGM();
+        }
+        // Sync router
+        if(msg.state.router&&Array.isArray(msg.state.router)){
+          msg.state.router.forEach(function(r){ROUTER[r.dst]=r.src;});
+          if(_activeView==='router')renderRouter();
+        }
+        // Sync alarms
+        if(msg.state.alarms&&Array.isArray(msg.state.alarms)){
+          msg.state.alarms.slice(0,20).forEach(function(a){
+            addAlarm(a.severity?a.severity.toUpperCase():'INFO',a.message||'');
+          });
+        }
+        // Sync timecode
+        if(msg.state.timecode){
+          var el=document.getElementById('nav-tc');if(el)el.textContent=msg.state.timecode;
+        }
+      }
+      break;
+    case 'TC_UPDATE':
+      if(msg.timecode){
+        var el=document.getElementById('nav-tc');if(el)el.textContent=msg.timecode;
+        var sb=document.getElementById('sb-tc');if(sb)sb.textContent=msg.timecode;
+      }
+      break;
+    case 'PTP_UPDATE':
+      if(msg.offset!=null){
+        var el=document.getElementById('sb-ptp');if(el)el.textContent=msg.offset+'ns';
+        _ptpOffset=msg.offset;
+        _ptpLocked=msg.locked;
+      }
+      break;
+    case 'SWITCHER_CUT':
+    case 'SWITCHER_SYNC':
+      if(msg.me!=null&&SW.me[msg.me]){
+        SW.me[msg.me].pgm=msg.pgm;
+        SW.me[msg.me].pvw=msg.pvw;
+        if(_activeView==='switch')renderSwitcher();
+        updateSBPGM();
+        addAlarm('INFO','ME'+(msg.me+1)+' CUT → SRC '+msg.pgm+(msg.source?' ['+msg.source+']':''));
+      }
+      break;
+    case 'SWITCHER_PVW':
+      if(msg.me!=null&&SW.me[msg.me]){
+        SW.me[msg.me].pvw=msg.pvw;
+        if(_activeView==='switch')renderSwitcher();
+      }
+      break;
+    case 'SWITCHER_TRANS_PROGRESS':
+      if(msg.me!=null){
+        var bar=document.getElementById('tbar-fill-'+msg.me);
+        if(bar)bar.style.height=Math.round(msg.progress*100)+'%';
+      }
+      break;
+    case 'ROUTER_ROUTE':
+      if(msg.dst!=null&&msg.src!=null){
+        ROUTER[msg.dst]=msg.src;
+        if(_activeView==='router')renderRouter();
+        _saveState();
+      }
+      break;
+    case 'ROUTER_LOCK':
+      if(_activeView==='router')renderRouter();
+      break;
+    case 'TALLY_UPDATE':
+      if(msg.tallies&&Array.isArray(msg.tallies)){
+        _tallies={};
+        msg.tallies.forEach(function(t){
+          if(t.pgm)_tallies['pgm_'+t.source]=true;
+          if(t.pvw)_tallies['pvw_'+t.source]=true;
+        });
+        if(_activeView==='switch')renderSwitcher();
+      }
+      break;
+    case 'ALARM':
+      if(msg.alarm){
+        addAlarm((msg.alarm.severity||'info').toUpperCase(),msg.alarm.message||'');
+      }
+      break;
+    case 'ALARM_ACK':
+      break;
+    case 'CEREBRUM_ROUTE':
+      if(msg.dst&&msg.src){ROUTER[msg.dst]=msg.src;if(_activeView==='router')renderRouter();}
+      break;
+    case 'CEREBRUM_TALLY':
+      addAlarm('INFO','Tally: '+msg.source+' → '+msg.state+' ['+msg.bus+']');
+      break;
+    case 'CEREBRUM_MACRO_RUN':
+      addAlarm('INFO','Macro executed: '+msg.macroId);
+      break;
+    case 'EMBER_SYNC':
+      addAlarm('INFO','Ember+ sync: '+msg.path+' = '+JSON.stringify(msg.value));
+      break;
+    case 'NMOS_EVENT':
+      addAlarm('INFO','NMOS: '+msg.event);
+      break;
+    case 'RACK_SLOT_ADDED':
+    case 'RACK_SLOT_REMOVED':
+    case 'RACK_LINK_ACTIVATED':
+      if(_activeView==='cloud')renderCloud();
+      break;
+    case 'MV_UPDATE':
+      if(_activeView==='mosaic')renderMosaic();
+      break;
+    case 'ERROR':
+      addAlarm('WARN','WS Error: '+msg.message);
+      break;
+  }
+}
+
+// API helper — REST calls with JWT
+function _apiCall(method,path,body){
+  var headers={'Content-Type':'application/json'};
+  if(_jwtToken&&_jwtToken!=='demo-token')headers['Authorization']='Bearer '+_jwtToken;
+  return fetch((_apiBase||'http://localhost:8080')+path,{
+    method:method,
+    headers:headers,
+    body:body?JSON.stringify(body):undefined
+  }).then(function(r){return r.json();}).catch(function(){return null;});
+}
+</script>
+<script>
+// ============================================================
+// ALARM MANAGEMENT
+// ============================================================
+function addAlarm(sev,msg){
+  var ts=new Date().toISOString().substr(11,8);
+  ALARMS.unshift({sev:sev,msg:msg,ts:ts,ack:false});
+  if(ALARMS.length>200)ALARMS.pop();
+  var badge=document.getElementById('alarm-badge');
+  if(badge){var cnt=ALARMS.filter(function(a){return!a.ack;}).length;badge.textContent=cnt>0?cnt:'';}
+  if(_activeView==='alarms')renderAlarms();
+  if(_activeView==='switch')renderSWAlarms();
+}
+function ackAlarm(idx){ALARMS[idx].ack=true;renderAlarms();}
+function clearAlarms(){
+  if(!canEngineer()){showToast('ENGINEER only');return;}
+  ALARMS=[];renderAlarms();
+}
+function filterAlarms(f){_alarmFilter=f;renderAlarms();}
+function renderAlarms(){
+  var list=document.getElementById('alarms-list');
+  if(!list)return;
+  var btn=document.getElementById('clear-alarms-btn');
+  if(btn)btn.style.display=canEngineer()?'':'none';
+  var filtered=ALARMS.filter(function(a){return _alarmFilter==='ALL'||a.sev===_alarmFilter;});
+  list.innerHTML='';
+  filtered.forEach(function(a,i){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--r);border-left:3px solid '+(a.sev==='CRIT'?'var(--pgm)':a.sev==='WARN'?'var(--warn)':a.sev==='OK'?'var(--ok)':'var(--acc)')+';opacity:'+(a.ack?'.5':'1');
+    row.innerHTML='<span class="mono" style="font-size:.68rem;color:var(--txt2)">'+a.ts+'</span>'
+      +'<span class="sev-'+a.sev.toLowerCase()+'">'+a.sev+'</span>'
+      +'<span style="flex:1;font-size:.78rem">'+a.msg+'</span>'
+      +(a.ack?'<span style="font-size:.68rem;color:var(--ok)">ACK</span>':'<button class="btn btn-ghost" style="font-size:.68rem;padding:2px 8px" onclick="ackAlarm('+ALARMS.indexOf(a)+')">ACK</button>');
+    list.appendChild(row);
+  });
+}
+function renderSWAlarms(){
+  var list=document.getElementById('sw-alarms-list');
+  if(!list)return;
+  list.innerHTML='';
+  ALARMS.slice(0,30).forEach(function(a){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:var(--r);font-size:.75rem';
+    row.innerHTML='<span class="mono" style="color:var(--txt2);font-size:.68rem">'+a.ts+'</span><span class="sev-'+a.sev.toLowerCase()+'">'+a.sev+'</span><span>'+a.msg+'</span>';
+    list.appendChild(row);
+  });
+}
+// ============================================================
+// LIVE VIEW
+// ============================================================
+function initLive(){
+  buildSourceList();
+  buildQuickTake();
+  buildVU('pgm-vu',8);
+  buildVU('pvw-vu',8);
+  addEvent('System initialized');
+  addEvent('PTP locked — offset +12ns');
+  addEvent('WebSocket connecting...');
+}
+function buildSourceList(){
+  var list=document.getElementById('src-list');
+  if(!list)return;
+  list.innerHTML='';
+  SOURCES.forEach(function(s){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:.75rem';
+    row.onmouseenter=function(){this.style.background='var(--bg4)';};
+    row.onmouseleave=function(){this.style.background='';};
+    var isPgm=SW.me[0].pgm===s;var isPvw=SW.me[0].pvw===s;
+    row.innerHTML='<span class="dot '+(isPgm?'dot-err':isPvw?'dot-ok':'dot-idle')+'"></span>'
+      +'<span style="flex:1;color:'+(isPgm?'var(--pgm)':isPvw?'var(--pvw)':'var(--txt)')+'">'+s+'</span>'
+      +'<span style="font-size:.65rem;color:var(--txt2)">'+(isPgm?'PGM':isPvw?'PVW':'IDLE')+'</span>';
+    list.appendChild(row);
+  });
+}
+function buildQuickTake(){
+  var qt=document.getElementById('quick-take');
+  if(!qt)return;
+  qt.innerHTML='';
+  SOURCES.slice(0,8).forEach(function(s){
+    var btn=document.createElement('button');
+    btn.className='src-btn'+(SW.me[0].pgm===s?' pgm':SW.me[0].pvw===s?' pvw':'');
+    btn.textContent=s;
+    btn.onclick=function(){quickTake(s);};
+    qt.appendChild(btn);
+  });
+}
+function quickTake(src){
+  SW.me[0].pvw=src;
+  updateSBPGM();
+  buildSourceList();buildQuickTake();
+  addEvent('PVW → '+src);
+  _saveState();
+}
+function updateSBPGM(){
+  var p=document.getElementById('sb-pgm');if(p)p.textContent=SW.me[0].pgm;
+  var pv=document.getElementById('sb-pvw');if(pv)pv.textContent=SW.me[0].pvw;
+  var pl=document.getElementById('pgm-src-lbl');if(pl)pl.textContent=SW.me[0].pgm;
+  var pvl=document.getElementById('pvw-src-lbl');if(pvl)pvl.textContent=SW.me[0].pvw;
+}
+function buildVU(id,ch){
+  var wrap=document.getElementById(id);
+  if(!wrap)return;
+  wrap.innerHTML='';
+  for(var i=0;i<ch;i++){
+    var bar=document.createElement('div');
+    bar.className='vu-bar';
+    bar.style.cssText='width:8px;height:30%;background:var(--ok);border-radius:2px 2px 0 0;transition:height .08s';
+    wrap.appendChild(bar);
+  }
+}
+function addEvent(msg){
+  var log=document.getElementById('events-log');
+  if(!log)return;
+  var ts=new Date().toISOString().substr(11,8);
+  var row=document.createElement('div');
+  row.style.cssText='display:flex;gap:6px;padding:2px 0;border-bottom:1px solid var(--b1)';
+  row.innerHTML='<span class="mono" style="color:var(--txt2);font-size:.65rem">'+ts+'</span><span>'+msg+'</span>';
+  log.insertBefore(row,log.firstChild);
+  while(log.children.length>50)log.removeChild(log.lastChild);
+}
+</script>
+<script>
+// ============================================================
+// CANVAS ANIMATIONS
+// ============================================================
+function animateLive(){
+  var pgm=document.getElementById('pgm-canvas');
+  var pvw=document.getElementById('pvw-canvas');
+  if(pgm)drawSignal(pgm,_livePhase,0.9,'#ff1a3a');
+  if(pvw)drawSignal(pvw,_livePhase+1.2,0.7,'#00e87a');
+  _livePhase+=0.04;
+  animateVU('pgm-vu');animateVU('pvw-vu');
+  animateMetrics();
+}
+function drawSignal(canvas,phase,brightness,color){
+  var ctx=canvas.getContext('2d');
+  var w=canvas.width,h=canvas.height;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+  // color bars
+  var bars=['#fff','#ff0','#0ff','#0f0','#f0f','#f00','#00f'];
+  var bw=w/bars.length;
+  bars.forEach(function(c,i){
+    ctx.fillStyle=c;
+    ctx.globalAlpha=brightness;
+    ctx.fillRect(i*bw,0,bw,h*0.75);
+  });
+  ctx.globalAlpha=1;
+  // scan line
+  var y=((phase*30)%h);
+  ctx.strokeStyle=color;ctx.lineWidth=2;ctx.globalAlpha=0.4;
+  ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
+  ctx.globalAlpha=1;
+  // label
+  ctx.fillStyle=color;ctx.font='bold 14px JetBrains Mono,monospace';
+  ctx.fillText(color==='#ff1a3a'?SW.me[0].pgm:SW.me[0].pvw,10,h-10);
+}
+function animateVU(id){
+  var wrap=document.getElementById(id);
+  if(!wrap)return;
+  var bars=wrap.querySelectorAll('.vu-bar');
+  bars.forEach(function(bar,i){
+    var lvl=20+Math.random()*60+Math.sin(_livePhase+i)*15;
+    lvl=Math.max(5,Math.min(95,lvl));
+    bar.style.height=lvl+'%';
+    bar.style.background=lvl>80?'var(--pgm)':lvl>60?'var(--warn)':'var(--ok)';
+  });
+}
+function animateMetrics(){
+  var cpu=document.getElementById('m-cpu');if(cpu)cpu.textContent=Math.round(35+Math.random()*20)+'%';
+  var mem=document.getElementById('m-mem');if(mem)mem.textContent=Math.round(55+Math.random()*15)+'%';
+  var net=document.getElementById('m-net');if(net)net.textContent=(1.0+Math.random()*0.5).toFixed(1)+'G';
+  var lat=document.getElementById('m-lat');if(lat)lat.textContent=Math.round(2+Math.random()*6)+'ms';
+}
+function animatePTP(){
+  var offset=Math.round((Math.random()-0.5)*40);
+  var el=document.getElementById('sb-ptp');
+  if(el)el.textContent=(offset>=0?'+':'')+offset+'ns';
+  _ptpSamples.push(offset);
+  if(_ptpSamples.length>60)_ptpSamples.shift();
+  if(_activeView==='sync')drawPTPChart();
+}
+function drawPTPChart(){
+  var c=document.getElementById('ptp-chart');
+  if(!c)return;
+  var ctx=c.getContext('2d');
+  var w=c.width,h=c.height;
+  ctx.fillStyle='#07071a';ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='var(--b1)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();
+  if(_ptpSamples.length<2)return;
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.beginPath();
+  _ptpSamples.forEach(function(v,i){
+    var x=i*(w/60);var y=h/2-v*(h/100);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+function animateScopes(){
+  if(_activeView!=='scopes')return;
+  drawWaveform();drawVectorscope();drawHistogram();drawScopeAudio();
+}
+function drawWaveform(){
+  var c=document.getElementById('wfm-canvas');if(!c)return;
+  var ctx=c.getContext('2d');var w=c.width,h=c.height;
+  ctx.fillStyle='#07071a';ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=1.5;ctx.beginPath();
+  for(var x=0;x<w;x++){
+    var y=h/2+Math.sin(x*0.05+_scopePhase)*h*0.3+Math.sin(x*0.02+_scopePhase*0.5)*h*0.1;
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();_scopePhase+=0.05;
+}
+function drawVectorscope(){
+  var c=document.getElementById('vec-canvas');if(!c)return;
+  var ctx=c.getContext('2d');var w=c.width,h=c.height;
+  ctx.fillStyle='#07071a';ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(0,212,255,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(w/2,h/2,w*0.4,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=1;ctx.beginPath();
+  for(var i=0;i<200;i++){
+    var a=i*0.1+_vecPhase;var r=(0.2+Math.sin(i*0.3)*0.2)*w*0.4;
+    var x=w/2+Math.cos(a)*r;var y=h/2+Math.sin(a)*r;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();_vecPhase+=0.02;
+}
+function drawHistogram(){
+  var c=document.getElementById('hist-canvas');if(!c)return;
+  var ctx=c.getContext('2d');var w=c.width,h=c.height;
+  ctx.fillStyle='#07071a';ctx.fillRect(0,0,w,h);
+  var grad=ctx.createLinearGradient(0,0,w,0);
+  grad.addColorStop(0,'#0000ff');grad.addColorStop(0.33,'#00ff00');
+  grad.addColorStop(0.66,'#ff0000');grad.addColorStop(1,'#ffffff');
+  ctx.fillStyle=grad;
+  for(var x=0;x<w;x++){
+    var ht=(Math.sin(x*0.02+_histPhase)*0.3+0.5)*h*0.8+Math.random()*10;
+    ctx.fillRect(x,h-ht,1,ht);
+  }
+  _histPhase+=0.03;
+}
+function drawScopeAudio(){
+  var c=document.getElementById('scope-aud-canvas');if(!c)return;
+  var ctx=c.getContext('2d');var w=c.width,h=c.height;
+  ctx.fillStyle='#07071a';ctx.fillRect(0,0,w,h);
+  var ch=8;var bw=w/ch;
+  for(var i=0;i<ch;i++){
+    var lvl=0.3+Math.random()*0.6;
+    var bh=lvl*h*0.9;
+    var g=ctx.createLinearGradient(0,h,0,h-bh);
+    g.addColorStop(0,'#00e87a');g.addColorStop(0.7,'#ffaa00');g.addColorStop(1,'#ff1a3a');
+    ctx.fillStyle=g;
+    ctx.fillRect(i*bw+4,h-bh,bw-8,bh);
+    ctx.fillStyle='#8888aa';ctx.font='10px Inter';
+    ctx.fillText('CH'+(i+1),i*bw+6,h-2);
+  }
+}
+function animateAudioMeters(){
+  if(_activeView!=='audio')return;
+  var c=document.getElementById('aud-meters-canvas');if(!c)return;
+  var ctx=c.getContext('2d');var w=c.width,h=c.height;
+  ctx.fillStyle='#07071a';ctx.fillRect(0,0,w,h);
+  var ch=16;var bw=w/ch;
+  for(var i=0;i<ch;i++){
+    var lvl=0.2+Math.random()*0.75;
+    var bh=lvl*(h-30);
+    var g=ctx.createLinearGradient(0,h-30,0,0);
+    g.addColorStop(0,'#00e87a');g.addColorStop(0.7,'#ffaa00');g.addColorStop(1,'#ff1a3a');
+    ctx.fillStyle=g;ctx.fillRect(i*bw+3,h-30-bh,bw-6,bh);
+    // peak hold
+    ctx.fillStyle='#fff';ctx.fillRect(i*bw+3,h-30-bh-3,bw-6,2);
+    ctx.fillStyle='#8888aa';ctx.font='9px Inter';
+    ctx.fillText('CH'+(i+1),i*bw+4,h-4);
+  }
+}
+</script>
+<script>
+// ============================================================
+// MOSAIC VIEW
+// ============================================================
+function renderMosaic(){
+  buildMosaicGrid();
+  buildMosaicPresetSel();
+}
+function setMosaicLayout(layout){
+  _mosaicLayout=layout;
+  buildMosaicGrid();
+}
+function buildMosaicGrid(){
+  var grid=document.getElementById('mosaic-grid');
+  if(!grid)return;
+  var configs={
+    '2x2':{cols:2,rows:2,total:4},
+    '3x3':{cols:3,rows:3,total:9},
+    '4x4':{cols:4,rows:4,total:16},
+    '1+5':{cols:3,rows:2,total:6,special:'1+5'},
+    '2+8':{cols:5,rows:2,total:10,special:'2+8'}
+  };
+  var cfg=configs[_mosaicLayout]||configs['2x2'];
+  grid.style.gridTemplateColumns='repeat('+cfg.cols+',1fr)';
+  grid.innerHTML='';
+  // ensure tiles array
+  while(_mosaicTiles.length<cfg.total)_mosaicTiles.push({src:SOURCES[_mosaicTiles.length%SOURCES.length],sub:1});
+  for(var i=0;i<cfg.total;i++){
+    var tile=_mosaicTiles[i];
+    var isPgm=SW.me[0].pgm===tile.src;var isPvw=SW.me[0].pvw===tile.src;
+    var div=document.createElement('div');
+    div.style.cssText='position:relative;border:2px solid '+(isPgm?'var(--pgm)':isPvw?'var(--pvw)':'var(--b2)')+';border-radius:4px;overflow:hidden;cursor:pointer;aspect-ratio:16/9;background:#000';
+    var canvas=document.createElement('canvas');
+    canvas.width=320;canvas.height=180;
+    canvas.style.cssText='width:100%;height:100%;display:block';
+    canvas.dataset.tileIdx=i;
+    div.appendChild(canvas);
+    var lbl=document.createElement('div');
+    lbl.style.cssText='position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);padding:3px 6px;font-size:.68rem;color:'+(isPgm?'var(--pgm)':isPvw?'var(--pvw)':'var(--txt)')+';display:flex;justify-content:space-between';
+    lbl.innerHTML='<span>'+tile.src+'</span><span style="color:var(--txt2)">'+_mosaicLayout+'</span>';
+    div.appendChild(lbl);
+    (function(idx,d){
+      d.onclick=function(e){openMosaicMenu(idx,e);};
+    })(i,div);
+    grid.appendChild(div);
+  }
+  animateMosaicTiles();
+}
+function animateMosaicTiles(){
+  var canvases=document.querySelectorAll('#mosaic-grid canvas');
+  canvases.forEach(function(c,i){
+    var tile=_mosaicTiles[i];
+    if(!tile)return;
+    var isPgm=SW.me[0].pgm===tile.src;
+    var color=isPgm?'#ff1a3a':'#00d4ff';
+    drawSignalMini(c,_livePhase+i*0.3,color,tile.src);
+  });
+}
+function drawSignalMini(canvas,phase,color,label){
+  var ctx=canvas.getContext('2d');
+  var w=canvas.width,h=canvas.height;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+  var bars=['#fff','#ff0','#0ff','#0f0','#f0f','#f00','#00f'];
+  var bw=w/bars.length;
+  bars.forEach(function(c,i){ctx.fillStyle=c;ctx.globalAlpha=0.7;ctx.fillRect(i*bw,0,bw,h*0.8);});
+  ctx.globalAlpha=1;
+  var y=((phase*20)%h);
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.globalAlpha=0.5;
+  ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
+  ctx.globalAlpha=1;
+}
+function openMosaicMenu(idx,e){
+  e.stopPropagation();
+  var menu=document.getElementById('mosaic-menu');
+  menu.style.display='block';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+  menu.innerHTML='<div style="font-size:.7rem;color:var(--txt2);padding:4px 8px;border-bottom:1px solid var(--b1);margin-bottom:4px">ASSIGN SOURCE — TILE '+(idx+1)+'</div>';
+  var groups={CAMERAS:SOURCES.slice(0,8),GRAPHICS:SOURCES.slice(8,10),VTR:SOURCES.slice(10,13),REMOTE:SOURCES.slice(13,16),NETWORK:SOURCES.slice(16,18),TEST:SOURCES.slice(18,20),CLEAN:SOURCES.slice(20,22),AUX:SOURCES.slice(22,24)};
+  Object.keys(groups).forEach(function(g){
+    var hdr=document.createElement('div');
+    hdr.style.cssText='font-size:.65rem;color:var(--txt2);padding:4px 8px 2px;font-weight:700;letter-spacing:.1em';
+    hdr.textContent=g;menu.appendChild(hdr);
+    groups[g].forEach(function(s){
+      var btn=document.createElement('button');
+      btn.className='dd-item';btn.textContent=s;
+      btn.onclick=function(){_mosaicTiles[idx].src=s;menu.style.display='none';buildMosaicGrid();_saveState();};
+      menu.appendChild(btn);
+    });
+  });
+  document.addEventListener('click',function h(){menu.style.display='none';document.removeEventListener('click',h);},{once:true});
+}
+function saveMosaicPreset(){
+  var name=prompt('Preset name:');
+  if(!name)return;
+  _mosaicPresets[name]={layout:_mosaicLayout,tiles:JSON.parse(JSON.stringify(_mosaicTiles))};
+  _saveState();buildMosaicPresetSel();showToast('Preset saved: '+name);
+}
+function loadMosaicPreset(name){
+  if(!name||!_mosaicPresets[name])return;
+  var p=_mosaicPresets[name];
+  _mosaicLayout=p.layout;_mosaicTiles=JSON.parse(JSON.stringify(p.tiles));
+  buildMosaicGrid();
+}
+function deleteMosaicPreset(){
+  var sel=document.getElementById('mosaic-preset-sel');
+  if(!sel||!sel.value)return;
+  delete _mosaicPresets[sel.value];_saveState();buildMosaicPresetSel();
+}
+function buildMosaicPresetSel(){
+  var sel=document.getElementById('mosaic-preset-sel');
+  if(!sel)return;
+  sel.innerHTML='<option value="">-- Presets --</option>';
+  Object.keys(_mosaicPresets).forEach(function(n){
+    var o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);
+  });
+}
+</script>
+<script>
+// ============================================================
+// SWITCHER VIEW
+// ============================================================
+function swTab(t){
+  document.querySelectorAll('#view-switch .tab-btn').forEach(function(b,i){
+    b.classList.toggle('active',['me','keyers','tally','macros','alarms-sw'][i]===t);
+  });
+  document.querySelectorAll('#view-switch .tab-content').forEach(function(c){c.classList.remove('active');});
+  var el=document.getElementById('sw-tab-'+t);if(el)el.classList.add('active');
+  if(t==='tally')renderTally();
+  if(t==='macros')renderMacros();
+  if(t==='alarms-sw')renderSWAlarms();
+}
+function renderSwitcher(){
+  renderMEBanks();renderKeyers();renderTally();renderMacros();renderSWAlarms();
+}
+function renderMEBanks(){
+  var container=document.getElementById('me-banks');
+  if(!container)return;
+  container.innerHTML='';
+  SW.me.forEach(function(me,mi){
+    var div=document.createElement('div');
+    div.className='panel';
+    div.innerHTML='<div class="panel-title">'+me.name+'</div>';
+    // PGM row
+    var pgmRow=document.createElement('div');
+    pgmRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px';
+    pgmRow.innerHTML='<span style="font-size:.68rem;font-weight:700;color:var(--pgm);width:36px">PGM</span>';
+    SOURCES.forEach(function(s){
+      var btn=document.createElement('button');
+      btn.className='src-btn'+(me.pgm===s?' pgm':'');
+      btn.textContent=s.replace('-','');
+      btn.onclick=function(){meCut(mi,s,'pgm');};
+      pgmRow.appendChild(btn);
+    });
+    div.appendChild(pgmRow);
+    // PVW row
+    var pvwRow=document.createElement('div');
+    pvwRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:10px';
+    pvwRow.innerHTML='<span style="font-size:.68rem;font-weight:700;color:var(--pvw);width:36px">PVW</span>';
+    SOURCES.forEach(function(s){
+      var btn=document.createElement('button');
+      btn.className='src-btn'+(me.pvw===s?' pvw':'');
+      btn.textContent=s.replace('-','');
+      btn.onclick=function(){meCut(mi,s,'pvw');};
+      pvwRow.appendChild(btn);
+    });
+    div.appendChild(pvwRow);
+    // Transition controls
+    var trans=document.createElement('div');
+    trans.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap';
+    trans.innerHTML='<span style="font-size:.72rem;color:var(--txt2)">RATE:</span>';
+    [10,25,50,100].forEach(function(r){
+      var b=document.createElement('button');
+      b.className='btn btn-ghost';b.style.fontSize='.7rem';b.style.padding='3px 8px';
+      b.textContent=r+'f';b.style.background=me.rate===r?'var(--b2)':'';
+      b.onclick=function(){me.rate=r;renderMEBanks();};
+      trans.appendChild(b);
+    });
+    trans.innerHTML+='<span style="font-size:.72rem;color:var(--txt2);margin-left:8px">TYPE:</span>';
+    ['MIX','CUT','WIPE','DIP'].forEach(function(t){
+      var b=document.createElement('button');
+      b.className='btn btn-ghost';b.style.fontSize='.7rem';b.style.padding='3px 8px';
+      b.textContent=t;b.style.background=me.type===t?'var(--b2)':'';
+      b.onclick=function(){me.type=t;renderMEBanks();};
+      trans.appendChild(b);
+    });
+    div.appendChild(trans);
+    // Progress + buttons
+    var progWrap=document.createElement('div');
+    progWrap.style.cssText='margin-top:10px;display:flex;align-items:center;gap:10px';
+    var prog=document.createElement('div');
+    prog.className='prog-bar';prog.style.flex='1';
+    var fill=document.createElement('div');
+    fill.className='prog-fill';fill.style.background='var(--acc)';
+    fill.style.width=(me.trans*100)+'%';fill.id='me-prog-'+mi;
+    prog.appendChild(fill);progWrap.appendChild(prog);
+    var cutBtn=document.createElement('button');
+    cutBtn.className='btn btn-pgm';cutBtn.textContent='CUT';
+    cutBtn.onclick=function(){meDoCut(mi);};
+    var autoBtn=document.createElement('button');
+    autoBtn.className='btn btn-acc';autoBtn.textContent='AUTO TRANS';
+    autoBtn.onclick=function(){meAutoTrans(mi);};
+    progWrap.appendChild(cutBtn);progWrap.appendChild(autoBtn);
+    div.appendChild(progWrap);
+    container.appendChild(div);
+  });
+}
+function meCut(mi,src,bus){
+  SW.me[mi][bus]=src;
+  if(mi===0)updateSBPGM();
+  renderMEBanks();buildSourceList();buildQuickTake();
+  addEvent(SW.me[mi].name+' '+bus.toUpperCase()+' → '+src);
+  _saveState();
+  // Send PVW selection to backend
+  if(bus==='pvw')_wsSend({type:'SWITCHER_PVW',payload:{me:mi,source:src}});
+}
+function meDoCut(mi){
+  var tmp=SW.me[mi].pgm;SW.me[mi].pgm=SW.me[mi].pvw;SW.me[mi].pvw=tmp;
+  SW.me[mi].trans=0;
+  if(mi===0)updateSBPGM();
+  renderMEBanks();buildSourceList();buildQuickTake();
+  addEvent(SW.me[mi].name+' CUT → '+SW.me[mi].pgm);
+  addAlarm('INFO',SW.me[mi].name+' CUT executed');
+  _saveState();
+  // Send to backend
+  _wsSend({type:'SWITCHER_CUT',payload:{me:mi,pvw:SW.me[mi].pvw}});
+}
+function meAutoTrans(mi){
+  if(SW.me[mi].running)return;
+  SW.me[mi].running=true;SW.me[mi].trans=0;
+  var steps=SW.me[mi].rate;var step=0;
+  var iv=setInterval(function(){
+    step++;SW.me[mi].trans=step/steps;
+    var fill=document.getElementById('me-prog-'+mi);
+    if(fill)fill.style.width=(SW.me[mi].trans*100)+'%';
+    if(step>=steps){
+      clearInterval(iv);SW.me[mi].running=false;
+      var tmp=SW.me[mi].pgm;SW.me[mi].pgm=SW.me[mi].pvw;SW.me[mi].pvw=tmp;
+      SW.me[mi].trans=0;
+      if(mi===0)updateSBPGM();
+      renderMEBanks();buildSourceList();buildQuickTake();
+      addEvent(SW.me[mi].name+' AUTO TRANS → '+SW.me[mi].pgm);
+      _saveState();
+      _wsSend({type:'SWITCHER_AUTO',payload:{me:mi}});
+    }
+  },40);
+  _ivs.push(iv);
+}
+</script>
+<script>
+// ============================================================
+// KEYERS
+// ============================================================
+function renderKeyers(){
+  var panel=document.getElementById('keyers-panel');
+  if(!panel)return;
+  panel.innerHTML='';
+  SW.me.forEach(function(me,mi){
+    var div=document.createElement('div');
+    div.className='panel';
+    div.innerHTML='<div class="panel-title">'+me.name+' — KEYERS</div>';
+    // Stack order indicator
+    var stack=document.createElement('div');
+    stack.style.cssText='display:flex;gap:4px;margin-bottom:10px;font-size:.68rem;color:var(--txt2)';
+    stack.innerHTML='<span>SIGNAL PATH:</span>';
+    me.keyers.filter(function(k){return k.id.startsWith('UK');}).forEach(function(k){
+      var s=document.createElement('span');
+      s.style.cssText='padding:2px 6px;border-radius:3px;background:'+(k.on?'var(--acc)':'var(--b1)')+';color:'+(k.on?'#000':'var(--txt2)');
+      s.textContent=k.id;stack.appendChild(s);
+    });
+    stack.innerHTML+='<span style="color:var(--txt2)"> → MIX → </span>';
+    me.keyers.filter(function(k){return k.id.startsWith('DSK');}).forEach(function(k){
+      var s=document.createElement('span');
+      s.style.cssText='padding:2px 6px;border-radius:3px;background:'+(k.on?'var(--pur)':'var(--b1)')+';color:'+(k.on?'#fff':'var(--txt2)');
+      s.textContent=k.id;stack.appendChild(s);
+    });
+    div.appendChild(stack);
+    var grid=document.createElement('div');
+    grid.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:8px';
+    me.keyers.forEach(function(k,ki){
+      var kd=document.createElement('div');
+      kd.style.cssText='background:var(--bg4);border:1px solid '+(k.on?(k.id.startsWith('UK')?'var(--acc)':'var(--pur)'):'var(--b1)')+';border-radius:var(--r);padding:10px';
+      kd.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +'<span style="font-size:.75rem;font-weight:700;color:'+(k.on?(k.id.startsWith('UK')?'var(--acc)':'var(--pur)'):'var(--txt2)')+'">'+k.id+'</span>'
+        +'<button onclick="keyerToggle('+mi+','+ki+')" style="padding:3px 10px;border-radius:3px;font-size:.7rem;font-weight:700;background:'+(k.on?'var(--ok)':'var(--b2)')+';color:'+(k.on?'#000':'var(--txt2)')+';border:none;cursor:pointer">'+(k.on?'ON':'OFF')+'</button>'
+        +'</div>'
+        +'<div style="font-size:.7rem;color:var(--txt2);margin-bottom:4px">TYPE</div>'
+        +'<select onchange="keyerSetType('+mi+','+ki+',this.value)" style="width:100%;background:var(--bg3);color:var(--txt);border:1px solid var(--b2);border-radius:3px;padding:4px;font-size:.72rem;margin-bottom:6px">'
+        +['LUMA','CHROMA','LINEAR','PATTERN'].map(function(t){return'<option'+(k.type===t?' selected':'')+'>'+t+'</option>';}).join('')
+        +'</select>'
+        +'<div style="font-size:.7rem;color:var(--txt2);margin-bottom:2px">FILL</div>'
+        +'<select onchange="keyerSetFill('+mi+','+ki+',this.value)" style="width:100%;background:var(--bg3);color:var(--txt);border:1px solid var(--b2);border-radius:3px;padding:4px;font-size:.72rem;margin-bottom:6px">'
+        +SOURCES.map(function(s){return'<option'+(k.fill===s?' selected':'')+'>'+s+'</option>';}).join('')
+        +'</select>'
+        +'<div style="font-size:.7rem;color:var(--txt2);margin-bottom:2px">KEY</div>'
+        +'<select onchange="keyerSetKey('+mi+','+ki+',this.value)" style="width:100%;background:var(--bg3);color:var(--txt);border:1px solid var(--b2);border-radius:3px;padding:4px;font-size:.72rem">'
+        +SOURCES.map(function(s){return'<option'+(k.key===s?' selected':'')+'>'+s+'</option>';}).join('')
+        +'</select>';
+      grid.appendChild(kd);
+    });
+    div.appendChild(grid);
+    panel.appendChild(div);
+  });
+}
+function keyerToggle(mi,ki){SW.me[mi].keyers[ki].on=!SW.me[mi].keyers[ki].on;renderKeyers();_saveState();}
+function keyerSetType(mi,ki,t){SW.me[mi].keyers[ki].type=t;_saveState();}
+function keyerSetFill(mi,ki,s){SW.me[mi].keyers[ki].fill=s;_saveState();}
+function keyerSetKey(mi,ki,s){SW.me[mi].keyers[ki].key=s;_saveState();}
+// ============================================================
+// TALLY
+// ============================================================
+function renderTally(){
+  var grid=document.getElementById('tally-grid');
+  if(!grid)return;
+  grid.innerHTML='';
+  SOURCES.forEach(function(s){
+    var isPgm=SW.me[0].pgm===s;var isPvw=SW.me[0].pvw===s;
+    var cell=document.createElement('div');
+    cell.style.cssText='padding:8px;border-radius:var(--r);text-align:center;font-size:.75rem;font-weight:600;cursor:pointer;border:2px solid '+(isPgm?'var(--pgm)':isPvw?'var(--pvw)':'var(--b1)')+';background:'+(isPgm?'rgba(255,26,58,.15)':isPvw?'rgba(0,232,122,.1)':'var(--bg4)');
+    cell.innerHTML='<div style="color:'+(isPgm?'var(--pgm)':isPvw?'var(--pvw)':'var(--txt)')+'">'+s+'</div>'
+      +'<div style="font-size:.65rem;color:'+(isPgm?'var(--pgm)':isPvw?'var(--pvw)':'var(--txt2)')+'">'+( isPgm?'PGM':isPvw?'PVW':'IDLE')+'</div>';
+    cell.onclick=function(){meCut(0,s,'pvw');renderTally();};
+    grid.appendChild(cell);
+  });
+}
+// ============================================================
+// MACROS
+// ============================================================
+var MACROS=[
+  {name:'BREAK SEQUENCE',desc:'Take to CLN-01, lower DSK1, hold 5s'},
+  {name:'REMOTE OPEN',desc:'Route REM-01 to PGM, enable UK1'},
+  {name:'GRAPHICS FULL',desc:'Enable all upstream keyers on ME1'},
+  {name:'CLEAN FEED',desc:'Disable all keyers, take to CLN-02'},
+  {name:'EMERGENCY SLATE',desc:'Cut to TST-01, add alarm CRIT'},
+  {name:'SHOW OPEN',desc:'Fade from black, enable DSK1 logo'}
+];
+function renderMacros(){
+  var list=document.getElementById('macros-list');
+  if(!list)return;
+  list.innerHTML='';
+  MACROS.forEach(function(m,i){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--b1)';
+    row.innerHTML='<span style="font-size:.75rem;font-weight:700;flex:1">'+m.name+'</span>'
+      +'<span style="font-size:.72rem;color:var(--txt2);flex:2">'+m.desc+'</span>'
+      +'<button class="btn btn-acc" onclick="runMacro('+i+')" style="font-size:.72rem;padding:4px 12px">RUN</button>';
+    list.appendChild(row);
+  });
+}
+function runMacro(i){
+  addEvent('MACRO: '+MACROS[i].name);
+  addAlarm('INFO','Macro executed: '+MACROS[i].name);
+  showToast('Macro: '+MACROS[i].name);
+}
+</script>
+<script>
+// ============================================================
+// ROUTER VIEW
+// ============================================================
+var ROUTER_DSTS=['DST-01','DST-02','DST-03','DST-04','DST-05','DST-06','DST-07','DST-08','DST-09','DST-10','DST-11','DST-12','DST-13','DST-14','DST-15','DST-16'];
+var ROUTER_SRCS=SOURCES.slice(0,16);
+var _routerLocked={};
+function setRouterLevel(l){_routerLevel=l;renderRouter();}
+function toggleSalvo(){
+  _salvoMode=!_salvoMode;_salvoSel=[];
+  var btn=document.getElementById('salvo-btn');if(btn)btn.textContent=_salvoMode?'ON':'OFF';
+  var exec=document.getElementById('exec-salvo');if(exec)exec.style.display=_salvoMode?'':'none';
+  renderRouter();
+}
+function executeSalvo(){
+  _salvoSel.forEach(function(s){
+    ROUTER[s.dst]=s.src;
+    _wsSend({type:'ROUTER_CONNECT',payload:{level:_routerLevel,dst:String(s.dst),src:String(s.src)}});
+  });
+  _salvoSel=[];_salvoMode=false;
+  var btn=document.getElementById('salvo-btn');if(btn)btn.textContent='OFF';
+  var exec=document.getElementById('exec-salvo');if(exec)exec.style.display='none';
+  addAlarm('INFO','Salvo executed: '+_salvoSel.length+' routes');
+  renderRouter();_saveState();
+}
+function clearSalvo(){_salvoSel=[];renderRouter();}
+function renderRouter(){
+  var table=document.getElementById('router-matrix');
+  if(!table)return;
+  table.innerHTML='';
+  // Header row
+  var hdr=document.createElement('tr');
+  var th0=document.createElement('th');
+  th0.style.cssText='padding:4px 8px;font-size:.65rem;color:var(--txt2);background:var(--bg3);position:sticky;left:0;z-index:2';
+  th0.textContent='DST \\ SRC';hdr.appendChild(th0);
+  ROUTER_SRCS.forEach(function(s){
+    var th=document.createElement('th');
+    th.style.cssText='padding:4px 6px;font-size:.65rem;color:var(--txt2);white-space:nowrap;background:var(--bg3)';
+    th.textContent=s;hdr.appendChild(th);
+  });
+  table.appendChild(hdr);
+  ROUTER_DSTS.forEach(function(d,di){
+    var tr=document.createElement('tr');
+    var td0=document.createElement('td');
+    td0.style.cssText='padding:4px 8px;font-size:.7rem;color:var(--txt2);white-space:nowrap;background:var(--bg3);position:sticky;left:0;z-index:1;display:flex;align-items:center;gap:6px';
+    var isLocked=_routerLocked[di];
+    td0.innerHTML=d+'<span style="cursor:pointer;font-size:.65rem;color:'+(isLocked?'var(--warn)':'var(--txt2)')+'" onclick="toggleLock('+di+')">'+(isLocked?'🔒':'🔓')+'</span>';
+    tr.appendChild(td0);
+    ROUTER_SRCS.forEach(function(s,si){
+      var td=document.createElement('td');
+      td.style.cssText='padding:3px';
+      var cell=document.createElement('button');
+      cell.className='matrix-cell';
+      var isRouted=ROUTER[di]===si;
+      var isSalvo=_salvoSel.some(function(x){return x.dst===di&&x.src===si;});
+      if(isRouted)cell.classList.add('routed');
+      if(isSalvo)cell.classList.add('salvo');
+      cell.textContent=isRouted?'●':'';
+      cell.title=d+' → '+s;
+      cell.onclick=function(){
+        if(_routerLocked[di]&&!canEngineer()){showToast('Destination locked');return;}
+        if(_salvoMode){
+          var idx=_salvoSel.findIndex(function(x){return x.dst===di;});
+          if(idx>=0)_salvoSel.splice(idx,1);
+          _salvoSel.push({dst:di,src:si});
+        }else{
+          ROUTER[di]=si;addAlarm('INFO',d+' → '+s+' ['+_routerLevel+']');_saveState();
+          _wsSend({type:'ROUTER_CONNECT',payload:{level:_routerLevel,dst:String(di),src:String(si)}});
+        }
+        renderRouter();
+      };
+      td.appendChild(cell);tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+}
+function toggleLock(di){
+  if(!canEngineer()){showToast('ENGINEER only');return;}
+  _routerLocked[di]=!_routerLocked[di];renderRouter();
+}
+// ============================================================
+// AUDIO VIEW
+// ============================================================
+var AUD_SRCS=['EMB-1','EMB-2','EMB-3','EMB-4','EMB-5','EMB-6','EMB-7','EMB-8'];
+var AUD_DSTS=['PGM-MIX','MON-A','MON-B','REC-1','REC-2','STR-1','STR-2','AUX'];
+function audTab(t){
+  document.querySelectorAll('#view-audio .tab-btn').forEach(function(b,i){
+    b.classList.toggle('active',['routing','meters','dante','config'][i]===t);
+  });
+  document.querySelectorAll('#view-audio .tab-content').forEach(function(c){c.classList.remove('active');});
+  var el=document.getElementById('aud-tab-'+t);if(el)el.classList.add('active');
+}
+function renderAudio(){
+  renderAudioMatrix();renderDante();renderMCGroups();
+}
+function renderAudioMatrix(){
+  var table=document.getElementById('audio-matrix');
+  if(!table)return;
+  table.innerHTML='';
+  var hdr=document.createElement('tr');
+  var th0=document.createElement('th');th0.style.cssText='padding:6px 10px;font-size:.68rem;color:var(--txt2)';th0.textContent='DST \\ SRC';hdr.appendChild(th0);
+  AUD_SRCS.forEach(function(s){var th=document.createElement('th');th.style.cssText='padding:6px 8px;font-size:.68rem;color:var(--txt2)';th.textContent=s;hdr.appendChild(th);});
+  table.appendChild(hdr);
+  AUD_DSTS.forEach(function(d,di){
+    var tr=document.createElement('tr');
+    var td0=document.createElement('td');td0.style.cssText='padding:6px 10px;font-size:.72rem;color:var(--txt2);white-space:nowrap';td0.textContent=d;tr.appendChild(td0);
+    AUD_SRCS.forEach(function(s,si){
+      var td=document.createElement('td');td.style.cssText='padding:3px;text-align:center';
+      var cell=document.createElement('button');
+      cell.className='matrix-cell';
+      var isRouted=_audioMatrix[di]===si;
+      if(isRouted)cell.classList.add('routed');
+      cell.textContent=isRouted?'●':'';
+      cell.onclick=function(){audioRoute(si,di);};
+      td.appendChild(cell);tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+}
+function audioRoute(src,dst){_audioMatrix[dst]=src;renderAudioMatrix();_saveState();addAlarm('INFO','Audio: '+AUD_DSTS[dst]+' → '+AUD_SRCS[src]);}
+function renderDante(){
+  var list=document.getElementById('dante-devices');
+  if(!list)return;
+  var devices=[
+    {name:'Yamaha DM7',status:'CONNECTED',latency:'0.25ms',rate:'48kHz',bridge:'AES67'},
+    {name:'Behringer Wing',status:'CONNECTED',latency:'1ms',rate:'48kHz',bridge:'AES67'},
+    {name:'Audinate AVIO',status:'IDLE',latency:'—',rate:'48kHz',bridge:'DANTE'}
+  ];
+  list.innerHTML='';
+  devices.forEach(function(d){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg4);border-radius:var(--r);border:1px solid var(--b1)';
+    row.innerHTML='<span class="dot '+(d.status==='CONNECTED'?'dot-ok':'dot-idle')+'"></span>'
+      +'<span style="font-weight:600;font-size:.8rem;flex:1">'+d.name+'</span>'
+      +'<span style="font-size:.72rem;color:var(--txt2)">'+d.bridge+'</span>'
+      +'<span style="font-size:.72rem;color:var(--txt2)">'+d.latency+'</span>'
+      +'<span style="font-size:.72rem;color:var(--txt2)">'+d.rate+'</span>'
+      +'<button class="btn '+(d.status==='CONNECTED'?'btn-pgm':'btn-ok')+'" style="font-size:.7rem;padding:3px 10px">'+(d.status==='CONNECTED'?'DISCONNECT':'CONNECT')+'</button>';
+    list.appendChild(row);
+  });
+}
+function renderMCGroups(){
+  var el=document.getElementById('mc-groups');
+  if(!el)return;
+  var groups=[
+    {ch:'CH-01..08',addr:'239.0.0.1:5004',status:'ACTIVE'},
+    {ch:'CH-09..16',addr:'239.0.0.2:5004',status:'ACTIVE'},
+    {ch:'AES67-1..4',addr:'239.0.1.1:5004',status:'ACTIVE'},
+    {ch:'DANTE-1..4',addr:'239.0.2.1:5004',status:'IDLE'}
+  ];
+  el.innerHTML='';
+  groups.forEach(function(g){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b1)';
+    row.innerHTML='<span class="dot '+(g.status==='ACTIVE'?'dot-ok':'dot-idle')+'"></span>'
+      +'<span style="flex:1">'+g.ch+'</span>'
+      +'<span class="mono" style="color:var(--acc);font-size:.7rem">'+g.addr+'</span>';
+    el.appendChild(row);
+  });
+}
+</script>
+<script>
+// ============================================================
+// CLOUD MCR VIEW
+// ============================================================
+var RACK_DEVICES=[
+  {name:'Virtual Switcher',type:'SWITCHER',u:4,status:'ok',cpu:42,mem:61,region:'EU-W1'},
+  {name:'IP Router 16x16',type:'ROUTER',u:2,status:'ok',cpu:18,mem:34,region:'EU-W1'},
+  {name:'Multiviewer 16x',type:'MULTIVIEWER',u:2,status:'ok',cpu:55,mem:48,region:'EU-W1'},
+  {name:'SRT Gateway',type:'GATEWAY',u:1,status:'ok',cpu:22,mem:29,region:'EU-W1'},
+  {name:'NMOS Registry',type:'NMOS',u:1,status:'ok',cpu:8,mem:15,region:'EU-W1'},
+  {name:'PTP Grandmaster',type:'PTP',u:1,status:'ok',cpu:5,mem:10,region:'EU-W1'},
+  {name:'Encoder A',type:'ENCODER',u:1,status:'ok',cpu:78,mem:55,region:'EU-W1'},
+  {name:'Encoder B',type:'ENCODER',u:1,status:'warn',cpu:91,mem:72,region:'EU-W1'},
+  {name:'Encoder C',type:'ENCODER',u:1,status:'ok',cpu:65,mem:50,region:'US-E1'},
+  {name:'Decoder A',type:'DECODER',u:1,status:'ok',cpu:45,mem:38,region:'EU-W1'},
+  {name:'Decoder B',type:'DECODER',u:1,status:'ok',cpu:40,mem:35,region:'US-E1'},
+  {name:'Cloud Playout A',type:'PLAYOUT',u:2,status:'ok',cpu:60,mem:65,region:'EU-W1'},
+  {name:'Cloud Playout B',type:'PLAYOUT',u:2,status:'ok',cpu:55,mem:60,region:'AP-SE1'}
+];
+function cloudTab(t){
+  document.querySelectorAll('#view-cloud .tab-btn').forEach(function(b,i){
+    b.classList.toggle('active',['rack','flow','links','hybrid'][i]===t);
+  });
+  document.querySelectorAll('#view-cloud .tab-content').forEach(function(c){c.classList.remove('active');});
+  var el=document.getElementById('cloud-tab-'+t);if(el)el.classList.add('active');
+  if(t==='flow')buildFlowSVG();
+}
+function renderCloud(){
+  renderRack();buildFlowSVG();renderCloudLinks();renderHybrid();
+  var addBtn=document.getElementById('add-dev-btn');
+  if(addBtn)addBtn.style.display=canEngineer()?'':'none';
+}
+function renderRack(){
+  var el=document.getElementById('rack-units');
+  if(!el)return;
+  el.innerHTML='';
+  var usedU=0;
+  RACK_DEVICES.forEach(function(d,i){
+    for(var u=0;u<d.u;u++){
+      var row=document.createElement('div');
+      row.className='rack-unit';
+      if(u===0){
+        row.style.cursor='pointer';
+        row.innerHTML='<span style="font-size:.65rem;color:var(--txt2);width:24px">'+(usedU+1)+'U</span>'
+          +'<span class="dot dot-'+(d.status==='ok'?'ok':d.status==='warn'?'warn':'err')+'"></span>'
+          +'<span style="flex:1;font-size:.75rem;font-weight:600">'+d.name+'</span>'
+          +'<span style="font-size:.65rem;color:var(--acc);background:var(--b1);padding:1px 5px;border-radius:2px">'+d.type+'</span>'
+          +'<span style="font-size:.65rem;color:var(--txt2)">'+d.region+'</span>'
+          +'<div style="width:60px"><div class="prog-bar"><div class="prog-fill" style="width:'+d.cpu+'%;background:'+(d.cpu>80?'var(--pgm)':d.cpu>60?'var(--warn)':'var(--ok)')+'"></div></div></div>';
+        (function(dev){row.onclick=function(){showRackDetail(dev);};})(d);
+      }else{
+        row.innerHTML='<span style="font-size:.65rem;color:var(--b2);width:24px">'+(usedU+1)+'U</span><span style="font-size:.65rem;color:var(--b2);padding-left:30px">│</span>';
+      }
+      el.appendChild(row);usedU++;
+    }
+  });
+  // Empty units
+  for(var u=usedU;u<42;u++){
+    var row=document.createElement('div');row.className='rack-unit';
+    row.innerHTML='<span style="font-size:.65rem;color:var(--b2);width:24px">'+(u+1)+'U</span><span style="font-size:.65rem;color:var(--b2)">— EMPTY —</span>';
+    el.appendChild(row);
+  }
+}
+function showRackDetail(d){
+  var el=document.getElementById('rack-detail');
+  if(!el)return;
+  el.innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'
+    +'<div style="font-size:.9rem;font-weight:700;color:var(--acc)">'+d.name+'</div>'
+    +'<div>Type: <span style="color:var(--txt)">'+d.type+'</span></div>'
+    +'<div>Status: <span class="dot dot-'+(d.status==='ok'?'ok':'warn')+'"></span> <span style="color:'+(d.status==='ok'?'var(--ok)':'var(--warn)')+'">'+d.status.toUpperCase()+'</span></div>'
+    +'<div>Region: <span style="color:var(--gold)">'+d.region+'</span></div>'
+    +'<div>CPU: <span style="color:'+(d.cpu>80?'var(--pgm)':'var(--ok)')+'">'+d.cpu+'%</span></div>'
+    +'<div>MEM: <span style="color:var(--ok)">'+d.mem+'%</span></div>'
+    +'<div>Rack Units: <span style="color:var(--txt)">'+d.u+'U</span></div>'
+    +(canEngineer()?'<button class="btn btn-pgm" style="margin-top:8px" onclick="removeDevice(\''+d.name+'\')">REMOVE DEVICE</button>':'')
+    +'</div>';
+}
+function addVirtualDevice(){
+  if(!canEngineer()){showToast('ENGINEER only');return;}
+  var name=prompt('Device name:');if(!name)return;
+  RACK_DEVICES.push({name:name,type:'VIRTUAL',u:1,status:'ok',cpu:0,mem:0,region:'EU-W1'});
+  renderRack();showToast('Device added: '+name);
+}
+function removeDevice(name){
+  if(!canEngineer()){showToast('ENGINEER only');return;}
+  RACK_DEVICES=RACK_DEVICES.filter(function(d){return d.name!==name;});
+  renderRack();document.getElementById('rack-detail').textContent='Select a device to view details.';
+}
+</script>
+<script>
+// ============================================================
+// SIGNAL FLOW SVG
+// ============================================================
+var FLOW_NODES=[
+  {id:'src',label:'SOURCES',x:40,y:180,w:100,h:40,color:'#1a1a3a',stroke:'#00d4ff'},
+  {id:'sdi',label:'SDI BRIDGE',x:180,y:180,w:100,h:40,color:'#1a1a3a',stroke:'#00d4ff'},
+  {id:'ip',label:'IP FABRIC',x:320,y:180,w:100,h:40,color:'#1a1a3a',stroke:'#00d4ff'},
+  {id:'sw',label:'SWITCHER',x:460,y:100,w:100,h:40,color:'#1a1a3a',stroke:'#00d4ff'},
+  {id:'rt',label:'ROUTER',x:460,y:180,w:100,h:40,color:'#1a1a3a',stroke:'#00d4ff'},
+  {id:'mv',label:'MULTIVIEWER',x:460,y:260,w:110,h:40,color:'#1a1a3a',stroke:'#a855f7'},
+  {id:'pl',label:'PLAYOUT',x:620,y:80,w:100,h:40,color:'#1a1a3a',stroke:'#f59e0b'},
+  {id:'rec',label:'RECORD',x:620,y:140,w:100,h:40,color:'#1a1a3a',stroke:'#00e87a'},
+  {id:'str',label:'STREAM',x:620,y:200,w:100,h:40,color:'#1a1a3a',stroke:'#00d4ff'},
+  {id:'mon',label:'MONITOR',x:620,y:260,w:100,h:40,color:'#1a1a3a',stroke:'#a855f7'}
+];
+var FLOW_EDGES=[
+  {from:'src',to:'sdi',color:'#00d4ff'},{from:'sdi',to:'ip',color:'#00d4ff'},
+  {from:'ip',to:'sw',color:'#00d4ff'},{from:'ip',to:'rt',color:'#00d4ff'},
+  {from:'ip',to:'mv',color:'#a855f7'},{from:'sw',to:'pl',color:'#f59e0b'},
+  {from:'sw',to:'rec',color:'#00e87a'},{from:'rt',to:'str',color:'#00d4ff'},
+  {from:'mv',to:'mon',color:'#a855f7'}
+];
+var _flowHL=null;
+var _flowPhase=0;
+function buildFlowSVG(){
+  var svg=document.getElementById('flow-svg');
+  if(!svg)return;
+  svg.innerHTML='';
+  // Defs for animation
+  var defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  svg.appendChild(defs);
+  // Draw edges
+  FLOW_EDGES.forEach(function(e,ei){
+    var fn=FLOW_NODES.find(function(n){return n.id===e.from;});
+    var tn=FLOW_NODES.find(function(n){return n.id===e.to;});
+    if(!fn||!tn)return;
+    var x1=fn.x+fn.w,y1=fn.y+fn.h/2,x2=tn.x,y2=tn.y+tn.h/2;
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    var d='M'+x1+','+y1+' C'+(x1+40)+','+y1+' '+(x2-40)+','+y2+' '+x2+','+y2;
+    path.setAttribute('d',d);
+    path.setAttribute('stroke',e.color);
+    path.setAttribute('stroke-width','2');
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke-dasharray','8 4');
+    path.style.animation='flowdash 1.5s linear infinite';
+    path.style.animationDelay=(ei*0.2)+'s';
+    svg.appendChild(path);
+  });
+  // Draw nodes
+  FLOW_NODES.forEach(function(n){
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','flow-node');
+    g.id='fn-'+n.id;
+    var rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',n.x);rect.setAttribute('y',n.y);
+    rect.setAttribute('width',n.w);rect.setAttribute('height',n.h);
+    rect.setAttribute('rx','6');rect.setAttribute('fill',n.color);
+    rect.setAttribute('stroke',_flowHL===n.id?'#fff':n.stroke);
+    rect.setAttribute('stroke-width',_flowHL===n.id?'3':'1.5');
+    var text=document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x',n.x+n.w/2);text.setAttribute('y',n.y+n.h/2+5);
+    text.setAttribute('text-anchor','middle');text.setAttribute('fill',n.stroke);
+    text.setAttribute('font-size','11');text.setAttribute('font-family','Inter,sans-serif');
+    text.setAttribute('font-weight','600');text.textContent=n.label;
+    g.appendChild(rect);g.appendChild(text);
+    g.onclick=function(){flowHighlight(n.id);};
+    svg.appendChild(g);
+  });
+}
+function flowHighlight(id){
+  _flowHL=_flowHL===id?null:id;
+  buildFlowSVG();
+}
+// CSS for flow animation
+var flowStyle=document.createElement('style');
+flowStyle.textContent='@keyframes flowdash{to{stroke-dashoffset:-24}}';
+document.head.appendChild(flowStyle);
+// ============================================================
+// CLOUD LINKS
+// ============================================================
+function cloudSetMode(m){
+  _cloudMode=m;
+  ['ground','hybrid','cloud'].forEach(function(x){
+    var btn=document.getElementById('mode-'+x);
+    if(btn)btn.className='btn '+(x.toUpperCase()===m?'btn-acc':'btn-ghost');
+  });
+  showToast('Cloud mode: '+m);
+}
+function renderCloudLinks(){
+  var list=document.getElementById('cloud-links-list');
+  if(!list)return;
+  var links=[
+    {name:'AWS MediaConnect',latency:'18ms',bitrate:'50Mbps',region:'eu-west-1',status:'ACTIVE'},
+    {name:'Azure Media Services',latency:'22ms',bitrate:'30Mbps',region:'westeurope',status:'ACTIVE'},
+    {name:'GCP Transcoder',latency:'35ms',bitrate:'20Mbps',region:'europe-west1',status:'STANDBY'}
+  ];
+  list.innerHTML='';
+  links.forEach(function(l){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--b1)';
+    row.innerHTML='<span class="dot '+(l.status==='ACTIVE'?'dot-ok':'dot-warn')+'"></span>'
+      +'<span style="font-weight:600;flex:1">'+l.name+'</span>'
+      +'<span style="font-size:.72rem;color:var(--txt2)">'+l.region+'</span>'
+      +'<span style="font-size:.72rem;color:var(--acc)" class="mono">'+l.latency+'</span>'
+      +'<span style="font-size:.72rem;color:var(--ok)" class="mono">'+l.bitrate+'</span>'
+      +'<span style="font-size:.72rem;font-weight:700;color:'+(l.status==='ACTIVE'?'var(--ok)':'var(--warn)')+'">'+l.status+'</span>';
+    list.appendChild(row);
+  });
+}
+function renderHybrid(){
+  var onprem=document.getElementById('onprem-res');
+  var cloud=document.getElementById('cloud-res');
+  var rules=document.getElementById('auto-rules');
+  if(onprem)onprem.innerHTML=['Virtual Switcher','IP Router','Multiviewer','PTP GM','NMOS Registry'].map(function(r){return'<div style="display:flex;align-items:center;gap:6px"><span class="dot dot-ok"></span>'+r+'</div>';}).join('');
+  if(cloud)cloud.innerHTML=['AWS Encoder x3','GCP Transcoder','Azure Playout x2','CDN Edge x5'].map(function(r){return'<div style="display:flex;align-items:center;gap:6px"><span class="dot dot-ok"></span><span style="color:var(--gold)">'+r+'</span></div>';}).join('');
+  if(rules)rules.innerHTML=[
+    'IF PGM=REMOTE → route via SRT gateway',
+    'IF CPU>85% → scale encoder to cloud',
+    'IF WAN_LOSS>1% → failover to backup SRT',
+    'IF PLAYOUT_FAIL → switch to cloud playout'
+  ].map(function(r){return'<div style="padding:6px 10px;background:var(--bg4);border-radius:3px;border-left:3px solid var(--pur)">'+r+'</div>';}).join('');
+}
+</script>
+<script>
+// ============================================================
+// RUNDOWN VIEW
+// ============================================================
+var _rdTimer=null;
+function renderRundown(){
+  if(!_rdCues.length){
+    _rdCues=[
+      {type:'LIVE',label:'SHOW OPEN',src:'CAM-01',dur:'00:30',done:false},
+      {type:'PKG',label:'PACKAGE A',src:'VTR-01',dur:'02:15',done:false},
+      {type:'GFX',label:'LOWER THIRD',src:'GFX-01',dur:'00:10',done:false},
+      {type:'LIVE',label:'INTERVIEW',src:'CAM-02',dur:'05:00',done:false},
+      {type:'BREAK',label:'AD BREAK',src:'CLN-01',dur:'02:00',done:false},
+      {type:'PKG',label:'PACKAGE B',src:'VTR-02',dur:'03:30',done:false},
+      {type:'LIVE',label:'SHOW CLOSE',src:'CAM-01',dur:'01:00',done:false}
+    ];
+  }
+  buildRundownList();updateRDSidebar();
+}
+function buildRundownList(){
+  var list=document.getElementById('rundown-list');
+  if(!list)return;
+  list.innerHTML='';
+  _rdCues.forEach(function(c,i){
+    var row=document.createElement('div');
+    var isActive=i===_rdCurrent;
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--r);border:1px solid '+(isActive?'var(--acc)':'var(--b1)')+';background:'+(isActive?'var(--bg4)':'var(--bg3)')+';opacity:'+(c.done?'.5':'1');
+    var typeColors={LIVE:'var(--pgm)',PKG:'var(--acc)',GFX:'var(--pur)',BREAK:'var(--warn)'};
+    row.innerHTML='<span style="font-size:.68rem;font-weight:700;padding:2px 6px;border-radius:3px;background:'+(typeColors[c.type]||'var(--b2)')+';color:'+(c.type==='PKG'||c.type==='GFX'?'#000':'#fff')+'">'+c.type+'</span>'
+      +'<span style="flex:1;font-size:.8rem;font-weight:'+(isActive?'600':'400')+'">'+c.label+'</span>'
+      +'<span style="font-size:.72rem;color:var(--txt2)">'+c.src+'</span>'
+      +'<span class="mono" style="font-size:.72rem;color:var(--acc)">'+c.dur+'</span>'
+      +(isActive?'<span style="font-size:.65rem;color:var(--acc)">▶ NOW</span>':'');
+    row.onclick=function(){_rdCurrent=i;buildRundownList();updateRDSidebar();};
+    list.appendChild(row);
+  });
+}
+function updateRDSidebar(){
+  var now=document.getElementById('rd-now');
+  var next=document.getElementById('rd-next');
+  var cur=_rdCues[_rdCurrent];
+  var nxt=_rdCues[_rdCurrent+1];
+  if(now&&cur)now.innerHTML='<div style="font-weight:700">'+cur.label+'</div><div style="font-size:.72rem;color:var(--txt2)">'+cur.src+' — '+cur.dur+'</div>';
+  if(next&&nxt)next.innerHTML='<div style="font-weight:700">'+nxt.label+'</div><div style="font-size:.72rem;color:var(--txt2)">'+nxt.src+' — '+nxt.dur+'</div>';
+  else if(next&&!nxt)next.textContent='END OF RUNDOWN';
+}
+function rdGo(){_rdRunning=true;addEvent('RUNDOWN GO');}
+function rdHold(){_rdRunning=false;addEvent('RUNDOWN HOLD');}
+function rdSkip(){
+  if(_rdCurrent<_rdCues.length-1){_rdCurrent++;buildRundownList();updateRDSidebar();}
+}
+function rdTake(){
+  var cur=_rdCues[_rdCurrent];
+  if(cur){SW.me[0].pgm=cur.src;updateSBPGM();addEvent('TAKE: '+cur.label+' → '+cur.src);}
+  _rdCues[_rdCurrent].done=true;
+  if(_rdCurrent<_rdCues.length-1)_rdCurrent++;
+  buildRundownList();updateRDSidebar();_saveState();
+}
+function showAddCue(){document.getElementById('add-cue-form').style.display='block';}
+function hideAddCue(){document.getElementById('add-cue-form').style.display='none';}
+function addCue(){
+  var type=document.getElementById('cue-type').value;
+  var label=document.getElementById('cue-label').value||'New Cue';
+  var src=document.getElementById('cue-src').value||'CAM-01';
+  var dur=document.getElementById('cue-dur').value||'00:30';
+  _rdCues.push({type:type,label:label,src:src,dur:dur,done:false});
+  hideAddCue();buildRundownList();_saveState();
+}
+// ============================================================
+// PLAYOUT VIEW
+// ============================================================
+var PLAYOUT_CHS=[
+  {id:'CH-01',status:'RUNNING',fmt:'1080i50',bitrate:'15Mbps',region:'EU-W1'},
+  {id:'CH-02',status:'RUNNING',fmt:'720p50',bitrate:'8Mbps',region:'EU-W1'},
+  {id:'CH-03',status:'STANDBY',fmt:'1080p25',bitrate:'20Mbps',region:'US-E1'},
+  {id:'CH-04',status:'RUNNING',fmt:'1080i50',bitrate:'15Mbps',region:'AP-SE1'},
+  {id:'CH-05',status:'STOPPED',fmt:'4K50',bitrate:'50Mbps',region:'EU-W1'}
+];
+function renderPlayout(){
+  var list=document.getElementById('playout-channels');
+  if(!list)return;
+  list.innerHTML='';
+  PLAYOUT_CHS.forEach(function(ch,i){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--b1)';
+    var statusColor=ch.status==='RUNNING'?'var(--ok)':ch.status==='STANDBY'?'var(--warn)':'var(--txt2)';
+    row.innerHTML='<span class="dot" style="background:'+statusColor+'"></span>'
+      +'<span style="font-weight:700;width:60px">'+ch.id+'</span>'
+      +'<span style="font-size:.72rem;color:var(--txt2);flex:1">'+ch.fmt+'</span>'
+      +'<span class="mono" style="font-size:.72rem;color:var(--acc)">'+ch.bitrate+'</span>'
+      +'<span style="font-size:.72rem;color:var(--gold)">'+ch.region+'</span>'
+      +'<span style="font-size:.72rem;font-weight:700;color:'+statusColor+'">'+ch.status+'</span>'
+      +'<button class="btn '+(ch.status==='RUNNING'?'btn-pgm':'btn-ok')+'" style="font-size:.7rem;padding:3px 10px" onclick="togglePlayout('+i+')">'+(ch.status==='RUNNING'?'SPIN DOWN':'SPIN UP')+'</button>';
+    list.appendChild(row);
+  });
+  var bw=document.getElementById('bw-summary');
+  if(bw)bw.innerHTML=['Total: 108Mbps','Peak: 120Mbps','Limit: 200Mbps'].map(function(s){return'<div>'+s+'</div>';}).join('');
+  var reg=document.getElementById('regions-panel');
+  if(reg)reg.innerHTML=['EU-W1: 3 channels','US-E1: 1 channel','AP-SE1: 1 channel'].map(function(s){return'<div style="display:flex;align-items:center;gap:6px"><span class="dot dot-ok"></span>'+s+'</div>';}).join('');
+  var fo=document.getElementById('failover-status');
+  if(fo)fo.innerHTML=['CH-01 → CH-03 (standby)','CH-02 → CH-04 (standby)'].map(function(s){return'<div style="color:var(--ok)">'+s+'</div>';}).join('');
+}
+function togglePlayout(i){
+  var ch=PLAYOUT_CHS[i];
+  ch.status=ch.status==='RUNNING'?'STANDBY':'RUNNING';
+  renderPlayout();addAlarm('INFO',ch.id+' '+ch.status);
+}
+</script>
+<script>
+// ============================================================
+// SYNC (PTP) VIEW
+// ============================================================
+function renderSync(){
+  var tbody=document.getElementById('ptp-tbody');
+  if(!tbody)return;
+  var rows=[
+    ['Profile','SMPTE ST 2059-2'],['Domain','127'],
+    ['Grandmaster','00:1A:2B:3C:4D:5E'],['Offset','+12ns'],
+    ['Path Delay','234ns'],['Sync Interval','125ms'],
+    ['Lock Status','LOCKED'],['Announce Interval','2s']
+  ];
+  tbody.innerHTML='';
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    tr.style.borderBottom='1px solid var(--b1)';
+    tr.innerHTML='<td style="padding:7px 8px;color:var(--txt2)">'+r[0]+'</td>'
+      +'<td style="padding:7px 8px;color:var(--acc)" class="mono">'+r[1]+'</td>';
+    tbody.appendChild(tr);
+  });
+  var hier=document.getElementById('ptp-hierarchy');
+  if(hier)hier.innerHTML=[
+    {label:'PTP Grandmaster (GM)',color:'var(--gold)',indent:0},
+    {label:'Boundary Clock 1',color:'var(--acc)',indent:1},
+    {label:'Ordinary Clock — NEXUS Core',color:'var(--ok)',indent:2},
+    {label:'Ordinary Clock — Encoder A',color:'var(--ok)',indent:2},
+    {label:'Boundary Clock 2',color:'var(--acc)',indent:1},
+    {label:'Ordinary Clock — Router',color:'var(--ok)',indent:2}
+  ].map(function(n){
+    return'<div style="padding:4px 0;padding-left:'+(n.indent*20)+'px;display:flex;align-items:center;gap:6px">'
+      +(n.indent>0?'<span style="color:var(--b2)">└─</span>':'')
+      +'<span class="dot" style="background:'+n.color+'"></span>'
+      +'<span style="color:'+n.color+'">'+n.label+'</span></div>';
+  }).join('');
+}
+// ============================================================
+// NMOS VIEW
+// ============================================================
+function renderNMOS(){
+  var tbody=document.getElementById('nmos-tbody');
+  if(!tbody)return;
+  var nodes=[
+    {name:'NEXUS-CORE-01',ip:'192.168.1.10',is04:'v1.3',is05:'v1.1',status:'REGISTERED'},
+    {name:'ENCODER-A',ip:'192.168.1.20',is04:'v1.3',is05:'v1.1',status:'REGISTERED'},
+    {name:'ENCODER-B',ip:'192.168.1.21',is04:'v1.3',is05:'v1.0',status:'REGISTERED'},
+    {name:'DECODER-A',ip:'192.168.1.30',is04:'v1.2',is05:'v1.1',status:'REGISTERED'},
+    {name:'MULTIVIEWER',ip:'192.168.1.40',is04:'v1.3',is05:'v1.1',status:'REGISTERED'},
+    {name:'ROUTER-16x16',ip:'192.168.1.50',is04:'v1.3',is05:'—',status:'REGISTERED'},
+    {name:'REMOTE-CAM-01',ip:'10.0.1.5',is04:'v1.1',is05:'—',status:'PENDING'}
+  ];
+  tbody.innerHTML='';
+  nodes.forEach(function(n){
+    var tr=document.createElement('tr');
+    tr.style.borderBottom='1px solid var(--b1)';
+    tr.innerHTML='<td style="padding:8px">'+n.name+'</td>'
+      +'<td style="padding:8px" class="mono">'+n.ip+'</td>'
+      +'<td style="padding:8px;color:var(--ok)">'+n.is04+'</td>'
+      +'<td style="padding:8px;color:var(--ok)">'+n.is05+'</td>'
+      +'<td style="padding:8px"><span class="dot '+(n.status==='REGISTERED'?'dot-ok':'dot-warn')+'"></span> '+n.status+'</td>'
+      +'<td style="padding:8px"><button class="btn btn-acc" style="font-size:.7rem;padding:3px 10px" onclick="nmosConnect(\''+n.name+'\')">IS-05 CONNECT</button></td>';
+    tbody.appendChild(tr);
+  });
+}
+function nmosConnect(name){addAlarm('INFO','IS-05 connect: '+name);showToast('IS-05: '+name);}
+// ============================================================
+// DEVICES VIEW
+// ============================================================
+function renderDevices(){
+  var table=document.getElementById('compat-table');
+  if(!table)return;
+  var vendors=['Sony','GV','EVS','Riedel','Lawo','Calrec','Netgear','Dante','Yamaha','Behringer','Blackmagic','Vizrt','Ross','Haivision','Evertz'];
+  var protos=['SDI','ST2110','NMOS','SRT','NDI','DANTE','AES67','EMBER+','SNMP','REST','gRPC','RTMP','HLS'];
+  var data={Sony:[1,1,1,1,0,0,1,1,1,1,0,1,1],GV:[1,1,1,0,0,0,1,1,1,1,0,0,1],EVS:[1,1,1,1,0,0,1,0,1,1,0,1,1],Riedel:[1,1,1,1,0,0,1,1,1,1,1,0,0],Lawo:[1,1,1,0,0,1,1,1,1,1,0,0,0],Calrec:[1,0,2,0,0,1,1,1,1,1,0,0,0],Netgear:[0,1,1,0,0,0,0,0,1,1,0,0,0],Dante:[0,0,0,0,0,1,1,0,0,1,0,0,0],Yamaha:[1,0,0,0,0,1,1,1,1,1,0,0,0],Behringer:[1,0,0,0,0,1,1,1,1,1,0,0,0],Blackmagic:[1,1,2,1,1,0,0,0,1,1,0,1,1],Vizrt:[1,1,1,0,1,0,0,1,1,1,0,1,0],Ross:[1,1,1,0,0,0,0,1,1,1,0,1,1],Haivision:[1,1,1,1,0,0,0,0,1,1,0,1,1],Evertz:[1,1,1,1,0,0,1,1,1,1,0,1,1]};
+  table.innerHTML='';
+  var hdr=document.createElement('tr');
+  hdr.innerHTML='<th style="padding:6px 10px;text-align:left;color:var(--txt2);font-size:.7rem;background:var(--bg3)">VENDOR</th>';
+  protos.forEach(function(p){hdr.innerHTML+='<th style="padding:6px 8px;color:var(--txt2);font-size:.68rem;background:var(--bg3)">'+p+'</th>';});
+  table.appendChild(hdr);
+  vendors.forEach(function(v){
+    var tr=document.createElement('tr');tr.style.borderBottom='1px solid var(--b1)';
+    tr.innerHTML='<td style="padding:6px 10px;font-size:.75rem;font-weight:600">'+v+'</td>';
+    (data[v]||[]).forEach(function(c){
+      var sym=c===1?'<span style="color:var(--ok)">✓</span>':c===2?'<span style="color:var(--warn)">◎</span>':'<span style="color:var(--txt2)">—</span>';
+      tr.innerHTML+='<td style="padding:6px 8px;text-align:center;font-size:.85rem">'+sym+'</td>';
+    });
+    table.appendChild(tr);
+  });
+}
+// ============================================================
+// SRT VIEW
+// ============================================================
+function renderSRT(){
+  var tbody=document.getElementById('srt-tbody');
+  if(!tbody)return;
+  var streams=[
+    {name:'SRT-IN-01',dir:'RX',codec:'H.264',bitrate:'8Mbps',latency:'120ms',status:'ACTIVE'},
+    {name:'SRT-IN-02',dir:'RX',codec:'HEVC',bitrate:'15Mbps',latency:'200ms',status:'ACTIVE'},
+    {name:'SRT-OUT-01',dir:'TX',codec:'H.264',bitrate:'5Mbps',latency:'80ms',status:'ACTIVE'},
+    {name:'SRT-OUT-02',dir:'TX',codec:'HEVC',bitrate:'12Mbps',latency:'150ms',status:'STANDBY'},
+    {name:'SRT-RELAY-01',dir:'TX',codec:'H.264',bitrate:'8Mbps',latency:'100ms',status:'ACTIVE'}
+  ];
+  tbody.innerHTML='';
+  streams.forEach(function(s){
+    var tr=document.createElement('tr');tr.style.borderBottom='1px solid var(--b1)';
+    tr.innerHTML='<td style="padding:8px">'+s.name+'</td>'
+      +'<td style="padding:8px;color:'+(s.dir==='RX'?'var(--pvw)':'var(--acc)')+'">'+s.dir+'</td>'
+      +'<td style="padding:8px;color:var(--txt2)">'+s.codec+'</td>'
+      +'<td style="padding:8px" class="mono">'+s.bitrate+'</td>'
+      +'<td style="padding:8px" class="mono">'+s.latency+'</td>'
+      +'<td style="padding:8px"><span class="dot '+(s.status==='ACTIVE'?'dot-ok':'dot-warn')+'"></span> '+s.status+'</td>';
+    tbody.appendChild(tr);
+  });
+}
+</script>
+<script>
+// ============================================================
+// ORCHESTRATE VIEW
+// ============================================================
+var ORCH_SERVICES=[
+  {name:'nexus-switcher',image:'nexus/switcher:6.0',cpu:42,mem:61,inst:2,status:'RUNNING'},
+  {name:'nexus-router',image:'nexus/router:6.0',cpu:18,mem:34,inst:1,status:'RUNNING'},
+  {name:'nexus-encoder',image:'nexus/encoder:6.0',cpu:78,mem:55,inst:3,status:'RUNNING'},
+  {name:'nexus-nmos',image:'nexus/nmos:6.0',cpu:8,mem:15,inst:1,status:'RUNNING'},
+  {name:'nexus-ptp',image:'nexus/ptp:6.0',cpu:5,mem:10,inst:1,status:'RUNNING'}
+];
+function renderOrchestrate(){
+  var list=document.getElementById('orch-services');
+  if(!list)return;
+  list.innerHTML='';
+  ORCH_SERVICES.forEach(function(s,i){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--b1)';
+    row.innerHTML='<span class="dot dot-ok"></span>'
+      +'<span style="font-weight:600;flex:1">'+s.name+'</span>'
+      +'<span style="font-size:.7rem;color:var(--txt2)">'+s.image+'</span>'
+      +'<span style="font-size:.72rem;color:var(--acc)">CPU: '+s.cpu+'%</span>'
+      +'<span style="font-size:.72rem;color:var(--ok)">MEM: '+s.mem+'%</span>'
+      +'<span style="font-size:.72rem;color:var(--pur)">×'+s.inst+'</span>'
+      +'<button class="btn btn-pgm" style="font-size:.68rem;padding:2px 8px" onclick="stopService('+i+')">STOP</button>';
+    list.appendChild(row);
+  });
+}
+function stopService(i){
+  ORCH_SERVICES[i].status='STOPPED';
+  addAlarm('WARN','Service stopped: '+ORCH_SERVICES[i].name);
+  renderOrchestrate();
+}
+function deployService(){
+  var name=document.getElementById('orch-name').value;
+  var image=document.getElementById('orch-image').value;
+  var inst=parseInt(document.getElementById('orch-inst').value)||1;
+  if(!name||!image){showToast('Name and image required');return;}
+  ORCH_SERVICES.push({name:name,image:image,cpu:0,mem:0,inst:inst,status:'RUNNING'});
+  renderOrchestrate();showToast('Deployed: '+name);
+  addAlarm('INFO','Service deployed: '+name);
+}
+// ============================================================
+// API VIEW
+// ============================================================
+var API_ENDPOINTS=[
+  {method:'GET',path:'/api/v1/switcher/state',desc:'Get full switcher state'},
+  {method:'POST',path:'/api/v1/switcher/cut',desc:'Execute cut on ME bank'},
+  {method:'GET',path:'/api/v1/router/crosspoints',desc:'Get all router crosspoints'},
+  {method:'PUT',path:'/api/v1/router/route',desc:'Set a crosspoint route'},
+  {method:'GET',path:'/api/v1/sources',desc:'List all sources'},
+  {method:'GET',path:'/api/v1/alarms',desc:'Get active alarms'},
+  {method:'POST',path:'/api/v1/alarms/ack',desc:'Acknowledge alarm by ID'},
+  {method:'GET',path:'/api/v1/ptp/status',desc:'Get PTP sync status'},
+  {method:'GET',path:'/api/v1/nmos/nodes',desc:'List NMOS registered nodes'},
+  {method:'POST',path:'/api/v1/nmos/connect',desc:'IS-05 connect sender to receiver'},
+  {method:'GET',path:'/api/v1/rundown',desc:'Get current rundown'},
+  {method:'POST',path:'/api/v1/rundown/take',desc:'Execute take on current cue'}
+];
+function renderAPI(){
+  var list=document.getElementById('api-endpoints');
+  if(!list)return;
+  list.innerHTML='';
+  API_ENDPOINTS.forEach(function(ep){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--b1)';
+    var mc={GET:'var(--ok)',POST:'var(--acc)',PUT:'var(--warn)',DELETE:'var(--pgm)'};
+    row.innerHTML='<span style="font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:3px;background:'+(mc[ep.method]||'var(--b2)')+';color:#000;min-width:50px;text-align:center">'+ep.method+'</span>'
+      +'<span class="mono" style="font-size:.75rem;color:var(--acc);flex:1">'+ep.path+'</span>'
+      +'<span style="font-size:.72rem;color:var(--txt2);flex:1">'+ep.desc+'</span>'
+      +'<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 10px" onclick="tryAPI(\''+ep.method+'\',\''+ep.path+'\')">TRY</button>';
+    list.appendChild(row);
+  });
+}
+function tryAPI(method,path){
+  showToast(method+' '+path+' → 200 OK');
+  addAlarm('INFO','API: '+method+' '+path);
+}
+// ============================================================
+// PRE-FLIGHT VIEW
+// ============================================================
+var PREFLIGHT_CHECKS=[
+  {name:'PTP Lock',status:'pass',msg:'Offset +12ns — within tolerance'},
+  {name:'NMOS Registry',status:'pass',msg:'7 nodes registered'},
+  {name:'Video Inputs',status:'pass',msg:'24/24 sources active'},
+  {name:'Audio Sync',status:'pass',msg:'All channels locked at 48kHz'},
+  {name:'Network Interfaces',status:'warn',msg:'eth2 — no link detected'},
+  {name:'Multicast Groups',status:'pass',msg:'4 groups active'},
+  {name:'SRT Streams',status:'pass',msg:'5 streams active'},
+  {name:'Cloud Links',status:'pass',msg:'AWS + Azure connected'},
+  {name:'Disk Space',status:'pass',msg:'Recording: 2.1TB free'},
+  {name:'CPU Load',status:'warn',msg:'Encoder B at 91% — high load'},
+  {name:'Memory',status:'pass',msg:'All services within limits'},
+  {name:'Firewall Rules',status:'pass',msg:'All required ports open'}
+];
+function renderPreFlight(){
+  var list=document.getElementById('preflight-list');
+  if(!list)return;
+  list.innerHTML='';
+  PREFLIGHT_CHECKS.forEach(function(c){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);border-left:3px solid '+(c.status==='pass'?'var(--ok)':c.status==='warn'?'var(--warn)':'var(--pgm)');
+    row.innerHTML='<span class="dot dot-'+(c.status==='pass'?'ok':c.status==='warn'?'warn':'err')+'"></span>'
+      +'<span style="font-weight:600;flex:1">'+c.name+'</span>'
+      +'<span style="font-size:.78rem;color:var(--txt2)">'+c.msg+'</span>'
+      +'<span style="font-size:.72rem;font-weight:700;color:'+(c.status==='pass'?'var(--ok)':c.status==='warn'?'var(--warn)':'var(--pgm)')+'">'+c.status.toUpperCase()+'</span>';
+    list.appendChild(row);
+  });
+}
+function runPreFlight(){
+  PREFLIGHT_CHECKS.forEach(function(c){if(Math.random()>0.85)c.status='warn';else c.status='pass';});
+  renderPreFlight();showToast('Pre-flight checks complete');
+  addAlarm('INFO','Pre-flight checks run');
+}
+</script>
+<script>
+// ============================================================
+// NETWORK VIEW
+// ============================================================
+function setNetMode(m){_netMode=m;showToast('Network mode: '+m);}
+function setTransport(t){_transport=t;showToast('Transport: '+t);}
+function renderNetwork(){
+  var tbody=document.getElementById('net-iface-tbody');
+  if(!tbody)return;
+  var ifaces=[
+    {name:'eth0',ip:'192.168.1.10',mask:'255.255.255.0',speed:'10GbE',status:'UP',role:'Media A'},
+    {name:'eth1',ip:'192.168.1.11',mask:'255.255.255.0',speed:'10GbE',status:'UP',role:'Media B'},
+    {name:'eth2',ip:'192.168.2.10',mask:'255.255.255.0',speed:'1GbE',status:'DOWN',role:'Control'},
+    {name:'eth3',ip:'10.0.0.10',mask:'255.255.0.0',speed:'1GbE',status:'UP',role:'WAN'}
+  ];
+  tbody.innerHTML='';
+  ifaces.forEach(function(i){
+    var tr=document.createElement('tr');tr.style.borderBottom='1px solid var(--b1)';
+    tr.innerHTML='<td style="padding:8px" class="mono">'+i.name+'</td>'
+      +'<td style="padding:8px" class="mono">'+i.ip+'</td>'
+      +'<td style="padding:8px" class="mono">'+i.mask+'</td>'
+      +'<td style="padding:8px;color:var(--acc)">'+i.speed+'</td>'
+      +'<td style="padding:8px"><span class="dot '+(i.status==='UP'?'dot-ok':'dot-err')+'"></span> '+i.status+'</td>'
+      +'<td style="padding:8px;color:var(--txt2)">'+i.role+'</td>';
+    tbody.appendChild(tr);
+  });
+  var mc=document.getElementById('mc-list');
+  if(mc)mc.innerHTML=['239.0.0.1:5004 — Video PGM','239.0.0.2:5004 — Video PVW','239.0.1.1:5004 — Audio PGM','239.0.2.1:5004 — ANC/Meta'].map(function(s){return'<div style="padding:3px 0;border-bottom:1px solid var(--b1);color:var(--acc)" class="mono">'+s+'</div>';}).join('');
+  var uc=document.getElementById('uc-list');
+  if(uc)uc.innerHTML=['192.168.1.20:5004 → Encoder A','192.168.1.30:5004 → Decoder A','10.0.0.50:5004 → Remote Feed'].map(function(s){return'<div style="padding:3px 0;border-bottom:1px solid var(--b1)">'+s+'</div>';}).join('');
+  var form=document.getElementById('net-ip-form');
+  if(form)form.style.display=canEngineer()?'':'none';
+}
+function applyNetConfig(){
+  if(!canEngineer()){showToast('ENGINEER only');return;}
+  showToast('Network config applied');addAlarm('INFO','Network config updated');
+}
+// ============================================================
+// SETTINGS VIEW
+// ============================================================
+function renderSettings(){
+  var tbody=document.getElementById('users-tbody');
+  if(!tbody)return;
+  var users=[
+    {name:'admin',role:'ENGINEER',last:'2025-01-15 09:00',enabled:true},
+    {name:'operator1',role:'OPERATOR',last:'2025-01-15 08:30',enabled:true},
+    {name:'trainer1',role:'TRAINER',last:'2025-01-14 16:00',enabled:true},
+    {name:'viewer1',role:'VIEWER',last:'2025-01-13 12:00',enabled:false}
+  ];
+  tbody.innerHTML='';
+  users.forEach(function(u){
+    var tr=document.createElement('tr');tr.style.borderBottom='1px solid var(--b1)';
+    tr.innerHTML='<td style="padding:7px 8px">'+u.name+'</td>'
+      +'<td style="padding:7px 8px;color:var(--acc)">'+u.role+'</td>'
+      +'<td style="padding:7px 8px;color:var(--txt2);font-size:.72rem">'+u.last+'</td>'
+      +'<td style="padding:7px 8px"><span class="dot '+(u.enabled?'dot-ok':'dot-err')+'"></span> '+(u.enabled?'ENABLED':'DISABLED')+'</td>';
+    tbody.appendChild(tr);
+  });
+}
+function saveSettings(){showToast('Settings saved');addAlarm('INFO','System settings updated');_saveState();}
+function backupConfig(){
+  var data=JSON.stringify({router:ROUTER,sw:SW,mosaic:_mosaicPresets,rundown:_rdCues,audio:_audioMatrix});
+  var blob=new Blob([data],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nexus-v6-backup.json';a.click();
+  showToast('Config backed up');
+}
+function restoreConfig(){showToast('Restore: select a backup file');}
+// ============================================================
+// TRAINING VIEW
+// ============================================================
+var TRAIN_MODULES=[
+  {title:'Platform Overview',view:'live',steps:[
+    {title:'Introduction',content:'NEXUS v6 is a software-defined broadcast platform supporting ST 2110, NMOS IS-04/05, SRT, and hybrid cloud workflows.<br><br><b>Key capabilities:</b><ul><li>Multi-ME software switcher</li><li>16×16 IP router</li><li>Cloud MCR with virtual rack</li><li>PTP/ST 2059-2 synchronization</li></ul>'},
+    {title:'Architecture',content:'The platform runs on commodity hardware with a microservices architecture.<br><br><b>Core services:</b><ul><li>Switcher engine (Go)</li><li>IP Router (Rust)</li><li>NMOS Registry (Python)</li><li>API Gateway (Node.js)</li></ul>'},
+    {title:'Signal Flow',content:'Signals flow from physical SDI inputs through an SDI bridge into the IP fabric.<br><br>The IP fabric distributes ST 2110 streams to all processing nodes using multicast.<br><br>Outputs are encoded and delivered via SRT or cloud links.'},
+    {title:'Getting Started',content:'1. Log in with your assigned role<br>2. Navigate to LIVE view to monitor program output<br>3. Use MOSAIC for multi-source monitoring<br>4. Access SWITCHER for production control<br><br><b>Default password:</b> nexus2024'}
+  ]},
+  {title:'Switcher Operation',view:'switch',steps:[
+    {title:'ME Banks',content:'The switcher has 3 Mix/Effects (ME) banks. Each ME has:<br><ul><li>PROGRAM bus — on-air output</li><li>PREVIEW bus — next source</li><li>Transition controls</li></ul>'},
+    {title:'Transitions',content:'Select transition type: MIX, CUT, WIPE, or DIP.<br><br>Set rate in frames (10f, 25f, 50f, 100f).<br><br>Press AUTO TRANS to execute, or CUT for instant switch.'},
+    {title:'Keyers',content:'Each ME has 3 upstream keyers (UK1-3) and 3 downstream keyers (DSK1-3).<br><br>Upstream keyers are in the ME signal path. Downstream keyers are post-mix.<br><br>Types: LUMA, CHROMA, LINEAR, PATTERN'},
+    {title:'Tally System',content:'The tally grid shows all 24 sources with PGM/PVW/IDLE state.<br><br>Red = on program, Green = on preview, Grey = idle.<br><br>Click any source in the tally grid to set it to preview.'}
+  ]},
+  {title:'Router Operation',view:'router',steps:[
+    {title:'Matrix Overview',content:'The 16×16 crosspoint matrix routes any of 16 sources to any of 16 destinations.<br><br>Click a cell to route that source to that destination.<br><br>Active routes are shown in cyan.'},
+    {title:'Salvo Mode',content:'Salvo mode allows you to select multiple routes and execute them simultaneously.<br><br>1. Enable SALVO<br>2. Click cells to queue routes (shown in amber)<br>3. Press EXECUTE to apply all at once'},
+    {title:'Lock/Protect',content:'ENGINEER role can lock destinations to prevent accidental re-routing.<br><br>A locked destination shows a lock icon. Attempts to route a locked destination will be rejected.'},
+    {title:'Levels',content:'The router operates on four levels:<br><ul><li>VIDEO — primary video signal</li><li>AUDIO-L — left audio channel</li><li>AUDIO-R — right audio channel</li><li>ANC — ancillary data</li></ul>'}
+  ]},
+  {title:'Rundown Management',view:'rundown',steps:[
+    {title:'Cue Types',content:'Rundown cues have four types:<br><ul><li><b>LIVE</b> — live camera or remote feed</li><li><b>PKG</b> — pre-recorded package</li><li><b>GFX</b> — graphics or lower third</li><li><b>BREAK</b> — commercial or station break</li></ul>'},
+    {title:'Controls',content:'<b>GO</b> — start rundown clock<br><b>HOLD</b> — pause rundown<br><b>SKIP</b> — advance to next cue<br><b>TAKE</b> — execute current cue and advance'},
+    {title:'Timers',content:'Three timers are displayed:<br><ul><li>SHOW — total show elapsed time</li><li>ELAPSED — time on current cue</li><li>REMAIN — time remaining on current cue</li></ul>'},
+    {title:'Adding Cues',content:'Click + ADD CUE to add a new cue.<br><br>Fill in type, label, source, and duration.<br><br>Cues are saved to localStorage and persist between sessions.'}
+  ]},
+  {title:'PTP Synchronization',view:'sync',steps:[
+    {title:'PTP Overview',content:'NEXUS uses IEEE 1588v2 PTP with SMPTE ST 2059-2 profile for broadcast synchronization.<br><br>All devices must be synchronized to the same grandmaster clock.'},
+    {title:'Clock Hierarchy',content:'The clock hierarchy shows:<br><ul><li>Grandmaster (GM) — top-level reference</li><li>Boundary Clocks — distribute timing</li><li>Ordinary Clocks — end devices</li></ul>'},
+    {title:'Offset Monitoring',content:'The offset chart shows PTP offset over the last 60 samples.<br><br>Acceptable offset: ±50ns for broadcast.<br><br>If offset exceeds threshold, an alarm is raised.'},
+    {title:'Troubleshooting',content:'Common PTP issues:<br><ul><li>High offset — check network path</li><li>Lost lock — verify GM is reachable</li><li>Asymmetric delay — check switch configuration</li></ul>'}
+  ]},
+  {title:'IP Networking',view:'network',steps:[
+    {title:'Network Architecture',content:'NEXUS uses a dual-redundant 10GbE network:<br><ul><li>Media A — primary video/audio</li><li>Media B — redundant video/audio</li><li>Control — management traffic</li><li>WAN — internet/cloud connectivity</li></ul>'},
+    {title:'Multicast',content:'ST 2110 uses IP multicast for efficient distribution.<br><br>Video: 239.0.0.x<br>Audio: 239.0.1.x<br>ANC: 239.0.2.x<br><br>IGMP snooping must be enabled on all switches.'},
+    {title:'Unicast Mode',content:'Unicast mode sends streams point-to-point.<br><br>Use for low-latency connections or when multicast is not available.<br><br>Higher bandwidth usage than multicast.'},
+    {title:'Hybrid Mode',content:'Hybrid mode uses multicast for local distribution and unicast for remote connections.<br><br>Recommended for most deployments.'}
+  ]},
+  {title:'Equipment Guide',view:'devices',steps:[
+    {title:'Supported Vendors',content:'NEXUS supports 15 major broadcast vendors including Sony, GV, EVS, Riedel, Lawo, and Blackmagic.<br><br>See the Compatibility Matrix for full protocol support details.'},
+    {title:'Native Integration',content:'Native (✓) means direct protocol support with no additional hardware.<br><br>Examples: Sony cameras via SDI/ST2110, Riedel intercom via EMBER+'},
+    {title:'Gateway Integration',content:'Via Gateway (◎) means a protocol bridge is required.<br><br>The NEXUS gateway service handles protocol translation automatically.'},
+    {title:'Adding Devices',content:'To add a new device:<br>1. Connect to the network<br>2. Configure IP address<br>3. Register in NMOS (IS-04)<br>4. Connect flows (IS-05)<br>5. Verify in DEVICES view'}
+  ]}
+];
+function renderTraining(){
+  var modList=document.getElementById('train-mod-list');
+  if(!modList)return;
+  modList.innerHTML='';
+  TRAIN_MODULES.forEach(function(m,i){
+    var item=document.createElement('div');
+    item.className='mod-item'+(i===_trainMod?' active':'');
+    var done=_trainDone.indexOf(i)>=0;
+    item.innerHTML='<div style="display:flex;align-items:center;gap:8px">'
+      +'<span class="dot '+(done?'dot-ok':'dot-idle')+'"></span>'
+      +'<span style="font-size:.8rem;font-weight:600">'+(i+1)+'. '+m.title+'</span>'
+      +'</div>'
+      +(done?'<div style="font-size:.65rem;color:var(--ok);margin-top:2px;padding-left:16px">COMPLETED</div>':'');
+    item.onclick=function(){_trainMod=i;_trainStep=0;renderTraining();};
+    modList.appendChild(item);
+  });
+  updateTrainContent();
+  var pct=Math.round(_trainDone.length/TRAIN_MODULES.length*100);
+  var bar=document.getElementById('train-overall-bar');if(bar)bar.style.width=pct+'%';
+  var lbl=document.getElementById('train-overall-pct');if(lbl)lbl.textContent=_trainDone.length+' / '+TRAIN_MODULES.length+' modules';
+}
+function updateTrainContent(){
+  var mod=TRAIN_MODULES[_trainMod];
+  var step=mod.steps[_trainStep];
+  var content=document.getElementById('train-content');
+  if(!content)return;
+  content.innerHTML='<div style="margin-bottom:16px">'
+    +'<div style="font-size:.72rem;color:var(--txt2);letter-spacing:.1em;margin-bottom:4px">MODULE '+((_trainMod+1))+' OF '+TRAIN_MODULES.length+'</div>'
+    +'<div style="font-size:1.1rem;font-weight:700;color:var(--acc);margin-bottom:4px">'+mod.title+'</div>'
+    +'<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 10px" onclick="navigateTo(\''+mod.view+'\')">OPEN VIEW ↗</button>'
+    +'</div>'
+    +'<div style="font-size:.85rem;font-weight:700;color:var(--txt);margin-bottom:10px">'+step.title+'</div>'
+    +'<div style="font-size:.82rem;color:var(--txt2);line-height:1.7">'+step.content+'</div>';
+  var dots=document.getElementById('train-step-dots');
+  if(dots){
+    dots.innerHTML='';
+    mod.steps.forEach(function(s,i){
+      var d=document.createElement('div');
+      d.className='step-dot'+(i===_trainStep?' cur':i<_trainStep?' done':'');
+      d.onclick=function(){_trainStep=i;updateTrainContent();};
+      dots.appendChild(d);
+    });
+  }
+}
+function trainPrev(){if(_trainStep>0){_trainStep--;updateTrainContent();}else if(_trainMod>0){_trainMod--;_trainStep=TRAIN_MODULES[_trainMod].steps.length-1;renderTraining();}}
+function trainNext(){var mod=TRAIN_MODULES[_trainMod];if(_trainStep<mod.steps.length-1){_trainStep++;updateTrainContent();}else if(_trainMod<TRAIN_MODULES.length-1){_trainMod++;_trainStep=0;renderTraining();}}
+function trainComplete(){
+  if(_trainDone.indexOf(_trainMod)<0)_trainDone.push(_trainMod);
+  showToast('Module completed: '+TRAIN_MODULES[_trainMod].title);
+  renderTraining();
+}
+</script>
+<script>
+// ============================================================
+// COMPATIBILITY VIEW
+// ============================================================
+function renderCompat(){
+  var table=document.getElementById('compat-matrix');
+  if(!table)return;
+  var vendors=['Sony','GV (Grass Valley)','EVS','Riedel','Lawo','Calrec','Netgear','Dante (Audinate)','Yamaha','Behringer','Blackmagic Design','Vizrt','Ross Video','Haivision','Evertz'];
+  var protos=['SDI','ST 2110','NMOS IS-04/05','SRT','NDI','DANTE','AES67','EMBER+','SNMP','REST API','gRPC','RTMP','HLS'];
+  var data=[
+    [1,1,1,1,0,0,1,1,1,1,0,1,1],
+    [1,1,1,0,0,0,1,1,1,1,0,0,1],
+    [1,1,1,1,0,0,1,0,1,1,0,1,1],
+    [1,1,1,1,0,0,1,1,1,1,1,0,0],
+    [1,1,1,0,0,1,1,1,1,1,0,0,0],
+    [1,0,2,0,0,1,1,1,1,1,0,0,0],
+    [0,1,1,0,0,0,0,0,1,1,0,0,0],
+    [0,0,0,0,0,1,1,0,0,1,0,0,0],
+    [1,0,0,0,0,1,1,1,1,1,0,0,0],
+    [1,0,0,0,0,1,1,1,1,1,0,0,0],
+    [1,1,2,1,1,0,0,0,1,1,0,1,1],
+    [1,1,1,0,1,0,0,1,1,1,0,1,0],
+    [1,1,1,0,0,0,0,1,1,1,0,1,1],
+    [1,1,1,1,0,0,0,0,1,1,0,1,1],
+    [1,1,1,1,0,0,1,1,1,1,0,1,1]
+  ];
+  table.innerHTML='';
+  var hdr=document.createElement('tr');
+  hdr.innerHTML='<th style="padding:6px 10px;text-align:left;color:var(--txt2);font-size:.7rem;background:var(--bg3);white-space:nowrap;position:sticky;left:0">VENDOR</th>';
+  protos.forEach(function(p){
+    hdr.innerHTML+='<th style="padding:6px 6px;color:var(--txt2);font-size:.65rem;background:var(--bg3);white-space:nowrap;writing-mode:vertical-rl;transform:rotate(180deg);height:80px">'+p+'</th>';
+  });
+  table.appendChild(hdr);
+  vendors.forEach(function(v,vi){
+    var tr=document.createElement('tr');tr.style.borderBottom='1px solid var(--b1)';
+    tr.innerHTML='<td style="padding:6px 10px;font-size:.75rem;font-weight:600;white-space:nowrap;background:var(--bg3);position:sticky;left:0">'+v+'</td>';
+    (data[vi]||[]).forEach(function(c){
+      var sym=c===1?'<span style="color:var(--ok);font-size:1rem">✓</span>':c===2?'<span style="color:var(--warn);font-size:1rem">◎</span>':'<span style="color:var(--b2)">—</span>';
+      tr.innerHTML+='<td style="padding:6px 8px;text-align:center">'+sym+'</td>';
+    });
+    table.appendChild(tr);
+  });
+  // Protocol summary cards
+  var existing=document.getElementById('compat-proto-cards');
+  if(!existing){
+    var cards=document.createElement('div');
+    cards.id='compat-proto-cards';
+    cards.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:16px';
+    var protoInfo=[
+      {name:'ST 2110',desc:'SMPTE standard for IP video/audio transport'},
+      {name:'NMOS',desc:'Network Media Open Specifications IS-04/05'},
+      {name:'SRT',desc:'Secure Reliable Transport for low-latency streaming'},
+      {name:'AES67',desc:'AES standard for audio over IP interoperability'},
+      {name:'EMBER+',desc:'Lawo protocol for device control and monitoring'},
+      {name:'DANTE',desc:'Audinate audio networking protocol'}
+    ];
+    protoInfo.forEach(function(p){
+      var card=document.createElement('div');
+      card.style.cssText='background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 14px;min-width:180px';
+      card.innerHTML='<div style="font-size:.78rem;font-weight:700;color:var(--acc);margin-bottom:4px">'+p.name+'</div>'
+        +'<div style="font-size:.7rem;color:var(--txt2)">'+p.desc+'</div>';
+      cards.appendChild(card);
+    });
+    document.getElementById('view-compat').querySelector('.panel').appendChild(cards);
+  }
+}
+// ============================================================
+// MAIN ANIMATION LOOP
+// ============================================================
+function mainLoop(){
+  tickTC();
+  animateLive();
+  if(_activeView==='scopes')animateScopes();
+  if(_activeView==='audio')animateAudioMeters();
+  if(_activeView==='mosaic')animateMosaicTiles();
+  if(_activeView==='sync')drawPTPChart();
+  // Random alarms
+  if(Math.random()<0.003)addAlarm('WARN','High CPU on Encoder B: '+Math.round(88+Math.random()*10)+'%');
+  if(Math.random()<0.001)addAlarm('CRIT','PTP offset exceeded threshold');
+  if(Math.random()<0.002)addAlarm('INFO','Source '+SOURCES[Math.floor(Math.random()*SOURCES.length)]+' signal detected');
+}
+function ptpLoop(){animatePTP();}
+// ============================================================
+// INIT APP
+// ============================================================
+function initApp(){
+  _loadState();
+  document.getElementById('role-badge').textContent=ROLE;
+  buildNav();
+  initLive();
+  initWS();
+  // Seed alarms
+  addAlarm('OK','System initialized — NEXUS v7');
+  addAlarm('INFO','PTP locked to grandmaster 00:1A:2B:3C:4D:5E');
+  addAlarm('WARN','Encoder B CPU at 91%');
+  addAlarm('INFO','NMOS registry: 7 nodes registered');
+  // Start loops
+  var iv1=setInterval(mainLoop,40);
+  var iv2=setInterval(ptpLoop,1000);
+  _ivs.push(iv1,iv2);
+  // Navigate to first allowed view
+  var nav=ROLE_NAV[ROLE]||{};
+  var firstGroup=Object.keys(nav)[0];
+  if(firstGroup&&nav[firstGroup].length)navigateTo(nav[firstGroup][0]);
+  // Rundown clock
+  setInterval(function(){
+    if(_rdRunning){
+      _rdShowSec++;_rdElapsedSec++;
+      var sc=document.getElementById('rd-show-clock');if(sc)sc.textContent=fmtSec(_rdShowSec);
+      var el=document.getElementById('rd-elapsed');if(el)el.textContent=fmtSec(_rdElapsedSec);
+    }
+  },1000);
+}
+function fmtSec(s){var h=Math.floor(s/3600);var m=Math.floor((s%3600)/60);var ss=s%60;return pad2(h)+':'+pad2(m)+':'+pad2(ss);}
+</script>
+</body>
+</html>

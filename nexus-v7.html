@@ -2682,7 +2682,7 @@ function saveSettings(){showToast('Settings saved');addAlarm('INFO','System sett
 function backupConfig(){
   var data=JSON.stringify({router:ROUTER,sw:SW,mosaic:_mosaicPresets,rundown:_rdCues,audio:_audioMatrix});
   var blob=new Blob([data],{type:'application/json'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nexus-v6-backup.json';a.click();
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nexus-v7-backup.json';a.click();
   showToast('Config backed up');
 }
 function restoreConfig(){showToast('Restore: select a backup file');}

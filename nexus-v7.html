@@ -53,6 +53,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   #nav-groups .nav-group-btn:nth-child(n+4){display:none}
   .sw-me-tabs{flex-wrap:wrap}
 }
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
 /* LOGIN */
 #login-page{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1000;
@@ -99,7 +100,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 <div id="app" style="display:none;flex-direction:column;height:100vh">
 <!-- TOP NAV -->
 <nav id="top-nav" style="background:var(--bg3);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;height:48px;gap:8px;position:relative;z-index:500;flex-shrink:0">
-  <div style="font-weight:700;font-size:1rem;letter-spacing:.15em;color:var(--acc);margin-right:12px;white-space:nowrap">NEXUS <span style="color:var(--txt2);font-size:.7rem">v6</span></div>
+  <div style="font-weight:700;font-size:1rem;letter-spacing:.15em;color:var(--acc);margin-right:12px;white-space:nowrap">NEXUS <span style="color:var(--txt2);font-size:.7rem">v7</span></div>
   <div id="nav-groups" style="display:flex;gap:4px;flex:1"></div>
   <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
     <span id="role-badge" style="font-size:.68rem;font-weight:700;letter-spacing:.12em;padding:3px 8px;border-radius:3px;background:var(--b2);color:var(--acc)"></span>
@@ -120,7 +121,6 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   <span style="display:flex;align-items:center;gap:4px">WS: <span id="sb-ws" style="width:7px;height:7px;border-radius:50%;background:var(--warn);display:inline-block"></span></span>
   <span id="sb-onair" style="color:var(--pgm);font-weight:700;animation:blink 1s step-end infinite">● ON AIR</span>
 </div>
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 <!-- VIEWS CONTAINER -->
 <div id="views" style="flex:1;overflow:hidden;position:relative"></div>
 </div>
